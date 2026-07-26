@@ -1,0 +1,8 @@
+/* Nord Zen Browser Theme */
+:root {
+  --zen-accent-color: #88c0d0 !important;
+  --zen-theme-accent: #88c0d0 !important;
+  --zen-main-browser-background: #2e3440 !important;
+  --toolbar-bgcolor: #272c36 !important;
+  --tab-selected-bgcolor: #3b4252 !important;
+}

@@ -7,6 +7,7 @@
 /workspaces
 /services/app_launcher_helper
 /services/wallpaper_helper
+/services/theme_sync_helper
 
 # 2. Object Files & Build Artifacts
 *.o

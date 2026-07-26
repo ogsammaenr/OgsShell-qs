@@ -1,0 +1,47 @@
+{
+  "$schema": "https://zed.dev/schema/themes/v0.1.0.json",
+  "name": "Gruvbox Dark",
+  "author": "OgsShell-qs",
+  "themes": [
+    {
+      "name": "Gruvbox Dark",
+      "appearance": "dark",
+      "style": {
+        "border": "#3c3836",
+        "elevation.shadow": "#00000080",
+        "surface.background": "#282828",
+        "background": "#282828",
+        "element.background": "#3c3836",
+        "element.hover": "#504945",
+        "element.active": "#665c54",
+        "element.selected": "#665c54",
+        "text": "#fbf1c7",
+        "text.muted": "#a89984",
+        "text.accent": "#fabd2f",
+        "status_bar.background": "#1d2021",
+        "title_bar.background": "#1d2021",
+        "toolbar.background": "#282828",
+        "tab_bar.background": "#1d2021",
+        "tab.active_background": "#282828",
+        "tab.inactive_background": "#1d2021",
+        "editor.background": "#282828",
+        "editor.foreground": "#fbf1c7",
+        "editor.gutter.background": "#282828",
+        "editor.line_number": "#665c54",
+        "editor.active_line_number": "#fabd2f",
+        "project_panel.background": "#1d2021",
+        "panel.background": "#1d2021",
+        "dock.background": "#1d2021",
+        "workspace.background": "#282828",
+        "syntax": {
+          "keyword": { "color": "#fb4934" },
+          "function": { "color": "#83a598" },
+          "string": { "color": "#b8bb26" },
+          "comment": { "color": "#928374" },
+          "type": { "color": "#fabd2f" },
+          "variable": { "color": "#fbf1c7" }
+        }
+      }
+    }
+  ]
+}

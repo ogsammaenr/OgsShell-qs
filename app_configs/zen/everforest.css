@@ -1,0 +1,8 @@
+/* Everforest Dark Hard Zen Browser Theme */
+:root {
+  --zen-accent-color: #a7c080 !important;
+  --zen-theme-accent: #a7c080 !important;
+  --zen-main-browser-background: #2d353b !important;
+  --toolbar-bgcolor: #232a2e !important;
+  --tab-selected-bgcolor: #343f44 !important;
+}

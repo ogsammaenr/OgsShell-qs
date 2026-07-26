@@ -1,0 +1,8 @@
+/* Tokyo Night Zen Browser Theme */
+:root {
+  --zen-accent-color: #7aa2f7 !important;
+  --zen-theme-accent: #7aa2f7 !important;
+  --zen-main-browser-background: #1a1b26 !important;
+  --toolbar-bgcolor: #16161e !important;
+  --tab-selected-bgcolor: #24283b !important;
+}

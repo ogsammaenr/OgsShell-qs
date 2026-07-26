@@ -41,7 +41,7 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
   - `property int brightness`, `property int volume`, `property bool audioMuted`: Ekran parlaklığı ve ses seviyeleri.
   - `property string netSpeed`: Anlık ağ indirme/yükleme hızı stringi (örn. `"1.2 MB/s"`).
   - `property string mediaStatus`, `property string mediaTitle`, `property string mediaArtist`: playerctl aracılığıyla okunan medya durumları.
-  - `property bool showCpuUsageOnBar` (ve diğer `show...OnBar` değişkenleri): Bar üzerinde hangi istatistiklerin görünür olacağını belirleyen anahtarlar.
+  - `property bool showCpuUsageOnBar`, `property bool showRamUsageOnBar`, `property bool showGpuUsageOnBar`, `property bool showNetSpeedOnBar`: Bar üzerinde hangi istatistiklerin görünür olacağını belirleyen anahtarlar.
   - `function setBrightness(pct)`: Laptop dahili ekranı (`brightnessctl`) ile harici HDMI/DP monitörlerin (`ddcutil setvcp 10`) parlaklığını senkronize ayarlar. I2C veriyolu kilitlenmesini önlemek için 350ms debouncing ve işlem sonlandırma mekanizmasına sahiptir.
 
 ### 2.3. [TimeService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/TimeService.qml)
@@ -141,6 +141,12 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
   - `function refresh()`: Dizin duvar kağıdı listesini C binary ile günceller.
   - `function restoreWallpaper()`: Aktif temanın en son kullanılan duvar kağıdını C binary ile otomatik yükler.
   - `function setWallpaper(path)`: Seçilen duvar kağıdını uygular ve konfigürasyona kaydeder.
+
+### 2.12. [ThemeSyncService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/ThemeSyncService.qml) ve [theme_sync_helper.c](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/theme_sync_helper.c)
+- **Görev:** OgsShell-qs üzerinde aktif tema değiştirildiğinde sistemdeki harici uygulamaların (GTK3/GTK4 uygulamaları, Dolphin/Qt, Kitty terminal, Zed Editor, Zen Browser, Neovim ve Tmux) temalarını repo içerisindeki şablonlardan (`app_configs/`) kopyalayarak senkronize eder.
+- **Veri Kaynağı:** `services/theme_sync_helper.c` kaynak kodundan derlenen `services/theme_sync_helper` yerel C binary dosyası. `app_configs/<app>/<theme_id>` dizinlerindeki resmi ve yüksek kontrastlı renk şablonlarını `~/.config/kdeglobals`, `~/.config/kitty/current-theme.conf`, `~/.config/zed/themes/` & `settings.json`, `~/.zen/<profile>/chrome/userChrome.css`, `~/.config/nvim/colors/` & `lua/plugins/theme.lua`, `~/.tmux/current-theme.conf` ve `~/.config/gtk-3.0`/`gtk-4.0` hedeflerine doğrudan kopyalar. Kitty terminallerine canlı `SIGUSR1` sinyali, Neovim soketlerine canlı RPC ve KDE/Qt uygulamalarına DBus yenileme sinyali gönderir.
+- **Dışa Aktarılan Arayüzler:**
+  - `property string activeTheme`: Senkronize edilen aktif tema ID'si.
 
 ---
 

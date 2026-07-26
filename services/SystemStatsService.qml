@@ -28,11 +28,12 @@ Item {
   property int notificationCount: 0
 
   // Bar stats visibility
-  property bool showCpuUsageOnBar: false
+  property bool showCpuUsageOnBar: true
   property bool showCpuTempOnBar: false
-  property bool showRamUsageOnBar: false
+  property bool showRamUsageOnBar: true
   property bool showGpuUsageOnBar: false
   property bool showGpuTempOnBar: false
+  property bool showNetSpeedOnBar: true
   property int pendingExternalBrightness: -1
 
   Timer {

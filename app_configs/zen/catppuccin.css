@@ -1,0 +1,8 @@
+/* Catppuccin Mocha Zen Browser Theme */
+:root {
+  --zen-accent-color: #cba6f7 !important;
+  --zen-theme-accent: #cba6f7 !important;
+  --zen-main-browser-background: #1e1e2e !important;
+  --toolbar-bgcolor: #181825 !important;
+  --tab-selected-bgcolor: #313244 !important;
+}

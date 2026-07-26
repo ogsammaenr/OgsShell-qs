@@ -106,6 +106,11 @@ ShellRoot {
     activeTheme: root.activeTheme
   }
 
+  ThemeSyncService {
+    id: themeSyncService
+    activeTheme: root.activeTheme
+  }
+
   // Monitor-specific Window Groups
   Variants {
     model: Quickshell.screens

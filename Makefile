@@ -15,7 +15,10 @@ LAUNCHER_OUT = $(PDIR)/services/app_launcher_helper
 WALLPAPER_SRC = $(PDIR)/services/wallpaper_helper.c
 WALLPAPER_OUT = $(PDIR)/services/wallpaper_helper
 
-all: $(MONITOR_OUT) $(WORKSPACES_OUT) $(LAUNCHER_OUT) $(WALLPAPER_OUT)
+THEME_SYNC_SRC = $(PDIR)/services/theme_sync_helper.c
+THEME_SYNC_OUT = $(PDIR)/services/theme_sync_helper
+
+all: $(MONITOR_OUT) $(WORKSPACES_OUT) $(LAUNCHER_OUT) $(WALLPAPER_OUT) $(THEME_SYNC_OUT)
 
 $(MONITOR_OUT): $(MONITOR_SRC)
 	$(CC) $(CFLAGS) -Iservices/monitor $(MONITOR_SRC) -o $(MONITOR_OUT)
@@ -29,7 +32,10 @@ $(LAUNCHER_OUT): $(LAUNCHER_SRC)
 $(WALLPAPER_OUT): $(WALLPAPER_SRC)
 	$(CC) $(CFLAGS) $(WALLPAPER_SRC) -o $(WALLPAPER_OUT)
 
+$(THEME_SYNC_OUT): $(THEME_SYNC_SRC)
+	$(CC) $(CFLAGS) $(THEME_SYNC_SRC) -o $(THEME_SYNC_OUT)
+
 clean:
-	rm -f $(MONITOR_OUT) $(WORKSPACES_OUT) $(LAUNCHER_OUT) $(WALLPAPER_OUT)
+	rm -f $(MONITOR_OUT) $(WORKSPACES_OUT) $(LAUNCHER_OUT) $(WALLPAPER_OUT) $(THEME_SYNC_OUT)
 
 .PHONY: all clean

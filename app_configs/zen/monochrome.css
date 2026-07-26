@@ -1,0 +1,8 @@
+/* Monochrome High Contrast Zen Browser Theme */
+:root {
+  --zen-accent-color: #ffffff !important;
+  --zen-theme-accent: #ffffff !important;
+  --zen-main-browser-background: #121212 !important;
+  --toolbar-bgcolor: #0a0a0a !important;
+  --tab-selected-bgcolor: #222222 !important;
+}
