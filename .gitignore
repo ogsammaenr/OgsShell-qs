@@ -1,0 +1,36 @@
+# ==========================================
+# OgsShell-qs Git Ignore Rules
+# ==========================================
+
+# 1. Compiled C Binaries & Daemon Executables
+/monitor
+/workspaces
+/services/app_launcher_helper
+/services/wallpaper_helper
+
+# 2. Object Files & Build Artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.out
+
+# 3. System & Runtime Caches
+.cache/
+*.log
+*.qslog
+*.swp
+*~
+
+# 4. OS & Environment Metadata
+.DS_Store
+Thumbs.db
+
+# 5. IDE / Editor Specific Files
+.idea/
+.vscode/
+*.qtcreator
+*.user
+
+# 6. Local User Environment Scripts
+/reload.sh
