@@ -32,5 +32,3 @@ Thumbs.db
 *.qtcreator
 *.user
 
-# 6. Local User Environment Scripts
-/reload.sh
