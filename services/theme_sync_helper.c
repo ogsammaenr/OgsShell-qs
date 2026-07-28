@@ -173,14 +173,19 @@ static void sync_qt(const char *theme_id, const char *pdir, const char *home) {
         fclose(kf);
     }
 
-    // E. Execute official KDE plasma-apply-colorscheme CLI and broadcast DBus notification
-    char cmd[1024];
+    // E. Execute official KDE plasma-apply-colorscheme CLI and broadcast comprehensive live DBus notifications
+    char cmd[2048];
     snprintf(cmd, sizeof(cmd),
-        "plasma-apply-colorscheme %s 2>/dev/null; "
-        "kwriteconfig6 --file kdeglobals --group General --key ColorScheme %s 2>/dev/null; "
-        "kwriteconfig6 --file dolphinrc --group UiSettings --key ColorScheme %s 2>/dev/null; "
-        "qdbus org.kde.KGlobalSettings /KGlobalSettings notifyChange 0 0 2>/dev/null || true",
-        scheme_name, scheme_name, scheme_name);
+        "plasma-apply-colorscheme %s 2>/dev/null || true; "
+        "kwriteconfig6 --file kdeglobals --group General --key ColorScheme %s 2>/dev/null || true; "
+        "kwriteconfig6 --file dolphinrc --group UiSettings --key ColorScheme %s 2>/dev/null || true; "
+        "kwriteconfig5 --file kdeglobals --group General --key ColorScheme %s 2>/dev/null || true; "
+        "dbus-send --session --type=signal /KGlobalSettings org.kde.KGlobalSettings.notifyChange int32:2 int32:0 2>/dev/null || true; "
+        "qdbus org.kde.KGlobalSettings /KGlobalSettings notifyChange 2 0 2>/dev/null || true; "
+        "qdbus6 org.kde.KGlobalSettings /KGlobalSettings notifyChange 2 0 2>/dev/null || true; "
+        "gdbus emit --session --object-path /kdeglobals --signal org.kde.kconfig.notify 2>/dev/null || true; "
+        "dbus-send --session --type=signal /KWin org.kde.KWin.reloadConfig 2>/dev/null || true",
+        scheme_name, scheme_name, scheme_name, scheme_name);
     system(cmd);
 }
 
