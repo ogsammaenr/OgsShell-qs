@@ -101,7 +101,7 @@ static void set_ini_key(const char *ini_path, const char *section, const char *k
     free(content);
 }
 
-// 1. Sync Qt5, Qt6, Dolphin, KDE Apps (Clearing & Updating Per-App Theme Locks)
+// 1. Sync Qt5, Qt6, Dolphin, KDE Apps (Clearing & Updating Per-App Theme Locks + plasma-apply-colorscheme)
 static void sync_qt(const char *theme_id, const char *pdir, const char *home) {
     char src_qt[PATH_MAX_LEN];
     char src_kdeglobals[PATH_MAX_LEN];
@@ -173,13 +173,14 @@ static void sync_qt(const char *theme_id, const char *pdir, const char *home) {
         fclose(kf);
     }
 
-    // E. Trigger KDE/Qt DBus notification and kwriteconfig6
+    // E. Execute official KDE plasma-apply-colorscheme CLI and broadcast DBus notification
     char cmd[1024];
     snprintf(cmd, sizeof(cmd),
+        "plasma-apply-colorscheme %s 2>/dev/null; "
         "kwriteconfig6 --file kdeglobals --group General --key ColorScheme %s 2>/dev/null; "
         "kwriteconfig6 --file dolphinrc --group UiSettings --key ColorScheme %s 2>/dev/null; "
         "qdbus org.kde.KGlobalSettings /KGlobalSettings notifyChange 0 0 2>/dev/null || true",
-        scheme_name, scheme_name);
+        scheme_name, scheme_name, scheme_name);
     system(cmd);
 }
 
@@ -310,16 +311,26 @@ static void sync_zen(const char *theme_id, const char *pdir, const char *home) {
 
 // 5. Sync GTK3 & GTK4
 static void sync_gtk(const char *theme_id, const char *pdir, const char *home) {
-    char src[PATH_MAX_LEN];
-    char dst_gtk3[PATH_MAX_LEN];
-    char dst_gtk4[PATH_MAX_LEN];
+    char src_ini[PATH_MAX_LEN];
+    char src_css[PATH_MAX_LEN];
+    char dst_gtk3_ini[PATH_MAX_LEN];
+    char dst_gtk4_ini[PATH_MAX_LEN];
+    char dst_gtk3_css[PATH_MAX_LEN];
+    char dst_gtk4_css[PATH_MAX_LEN];
 
-    snprintf(src, sizeof(src), "%s/app_configs/gtk/%s.ini", pdir, theme_id);
-    snprintf(dst_gtk3, sizeof(dst_gtk3), "%s/.config/gtk-3.0/settings.ini", home);
-    snprintf(dst_gtk4, sizeof(dst_gtk4), "%s/.config/gtk-4.0/settings.ini", home);
+    snprintf(src_ini, sizeof(src_ini), "%s/app_configs/gtk/%s.ini", pdir, theme_id);
+    snprintf(src_css, sizeof(src_css), "%s/app_configs/gtk/%s.css", pdir, theme_id);
 
-    copy_file(src, dst_gtk3);
-    copy_file(src, dst_gtk4);
+    snprintf(dst_gtk3_ini, sizeof(dst_gtk3_ini), "%s/.config/gtk-3.0/settings.ini", home);
+    snprintf(dst_gtk4_ini, sizeof(dst_gtk4_ini), "%s/.config/gtk-4.0/settings.ini", home);
+
+    snprintf(dst_gtk3_css, sizeof(dst_gtk3_css), "%s/.config/gtk-3.0/gtk.css", home);
+    snprintf(dst_gtk4_css, sizeof(dst_gtk4_css), "%s/.config/gtk-4.0/gtk.css", home);
+
+    copy_file(src_ini, dst_gtk3_ini);
+    copy_file(src_ini, dst_gtk4_ini);
+    copy_file(src_css, dst_gtk3_css);
+    copy_file(src_css, dst_gtk4_css);
 
     const char *gtk_theme = (strcmp(theme_id, "nord") == 0) ? "Nordic" : "adw-gtk3-dark";
     char cmd[512];
@@ -431,6 +442,179 @@ static void sync_tmux(const char *theme_id, const char *pdir, const char *home) 
     }
 }
 
+// Helper to update color_theme = "..." in btop.conf
+static void set_btop_theme(const char *btop_conf, const char *theme_val) {
+    FILE *f = fopen(btop_conf, "r");
+    if (!f) {
+        FILE *out = fopen(btop_conf, "w");
+        if (out) {
+            fprintf(out, "color_theme = \"%s\"\n", theme_val);
+            fclose(out);
+        }
+        return;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *content = malloc(sz + 1);
+    if (!content) { fclose(f); return; }
+    fread(content, 1, sz, f);
+    content[sz] = '\0';
+    fclose(f);
+
+    char *pos = strstr(content, "color_theme =");
+    if (!pos) pos = strstr(content, "color_theme=");
+
+    if (pos) {
+        FILE *out = fopen(btop_conf, "w");
+        if (out) {
+            fwrite(content, 1, pos - content, out);
+            fprintf(out, "color_theme = \"%s\"", theme_val);
+            char *line_end = strchr(pos, '\n');
+            if (line_end) fputs(line_end, out);
+            else fprintf(out, "\n");
+            fclose(out);
+        }
+    } else {
+        FILE *out = fopen(btop_conf, "a");
+        if (out) {
+            fprintf(out, "\ncolor_theme = \"%s\"\n", theme_val);
+            fclose(out);
+        }
+    }
+    free(content);
+}
+
+// 8. Sync btop System Monitor
+static void sync_btop(const char *theme_id, const char *pdir, const char *home) {
+    char src[PATH_MAX_LEN];
+    char btop_dir[PATH_MAX_LEN];
+    char btop_themes_dir[PATH_MAX_LEN];
+    char dst_theme[PATH_MAX_LEN];
+    char btop_conf[PATH_MAX_LEN];
+
+    snprintf(src, sizeof(src), "%s/app_configs/btop/%s.theme", pdir, theme_id);
+    snprintf(btop_dir, sizeof(btop_dir), "%s/.config/btop", home);
+    snprintf(btop_themes_dir, sizeof(btop_themes_dir), "%s/themes", btop_dir);
+    snprintf(dst_theme, sizeof(dst_theme), "%s/%s.theme", btop_themes_dir, theme_id);
+    snprintf(btop_conf, sizeof(btop_conf), "%s/btop.conf", btop_dir);
+
+    ensure_dir(btop_themes_dir);
+    if (copy_file(src, dst_theme)) {
+        set_btop_theme(btop_conf, dst_theme);
+        system("pkill -SIGUSR2 btop 2>/dev/null || true");
+    }
+}
+
+// Ensure "useQuickCss": true and "enabledThemes": ["ogsshell.theme.css"] in Vesktop settings.json
+static void ensure_vesktop_settings_json(const char *json_path) {
+    FILE *f = fopen(json_path, "r");
+    if (!f) {
+        FILE *out = fopen(json_path, "w");
+        if (out) {
+            fprintf(out, "{\n  \"useQuickCss\": true,\n  \"enabledThemes\": [\n    \"ogsshell.theme.css\"\n  ]\n}\n");
+            fclose(out);
+        }
+        return;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    char *content = malloc(sz + 1);
+    if (!content) { fclose(f); return; }
+    fread(content, 1, sz, f);
+    content[sz] = '\0';
+    fclose(f);
+
+    int modified = 0;
+
+    // 1. Check useQuickCss
+    if (strstr(content, "\"useQuickCss\": false") || strstr(content, "\"useQuickCss\":false")) {
+        char *pos = strstr(content, "\"useQuickCss\": false");
+        if (!pos) pos = strstr(content, "\"useQuickCss\":false");
+        if (pos) {
+            char *val = strstr(pos, "false");
+            if (val) {
+                val[0] = 't'; val[1] = 'r'; val[2] = 'u'; val[3] = 'e'; val[4] = ' ';
+                modified = 1;
+            }
+        }
+    }
+
+    // 2. Check enabledThemes
+    if (!strstr(content, "ogsshell.theme.css")) {
+        char *pos = strstr(content, "\"enabledThemes\": [");
+        if (!pos) pos = strstr(content, "\"enabledThemes\":[");
+        if (pos) {
+            char *bracket = strchr(pos, '[');
+            if (bracket) {
+                size_t head_len = (bracket + 1) - content;
+                size_t tail_len = strlen(bracket + 1);
+                char *new_content = malloc(head_len + strlen("\"ogsshell.theme.css\"") + 10 + tail_len + 1);
+                if (new_content) {
+                    strncpy(new_content, content, head_len);
+                    new_content[head_len] = '\0';
+                    strcat(new_content, "\n    \"ogsshell.theme.css\"");
+                    if (bracket[1] != ']' && bracket[1] != '\n' && bracket[1] != ' ') {
+                        strcat(new_content, ", ");
+                    }
+                    strcat(new_content, bracket + 1);
+                    free(content);
+                    content = new_content;
+                    modified = 1;
+                }
+            }
+        }
+    }
+
+    if (modified) {
+        FILE *out = fopen(json_path, "w");
+        if (out) {
+            fputs(content, out);
+            fclose(out);
+        }
+    }
+    free(content);
+}
+
+// 9. Sync Vesktop (Discord Client)
+static void sync_vesktop(const char *theme_id, const char *pdir, const char *home) {
+    char src[PATH_MAX_LEN];
+    snprintf(src, sizeof(src), "%s/app_configs/vesktop/%s.css", pdir, theme_id);
+
+    const char *paths[] = {
+        "/.config/vesktop",
+        "/.var/app/dev.vencord.Vesktop/config/vesktop",
+        NULL
+    };
+
+    for (int i = 0; paths[i] != NULL; i++) {
+        char base_dir[PATH_MAX_LEN];
+        snprintf(base_dir, sizeof(base_dir), "%s%s", home, paths[i]);
+        if (access(base_dir, F_OK) != 0) continue;
+
+        char settings_dir[PATH_MAX_LEN], themes_dir[PATH_MAX_LEN];
+        char quick_css[PATH_MAX_LEN], theme_css[PATH_MAX_LEN], settings_json[PATH_MAX_LEN];
+
+        snprintf(settings_dir, sizeof(settings_dir), "%s/settings", base_dir);
+        snprintf(themes_dir, sizeof(themes_dir), "%s/themes", base_dir);
+        snprintf(quick_css, sizeof(quick_css), "%s/quickCss.css", settings_dir);
+        snprintf(theme_css, sizeof(theme_css), "%s/ogsshell.theme.css", themes_dir);
+        snprintf(settings_json, sizeof(settings_json), "%s/settings.json", settings_dir);
+
+        ensure_dir(settings_dir);
+        ensure_dir(themes_dir);
+
+        copy_file(src, quick_css);
+        copy_file(src, theme_css);
+        ensure_vesktop_settings_json(settings_json);
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <theme_id>\n", argv[0]);
@@ -464,6 +648,8 @@ int main(int argc, char *argv[]) {
     sync_gtk(theme_id, pdir, home);
     sync_nvim(theme_id, pdir, home);
     sync_tmux(theme_id, pdir, home);
+    sync_btop(theme_id, pdir, home);
+    sync_vesktop(theme_id, pdir, home);
 
     return 0;
 }

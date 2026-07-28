@@ -22,8 +22,8 @@ Rectangle {
   height: isHudActive ? hudHeight : (hoverArea.containsMouse ? hoveredHeight : idleHeight)
   radius: height / 2
   clip: true
-  color: group.theme.bg
-  border.color: group.theme.border
+  color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "transparent" : group.theme.bg
+  border.color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "transparent" : group.theme.border
   border.width: 1
   opacity: (group.isControlCenterOpen || group.isTimeManagerOpen || group.isCalendarOpen || group.isAppLauncherOpen) ? 0.0 : 1.0
   scale: (group.isControlCenterOpen || group.isTimeManagerOpen || group.isCalendarOpen || group.isAppLauncherOpen) ? 0.85 : 1.0

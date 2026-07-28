@@ -17,8 +17,8 @@ Rectangle {
   
   height: 30
   radius: 15
-  color: group.theme.bg
-  border.color: isPinned ? group.theme.accent : group.theme.border
+  color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive && !isPinned) ? "transparent" : group.theme.bg
+  border.color: isPinned ? group.theme.accent : ((typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "transparent" : group.theme.border)
   border.width: 1
 
   opacity: (group.isControlCenterOpen || group.isTimeManagerOpen || group.isCalendarOpen) ? 0.0 : 1.0

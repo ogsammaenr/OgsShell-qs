@@ -54,8 +54,8 @@ Rectangle {
   height: 30
   radius: height / 2
 
-  color: theme.bg
-  border.color: theme.border
+  color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "transparent" : theme.bg
+  border.color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "transparent" : theme.border
   border.width: 1
 
   // Smooth width animation as workspaces are active/inactive

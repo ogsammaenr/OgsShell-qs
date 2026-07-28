@@ -27,8 +27,9 @@ PanelWindow {
   aboveWindows: true
   color: "transparent"
 
-  // Restrict window input region to the union of both containers
+  // Restrict window input region to the union of containers or flat bar
   mask: Region {
+    Region { item: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? flatBarBg : null }
     Region { item: leftWorkspaceBar }
     Region { item: (systemStatsIsland.visible && systemStatsIsland.opacity > 0) ? systemStatsIsland : null }
     Region { item: islandContainer }
@@ -41,6 +42,23 @@ PanelWindow {
   Item {
     id: inputMaskContainer
     anchors.fill: parent
+
+    // Flat bar strip for Game Mode
+    Rectangle {
+      id: flatBarBg
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 32
+      color: monitorGroup.theme.bg
+      border.color: monitorGroup.theme.border
+      border.width: 1
+      opacity: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? 1.0 : 0.0
+
+      Behavior on opacity {
+        NumberAnimation { duration: 180 }
+      }
+    }
 
     // Full screen mouse area to dismiss media manager on click outside
     MouseArea {

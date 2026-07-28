@@ -440,15 +440,15 @@ Rectangle {
       }
     }
 
-    // 3. Action Buttons Row (Notifications, Clipboard, Keyboard, Theme, Power)
+    // 3. Action Buttons Row (Notifications, Clipboard, Keyboard, GameMode, Theme, Power)
     Row {
       width: parent.width
-      spacing: 10
+      spacing: 8
       height: 40
 
       // Notifications Button
       Rectangle {
-        width: (parent.width - 40) / 5
+        width: (parent.width - 40) / 6
         height: parent.height
         radius: 8
         color: root.theme.buttonBg
@@ -471,7 +471,7 @@ Rectangle {
 
       // Clipboard Button
       Rectangle {
-        width: (parent.width - 40) / 5
+        width: (parent.width - 40) / 6
         height: parent.height
         radius: 8
         color: root.isSelectingClipboard ? root.theme.accent : root.theme.buttonBg
@@ -497,7 +497,7 @@ Rectangle {
 
       // Keyboard Layout Button
       Rectangle {
-        width: (parent.width - 40) / 5
+        width: (parent.width - 40) / 6
         height: parent.height
         radius: 8
         color: root.theme.buttonBg
@@ -528,9 +528,36 @@ Rectangle {
         }
       }
 
+      // Game Mode Toggle Button
+      Rectangle {
+        width: (parent.width - 40) / 6
+        height: parent.height
+        radius: 8
+        color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? root.theme.accent : root.theme.buttonBg
+
+        Behavior on color { ColorAnimation { duration: 150 } }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            if (typeof gameModeService !== "undefined") {
+              gameModeService.toggleGameMode();
+            }
+          }
+        }
+
+        Text {
+          text: "\uf11b" // Gamepad / Controller icon
+          color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "#ffffff" : root.theme.accent
+          font { family: "FiraCode Nerd Font"; pixelSize: 15 }
+          anchors.centerIn: parent
+        }
+      }
+
       // Theme Switcher Button
       Rectangle {
-        width: (parent.width - 40) / 5
+        width: (parent.width - 40) / 6
         height: parent.height
         radius: 8
         color: root.theme.buttonBg
@@ -553,7 +580,7 @@ Rectangle {
 
       // Power Menu Button
       Rectangle {
-        width: (parent.width - 40) / 5
+        width: (parent.width - 40) / 6
         height: parent.height
         radius: 8
         color: root.theme.buttonBg

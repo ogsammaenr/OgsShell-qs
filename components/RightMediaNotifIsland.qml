@@ -38,8 +38,8 @@ Item {
   Rectangle {
     id: rightContainer
     
-    color: group.theme.bg
-    border.color: group.theme.border
+    color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive && state === "idle") ? "transparent" : group.theme.bg
+    border.color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive && state === "idle") ? "transparent" : group.theme.border
     border.width: 1
     clip: true
 

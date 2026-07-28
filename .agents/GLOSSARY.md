@@ -109,6 +109,7 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
   - `calendar`: Takvim panelini açar.
   - `app_launcher`: Uygulama arayıcısını açar.
   - `app_dashboard`: Uygulama kütüphanesi panelini açar.
+  - `gamemode` / `gamemode:on` / `gamemode:off` / `gamemode:toggle`: Oyun modunu açar, kapatır veya durumunu tersine çevirir.
 
 ### 2.8. [AppLauncherService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/AppLauncherService.qml) ve [app_launcher_helper.c](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/app_launcher_helper.c)
 - **Görev:** Sistem genelindeki uygulamaları ve bunlara ait simge (ikon) yollarını arka planda tarar ve QML tarafında fuzzy/alt-string/Damerau-Levenshtein tabanlı aramalar için listeler.
@@ -143,10 +144,17 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
   - `function setWallpaper(path)`: Seçilen duvar kağıdını uygular ve konfigürasyona kaydeder.
 
 ### 2.12. [ThemeSyncService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/ThemeSyncService.qml) ve [theme_sync_helper.c](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/theme_sync_helper.c)
-- **Görev:** OgsShell-qs üzerinde aktif tema değiştirildiğinde sistemdeki harici uygulamaların (GTK3/GTK4 uygulamaları, Dolphin/Qt, Kitty terminal, Zed Editor, Zen Browser, Neovim ve Tmux) temalarını repo içerisindeki şablonlardan (`app_configs/`) kopyalayarak senkronize eder.
-- **Veri Kaynağı:** `services/theme_sync_helper.c` kaynak kodundan derlenen `services/theme_sync_helper` yerel C binary dosyası. `app_configs/<app>/<theme_id>` dizinlerindeki resmi ve yüksek kontrastlı renk şablonlarını `~/.config/kdeglobals`, `~/.config/kitty/current-theme.conf`, `~/.config/zed/themes/` & `settings.json`, `~/.zen/<profile>/chrome/userChrome.css`, `~/.config/nvim/colors/` & `lua/plugins/theme.lua`, `~/.tmux/current-theme.conf` ve `~/.config/gtk-3.0`/`gtk-4.0` hedeflerine doğrudan kopyalar. Kitty terminallerine canlı `SIGUSR1` sinyali, Neovim soketlerine canlı RPC ve KDE/Qt uygulamalarına DBus yenileme sinyali gönderir.
+- **Görev:** OgsShell-qs üzerinde aktif tema değiştirildiğinde sistemdeki harici uygulamaların (GTK3/GTK4 uygulamaları, Dolphin/Qt, Kitty terminal, Zed Editor, Zen Browser, Neovim, Tmux, btop sistem izleyici ve Vesktop Discord istemcisi) temalarını repo içerisindeki şablonlardan (`app_configs/`) kopyalayarak senkronize eder.
+- **Veri Kaynağı:** `services/theme_sync_helper.c` kaynak kodundan derlenen `services/theme_sync_helper` yerel C binary dosyası. `app_configs/<app>/<theme_id>` dizinlerindeki resmi ve yüksek kontrastlı renk şablonlarını `~/.config/kdeglobals`, `~/.config/kitty/current-theme.conf`, `~/.config/zed/themes/` & `settings.json`, `~/.zen/<profile>/chrome/userChrome.css`, `~/.config/nvim/colors/` & `lua/plugins/theme.lua`, `~/.tmux/current-theme.conf`, `~/.config/btop/themes/` & `~/.config/btop/btop.conf`, `~/.config/gtk-3.0`/`gtk-4.0` ve `~/.config/vesktop/` (`quickCss.css` & `themes/ogsshell.theme.css`) hedeflerine doğrudan kopyalar. Kitty terminallerine canlı `SIGUSR1` sinyali, Neovim soketlerine canlı RPC, btop için canlı konfigürasyon güncellemesi ve KDE/Qt uygulamalarına DBus yenileme sinyali gönderir.
 - **Dışa Aktarılan Arayüzler:**
   - `property string activeTheme`: Senkronize edilen aktif tema ID'si.
+
+### 2.13. [GameModeService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/GameModeService.qml)
+- **Görev:** Oyun Modu (Game Mode) durumunu yönetir. Aktifleştiğinde Hyprland ayarlarını (blur, animasyonlar, gölgeler, gaps/spacing) kaynak tasarrufu için kapatır, kapatıldığında `hyprctl reload` ile kullanıcının orijinal konfigürasyonunu geri yükler.
+- **Veri Kaynağı:** Arka planda `~/.config/ogsshell/state/gamemode` durum dosyasını okur/yazar ve `hyprctl` komutlarını çalıştırır.
+- **Dışa Aktarılan Arayüzler:**
+  - `property bool isGameModeActive`: Oyun modunun açık/kapalı durumu.
+  - `function toggleGameMode()`: Oyun modunu açar veya kapatır.
 
 ---
 

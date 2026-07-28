@@ -48,6 +48,18 @@ Item {
           service.toggleAppLauncher(focusedMonitor);
         } else if (cmd === "app_dashboard") {
           service.toggleAppDashboard(focusedMonitor);
+        } else if (cmd.startsWith("gamemode")) {
+          var gParts = cmd.split(":");
+          var subCmd = gParts.length > 1 ? gParts[1] : "toggle";
+          if (typeof gameModeService !== "undefined") {
+            if (subCmd === "on" || subCmd === "enable" || subCmd === "1") {
+              gameModeService.isGameModeActive = true;
+            } else if (subCmd === "off" || subCmd === "disable" || subCmd === "0") {
+              gameModeService.isGameModeActive = false;
+            } else {
+              gameModeService.toggleGameMode();
+            }
+          }
         }
       }
     }

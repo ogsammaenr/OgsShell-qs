@@ -111,6 +111,10 @@ ShellRoot {
     activeTheme: root.activeTheme
   }
 
+  GameModeService {
+    id: gameModeService
+  }
+
   // Monitor-specific Window Groups
   Variants {
     model: Quickshell.screens
