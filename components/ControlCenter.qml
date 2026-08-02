@@ -21,6 +21,7 @@ Rectangle {
   property string copiedClipId: ""
 
   property bool isSelectingBluetooth: false
+  property bool isSelectingAudioMixer: false
 
   onIsOpenChanged: {
     if (!isOpen) {
@@ -28,6 +29,7 @@ Rectangle {
       isSelectingNetwork = false;
       isSelectingClipboard = false;
       isSelectingBluetooth = false;
+      isSelectingAudioMixer = false;
       selectedSsid = "";
       copiedClipId = "";
     }
@@ -111,7 +113,7 @@ Rectangle {
     anchors.centerIn: parent
     spacing: 12
     visible: opacity > 0.01
-    opacity: (root.isOpen && !root.isSelectingTheme && !root.isSelectingNetwork && !root.isSelectingClipboard && !root.isSelectingBluetooth) ? 1.0 : 0.0
+    opacity: (root.isOpen && !root.isSelectingTheme && !root.isSelectingNetwork && !root.isSelectingClipboard && !root.isSelectingBluetooth && !root.isSelectingAudioMixer) ? 1.0 : 0.0
 
     Behavior on opacity {
       NumberAnimation { duration: 150 }
@@ -346,9 +348,11 @@ Rectangle {
         width: (parent.width - 12) / 2
         height: parent.height
         radius: 10
-        color: networkManagerService.wifiConnected ? root.theme.accent : root.theme.buttonBg
+        color: root.theme.buttonBg
+        border.color: networkManagerService.wifiConnected ? root.theme.accent : root.theme.border
+        border.width: networkManagerService.wifiConnected ? 1.5 : 1
 
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
 
         MouseArea {
           anchors.fill: parent
@@ -369,7 +373,7 @@ Rectangle {
           spacing: 8
           Text {
             text: "\uf1eb" // Wifi icon
-            color: networkManagerService.wifiConnected ? "#ffffff" : root.theme.textSecondary
+            color: networkManagerService.wifiConnected ? root.theme.accent : root.theme.textSecondary
             font { family: "FiraCode Nerd Font"; pixelSize: 13 }
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -377,12 +381,12 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             Text {
               text: "Wi-Fi"
-              color: networkManagerService.wifiConnected ? "#ffffff" : root.theme.textPrimary
+              color: root.theme.textPrimary
               font { family: "JetBrains Mono"; pixelSize: 9; weight: Font.Bold }
             }
             Text {
               text: networkManagerService.wifiConnected ? (networkManagerService.wifiSsid ? networkManagerService.wifiSsid : "Bağlı") : "Kapalı"
-              color: networkManagerService.wifiConnected ? "#d0ffffff" : root.theme.textSecondary
+              color: networkManagerService.wifiConnected ? root.theme.accent : root.theme.textSecondary
               font { family: "JetBrains Mono"; pixelSize: 7 }
               elide: Text.ElideRight
               width: 90
@@ -396,9 +400,11 @@ Rectangle {
         width: (parent.width - 12) / 2
         height: parent.height
         radius: 10
-        color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? root.theme.accent : root.theme.buttonBg
+        color: root.theme.buttonBg
+        border.color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? root.theme.accent : root.theme.border
+        border.width: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? 1.5 : 1
 
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
 
         MouseArea {
           anchors.fill: parent
@@ -419,7 +425,7 @@ Rectangle {
           spacing: 8
           Text {
             text: "\uf293" // Bluetooth icon
-            color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? "#ffffff" : root.theme.textSecondary
+            color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? root.theme.accent : root.theme.textSecondary
             font { family: "FiraCode Nerd Font"; pixelSize: 13 }
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -427,12 +433,12 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             Text {
               text: "Bluetooth"
-              color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? "#ffffff" : root.theme.textPrimary
+              color: root.theme.textPrimary
               font { family: "JetBrains Mono"; pixelSize: 9; weight: Font.Bold }
             }
             Text {
               text: root.screenContext.bluetoothStatus === "connected" ? "Bağlı" : (root.screenContext.bluetoothStatus === "on" ? "Açık" : "Kapalı")
-              color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? "#d0ffffff" : root.theme.textSecondary
+              color: (root.screenContext.bluetoothStatus === "connected" || root.screenContext.bluetoothStatus === "on") ? root.theme.accent : root.theme.textSecondary
               font { family: "JetBrains Mono"; pixelSize: 7 }
             }
           }
@@ -489,7 +495,7 @@ Rectangle {
 
         Text {
           text: "\uf0ea" // Clipboard
-          color: root.isSelectingClipboard ? "#ffffff" : root.theme.accent
+          color: root.isSelectingClipboard ? root.theme.textOnAccent : root.theme.accent
           font { family: "FiraCode Nerd Font"; pixelSize: 15 }
           anchors.centerIn: parent
         }
@@ -549,7 +555,7 @@ Rectangle {
 
         Text {
           text: "\uf11b" // Gamepad / Controller icon
-          color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? "#ffffff" : root.theme.accent
+          color: (typeof gameModeService !== "undefined" && gameModeService.isGameModeActive) ? root.theme.textOnAccent : root.theme.accent
           font { family: "FiraCode Nerd Font"; pixelSize: 15 }
           anchors.centerIn: parent
         }
@@ -630,14 +636,21 @@ Rectangle {
 
         MouseArea {
           anchors.fill: parent
+          acceptedButtons: Qt.LeftButton | Qt.RightButton
           cursorShape: Qt.PointingHandCursor
           function updateVol(mouse) {
             var pct = Math.max(0, Math.min(100, Math.round(mouse.x / width * 100)));
             root.screenContext.volume = pct;
             Quickshell.execDetached(["amixer", "sset", "Master", pct + "%"]);
           }
-          onPositionChanged: (mouse) => { if (pressed) updateVol(mouse) }
-          onPressed: (mouse) => updateVol(mouse)
+          onPositionChanged: (mouse) => { if (pressed && (mouse.buttons & Qt.LeftButton)) updateVol(mouse) }
+          onPressed: (mouse) => {
+            if (mouse.button === Qt.RightButton) {
+              root.isSelectingAudioMixer = true;
+            } else if (mouse.button === Qt.LeftButton) {
+              updateVol(mouse);
+            }
+          }
         }
 
         // Icon inside the bar
@@ -901,6 +914,24 @@ Rectangle {
 
     onBackClicked: {
       root.isSelectingBluetooth = false;
+    }
+  }
+
+  // 7. Audio Mixer Panel (Modular component)
+  ControlCenterAudioMixer {
+    id: audioMixerContent
+    theme: root.theme
+    screenContext: root.screenContext
+    visible: opacity > 0.01
+    opacity: (root.isOpen && root.isSelectingAudioMixer) ? 1.0 : 0.0
+    anchors.centerIn: parent
+
+    Behavior on opacity {
+      NumberAnimation { duration: 150 }
+    }
+
+    onBackClicked: {
+      root.isSelectingAudioMixer = false;
     }
   }
 }

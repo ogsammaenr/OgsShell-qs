@@ -124,7 +124,7 @@ Column {
       
       Text {
         text: "Bağlan"
-        color: "#ffffff"
+        color: theme.textOnAccent
         font { family: "JetBrains Mono"; pixelSize: 11; weight: Font.Bold }
         anchors.centerIn: parent
       }

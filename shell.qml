@@ -115,6 +115,10 @@ ShellRoot {
     id: gameModeService
   }
 
+  AudioMixerService {
+    id: audioMixerService
+  }
+
   // Monitor-specific Window Groups
   Variants {
     model: Quickshell.screens

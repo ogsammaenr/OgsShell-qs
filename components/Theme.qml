@@ -17,4 +17,14 @@ QtObject {
   readonly property color green: activeConfig.green || "#a3be8c"
   readonly property color red: activeConfig.red || "#bf616a"
   readonly property color buttonBg: activeConfig.buttonBg || "#20ffffff"
+
+  function getContrastColor(col) {
+    var r = col.r;
+    var g = col.g;
+    var b = col.b;
+    var brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+    return brightness > 0.55 ? "#111827" : "#ffffff";
+  }
+
+  readonly property color textOnAccent: activeConfig.textOnAccent ? activeConfig.textOnAccent : getContrastColor(accent)
 }

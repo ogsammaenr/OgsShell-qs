@@ -82,7 +82,7 @@ Column {
         width: 10
         height: 10
         radius: 5
-        color: "#ffffff"
+        color: (screenContext.bluetoothStatus === "connected" || screenContext.bluetoothStatus === "on") ? theme.textOnAccent : theme.textPrimary
         anchors.verticalCenter: parent.verticalCenter
         x: (screenContext.bluetoothStatus === "connected" || screenContext.bluetoothStatus === "on") ? 19 : 3
         

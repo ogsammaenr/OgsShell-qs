@@ -12,6 +12,7 @@ PanelWindow {
   property alias isSelectingBluetooth: controlCenterCard.isSelectingBluetooth
   property alias isSelectingTheme: controlCenterCard.isSelectingTheme
   property alias isSelectingClipboard: controlCenterCard.isSelectingClipboard
+  property alias isSelectingAudioMixer: controlCenterCard.isSelectingAudioMixer
 
   screen: targetScreen
   visible: monitorGroup.isControlCenterOpen || (controlCenterCard.opacity > 0.01)

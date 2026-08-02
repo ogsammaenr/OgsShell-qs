@@ -367,7 +367,7 @@ Rectangle {
 
         Text {
           text: "Saat"
-          color: root.activeTab === "clock" ? "#ffffff" : theme.textPrimary
+          color: root.activeTab === "clock" ? theme.textOnAccent : theme.textPrimary
           font { family: "JetBrains Mono"; pixelSize: 10; weight: Font.Bold }
           anchors.centerIn: parent
         }
@@ -388,7 +388,7 @@ Rectangle {
 
         Text {
           text: "Kronometre"
-          color: root.activeTab === "stopwatch" ? "#ffffff" : theme.textPrimary
+          color: root.activeTab === "stopwatch" ? theme.textOnAccent : theme.textPrimary
           font { family: "JetBrains Mono"; pixelSize: 10; weight: Font.Bold }
           anchors.centerIn: parent
         }
@@ -409,7 +409,7 @@ Rectangle {
 
         Text {
           text: "Pomodoro"
-          color: root.activeTab === "pomodoro" ? "#ffffff" : theme.textPrimary
+          color: root.activeTab === "pomodoro" ? theme.textOnAccent : theme.textPrimary
           font { family: "JetBrains Mono"; pixelSize: 10; weight: Font.Bold }
           anchors.centerIn: parent
         }

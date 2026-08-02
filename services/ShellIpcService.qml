@@ -10,6 +10,7 @@ Item {
   signal toggleCalendar(string targetMonitor)
   signal toggleAppLauncher(string targetMonitor)
   signal toggleAppDashboard(string targetMonitor)
+  signal toggleWorkspaceSwitcher(string targetMonitor, string action)
 
   function getFocusedMonitorName() {
     var state = workspaceService.workspaceState;
@@ -48,6 +49,10 @@ Item {
           service.toggleAppLauncher(focusedMonitor);
         } else if (cmd === "app_dashboard") {
           service.toggleAppDashboard(focusedMonitor);
+        } else if (cmd.startsWith("workspace_switcher")) {
+          var wsParts = cmd.split(":");
+          var action = wsParts.length > 1 ? wsParts[1] : "next";
+          service.toggleWorkspaceSwitcher(focusedMonitor, action);
         } else if (cmd.startsWith("gamemode")) {
           var gParts = cmd.split(":");
           var subCmd = gParts.length > 1 ? gParts[1] : "toggle";

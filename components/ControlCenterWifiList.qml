@@ -82,7 +82,7 @@ Column {
         width: 10
         height: 10
         radius: 5
-        color: "#ffffff"
+        color: networkManagerService.wifiConnected ? theme.textOnAccent : theme.textPrimary
         anchors.verticalCenter: parent.verticalCenter
         x: networkManagerService.wifiConnected ? 19 : 3
         

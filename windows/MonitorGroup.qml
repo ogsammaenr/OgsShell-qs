@@ -13,6 +13,8 @@ Item {
   property bool isCalendarOpen: false
   property bool isAppLauncherOpen: false
   property bool isAppDashboardOpen: false
+  property bool isWorkspaceSwitcherOpen: false
+  property int workspaceSwitcherHighlightIndex: 0
   property string activeIslandHud: ""
   property alias theme: theme
 
@@ -50,6 +52,7 @@ Item {
     controlCenterWindow.isSelectingBluetooth = (page === "bluetooth");
     controlCenterWindow.isSelectingTheme = (page === "theme");
     controlCenterWindow.isSelectingClipboard = (page === "clipboard");
+    controlCenterWindow.isSelectingAudioMixer = (page === "audio" || page === "mixer");
 
     monitorGroup.isControlCenterOpen = true;
   }
@@ -60,6 +63,7 @@ Item {
   CalendarWindow { targetScreen: monitorGroup.screen; monitorGroup: monitorGroup }
   AppLauncherWindow { targetScreen: monitorGroup.screen; monitorGroup: monitorGroup }
   AppDashboardWindow { targetScreen: monitorGroup.screen; monitorGroup: monitorGroup }
+  WorkspaceSwitcherWindow { id: workspaceSwitcherWindow; targetScreen: monitorGroup.screen; monitorGroup: monitorGroup }
 
   Connections {
     target: shellIpcService
@@ -72,6 +76,7 @@ Item {
           monitorGroup.isCalendarOpen = false;
           monitorGroup.isAppLauncherOpen = false;
           monitorGroup.isAppDashboardOpen = false;
+          monitorGroup.isWorkspaceSwitcherOpen = false;
           
           // Select page
           if (page === "wifi") {
@@ -102,6 +107,7 @@ Item {
           monitorGroup.isCalendarOpen = false;
           monitorGroup.isAppLauncherOpen = false;
           monitorGroup.isAppDashboardOpen = false;
+          monitorGroup.isWorkspaceSwitcherOpen = false;
           monitorGroup.isControlCenterOpen = !monitorGroup.isControlCenterOpen;
           
           if (monitorGroup.isControlCenterOpen) {
@@ -122,6 +128,7 @@ Item {
         monitorGroup.isCalendarOpen = false;
         monitorGroup.isAppLauncherOpen = false;
         monitorGroup.isAppDashboardOpen = false;
+        monitorGroup.isWorkspaceSwitcherOpen = false;
         monitorGroup.isTimeManagerOpen = !monitorGroup.isTimeManagerOpen;
       } else {
         monitorGroup.isTimeManagerOpen = false;
@@ -134,6 +141,7 @@ Item {
         monitorGroup.isTimeManagerOpen = false;
         monitorGroup.isAppLauncherOpen = false;
         monitorGroup.isAppDashboardOpen = false;
+        monitorGroup.isWorkspaceSwitcherOpen = false;
         monitorGroup.isCalendarOpen = !monitorGroup.isCalendarOpen;
       } else {
         monitorGroup.isCalendarOpen = false;
@@ -146,6 +154,7 @@ Item {
         monitorGroup.isTimeManagerOpen = false;
         monitorGroup.isCalendarOpen = false;
         monitorGroup.isAppDashboardOpen = false;
+        monitorGroup.isWorkspaceSwitcherOpen = false;
         
         monitorGroup.isAppLauncherOpen = !monitorGroup.isAppLauncherOpen;
         if (monitorGroup.isAppLauncherOpen) {
@@ -162,10 +171,42 @@ Item {
         monitorGroup.isTimeManagerOpen = false;
         monitorGroup.isCalendarOpen = false;
         monitorGroup.isAppLauncherOpen = false;
+        monitorGroup.isWorkspaceSwitcherOpen = false;
         
         monitorGroup.isAppDashboardOpen = !monitorGroup.isAppDashboardOpen;
       } else {
         monitorGroup.isAppDashboardOpen = false;
+      }
+    }
+
+    function onToggleWorkspaceSwitcher(targetMonitor, action) {
+      if (targetMonitor === "" || targetMonitor === monitorGroup.screen.name) {
+        monitorGroup.isControlCenterOpen = false;
+        monitorGroup.isTimeManagerOpen = false;
+        monitorGroup.isCalendarOpen = false;
+        monitorGroup.isAppLauncherOpen = false;
+        monitorGroup.isAppDashboardOpen = false;
+
+        if (action === "close" || action === "cancel") {
+          monitorGroup.isWorkspaceSwitcherOpen = false;
+        } else if (action === "select" || action === "confirm") {
+          workspaceSwitcherWindow.confirmSelection();
+        } else if (action === "prev") {
+          if (!monitorGroup.isWorkspaceSwitcherOpen) {
+            monitorGroup.isWorkspaceSwitcherOpen = true;
+          }
+          workspaceSwitcherWindow.cycleSelection(-1);
+        } else {
+          // "next" or default
+          if (!monitorGroup.isWorkspaceSwitcherOpen) {
+            monitorGroup.isWorkspaceSwitcherOpen = true;
+            workspaceSwitcherWindow.cycleSelection(1);
+          } else {
+            workspaceSwitcherWindow.cycleSelection(1);
+          }
+        }
+      } else {
+        monitorGroup.isWorkspaceSwitcherOpen = false;
       }
     }
   }

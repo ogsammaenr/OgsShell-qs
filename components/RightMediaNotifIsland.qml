@@ -76,7 +76,7 @@ Item {
         PropertyChanges {
           target: rightContainer
           width: 340
-          height: 120
+          height: 154
           anchors.topMargin: 8
           anchors.rightMargin: 12
           radius: 20
@@ -288,172 +288,252 @@ Item {
         }
       }
 
-      Row {
+      Column {
         anchors.fill: parent
         anchors.margins: 12
-        spacing: 12
+        spacing: 10
 
-        Rectangle {
-          width: 96
-          height: 96
-          radius: 12
-          color: "#1e1e2e"
-          border.color: group.theme.border
-          border.width: 1
-          clip: true
-          anchors.verticalCenter: parent.verticalCenter
+        Row {
+          width: parent.width
+          height: 86
+          spacing: 12
 
-          Image {
-            id: coverArt
-            anchors.fill: parent
-            source: (systemStatsService.mediaArtUrl) ? systemStatsService.mediaArtUrl : ""
-            fillMode: Image.PreserveAspectCrop
-            visible: source != ""
+          Rectangle {
+            width: 86
+            height: 86
+            radius: 12
+            color: "#1e1e2e"
+            border.color: group.theme.border
+            border.width: 1
+            clip: true
+
+            Image {
+              id: coverArt
+              anchors.fill: parent
+              source: (systemStatsService.mediaArtUrl) ? systemStatsService.mediaArtUrl : ""
+              fillMode: Image.PreserveAspectCrop
+              visible: source != ""
+            }
+
+            Text {
+              anchors.centerIn: parent
+              text: "\uf001"
+              font { family: "FiraCode Nerd Font"; pixelSize: 26 }
+              color: group.theme.accent
+              visible: !coverArt.visible
+            }
           }
 
-          Text {
-            anchors.centerIn: parent
-            text: "\uf001"
-            font { family: "FiraCode Nerd Font"; pixelSize: 28 }
-            color: group.theme.accent
-            visible: !coverArt.visible
+          Column {
+            width: parent.width - 86 - 12
+            height: 86
+            spacing: 4
+            anchors.verticalCenter: parent.verticalCenter
+
+            Item {
+              id: titleScrollContainer
+              width: parent.width
+              height: 20
+              clip: true
+
+              readonly property string mediaTextValue: (systemStatsService.mediaTitle !== "") ? systemStatsService.mediaTitle : "Medya Çalmıyor"
+              property real textWidth: titleText1.implicitWidth
+              property real containerWidth: width
+              property bool needsScroll: textWidth > containerWidth && systemStatsService.mediaStatus === "Playing"
+
+              Row {
+                id: titleTextRow
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 40
+                x: 0
+
+                Text {
+                  id: titleText1
+                  text: titleScrollContainer.mediaTextValue
+                  color: group.theme.textPrimary
+                  font { family: "JetBrains Mono"; pixelSize: 13; weight: Font.Bold }
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                  id: titleText2
+                  text: titleScrollContainer.mediaTextValue
+                  color: group.theme.textPrimary
+                  font { family: "JetBrains Mono"; pixelSize: 13; weight: Font.Bold }
+                  anchors.verticalCenter: parent.verticalCenter
+                  visible: titleScrollContainer.needsScroll
+                }
+              }
+
+              NumberAnimation {
+                id: titleMarqueeAnim
+                target: titleTextRow
+                property: "x"
+                from: 0
+                to: -(titleScrollContainer.textWidth + 40)
+                duration: (titleScrollContainer.textWidth + 40) * 35
+                loops: Animation.Infinite
+                running: titleScrollContainer.needsScroll
+              }
+
+              onNeedsScrollChanged: {
+                if (!needsScroll) {
+                  titleMarqueeAnim.stop();
+                  titleTextRow.x = 0;
+                }
+              }
+
+              onMediaTextValueChanged: {
+                titleTextRow.x = 0;
+                if (needsScroll) {
+                  titleMarqueeAnim.restart();
+                }
+              }
+            }
+
+            Text {
+              width: parent.width
+              text: (systemStatsService.mediaArtist !== "") ? systemStatsService.mediaArtist : "Bilinmeyen Sanatçı"
+              color: group.theme.textSecondary
+              font { family: "JetBrains Mono"; pixelSize: 11 }
+              elide: Text.ElideRight
+            }
+
+            Row {
+              spacing: 20
+              anchors.horizontalCenter: parent.horizontalCenter
+              anchors.topMargin: 2
+
+              Text {
+                text: "\uf048"
+                color: prevMouse.containsMouse ? group.theme.accent : group.theme.textPrimary
+                font { family: "FiraCode Nerd Font"; pixelSize: 16 }
+                anchors.verticalCenter: parent.verticalCenter
+                
+                MouseArea {
+                  id: prevMouse
+                  anchors.fill: parent
+                  anchors.margins: -8
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    Quickshell.execDetached(["playerctl", "previous"]);
+                  }
+                }
+              }
+
+              Text {
+                text: (systemStatsService.mediaStatus === "Playing") ? "\uf04c" : "\uf04b"
+                color: group.theme.accent
+                font { family: "FiraCode Nerd Font"; pixelSize: 22 }
+                anchors.verticalCenter: parent.verticalCenter
+                
+                MouseArea {
+                  id: playMouse
+                  anchors.fill: parent
+                  anchors.margins: -8
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    Quickshell.execDetached(["playerctl", "play-pause"]);
+                    systemStatsService.mediaStatus = (systemStatsService.mediaStatus === "Playing") ? "Paused" : "Playing";
+                  }
+                }
+              }
+
+              Text {
+                text: "\uf051"
+                color: nextMouse.containsMouse ? group.theme.accent : group.theme.textPrimary
+                font { family: "FiraCode Nerd Font"; pixelSize: 16 }
+                anchors.verticalCenter: parent.verticalCenter
+                
+                MouseArea {
+                  id: nextMouse
+                  anchors.fill: parent
+                  anchors.margins: -8
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    Quickshell.execDetached(["playerctl", "next"]);
+                  }
+                }
+              }
+            }
           }
         }
 
-        Column {
-          width: parent.width - 96 - 12
-          height: 96
-          spacing: 6
-          anchors.verticalCenter: parent.verticalCenter
+        // Per-Media Application Volume Control Slider Pill
+        Rectangle {
+          id: mediaVolumeTrack
+          width: parent.width
+          height: 24
+          radius: 12
+          color: group.theme.buttonBg
+          border.color: group.theme.border
+          border.width: 1
+          clip: true
 
-          Item {
-            id: titleScrollContainer
-            width: parent.width
-            height: 20
-            clip: true
+          readonly property int curVolume: (typeof audioMixerService !== "undefined") ? audioMixerService.mediaVolume : systemStatsService.volume
+          readonly property bool curMuted: (typeof audioMixerService !== "undefined") ? audioMixerService.mediaMuted : systemStatsService.audioMuted
 
-            readonly property string mediaTextValue: (systemStatsService.mediaTitle !== "") ? systemStatsService.mediaTitle : "Medya Çalmıyor"
-            property real textWidth: titleText1.implicitWidth
-            property real containerWidth: width
-            property bool needsScroll: textWidth > containerWidth && systemStatsService.mediaStatus === "Playing"
+          Rectangle {
+            height: parent.height
+            width: parent.width * (mediaVolumeTrack.curVolume / 100.0)
+            radius: parent.radius
+            color: group.theme.accent
+            opacity: 0.85
 
-            Row {
-              id: titleTextRow
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: 40
-              x: 0
-
-              Text {
-                id: titleText1
-                text: titleScrollContainer.mediaTextValue
-                color: group.theme.textPrimary
-                font { family: "JetBrains Mono"; pixelSize: 13; weight: Font.Bold }
-                anchors.verticalCenter: parent.verticalCenter
-              }
-
-              Text {
-                id: titleText2
-                text: titleScrollContainer.mediaTextValue
-                color: group.theme.textPrimary
-                font { family: "JetBrains Mono"; pixelSize: 13; weight: Font.Bold }
-                anchors.verticalCenter: parent.verticalCenter
-                visible: titleScrollContainer.needsScroll
-              }
+            Behavior on width {
+              NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
             }
+          }
 
-            NumberAnimation {
-              id: titleMarqueeAnim
-              target: titleTextRow
-              property: "x"
-              from: 0
-              to: -(titleScrollContainer.textWidth + 40)
-              duration: (titleScrollContainer.textWidth + 40) * 35
-              loops: Animation.Infinite
-              running: titleScrollContainer.needsScroll
-            }
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
 
-            onNeedsScrollChanged: {
-              if (!needsScroll) {
-                titleMarqueeAnim.stop();
-                titleTextRow.x = 0;
+            function updateVol(mouse) {
+              var pct = Math.max(0, Math.min(100, Math.round(mouse.x / width * 100)));
+              if (typeof audioMixerService !== "undefined") {
+                audioMixerService.setMediaVolume(pct);
+              } else {
+                systemStatsService.volume = pct;
+                Quickshell.execDetached(["amixer", "sset", "Master", pct + "%"]);
               }
             }
 
-            onMediaTextValueChanged: {
-              titleTextRow.x = 0;
-              if (needsScroll) {
-                titleMarqueeAnim.restart();
+            onPositionChanged: (mouse) => { if (pressed) updateVol(mouse) }
+            onPressed: (mouse) => updateVol(mouse)
+
+            onWheel: (wheel) => {
+              var newVol = Math.max(0, Math.min(100, mediaVolumeTrack.curVolume + (wheel.angleDelta.y > 0 ? 2 : -2)));
+              if (typeof audioMixerService !== "undefined") {
+                audioMixerService.setMediaVolume(newVol);
+              } else {
+                systemStatsService.volume = newVol;
+                Quickshell.execDetached(["amixer", "sset", "Master", newVol + "%"]);
               }
             }
           }
 
           Text {
-            width: parent.width
-            text: (systemStatsService.mediaArtist !== "") ? systemStatsService.mediaArtist : "Bilinmeyen Sanatçı"
-            color: group.theme.textSecondary
-            font { family: "JetBrains Mono"; pixelSize: 11 }
-            elide: Text.ElideRight
+            text: mediaVolumeTrack.curMuted ? "\uf026" : (mediaVolumeTrack.curVolume > 50 ? "\uf028" : (mediaVolumeTrack.curVolume > 0 ? "\uf027" : "\uf026"))
+            color: "#e0ffffff"
+            font { family: "FiraCode Nerd Font"; pixelSize: 11 }
+            anchors.left: parent.left
+            anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            enabled: false
           }
 
-          Row {
-            spacing: 20
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.topMargin: 4
-
-            Text {
-              text: "\uf048"
-              color: prevMouse.containsMouse ? group.theme.accent : group.theme.textPrimary
-              font { family: "FiraCode Nerd Font"; pixelSize: 16 }
-              anchors.verticalCenter: parent.verticalCenter
-              
-              MouseArea {
-                id: prevMouse
-                anchors.fill: parent
-                anchors.margins: -10
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  Quickshell.execDetached(["playerctl", "previous"]);
-                }
-              }
-            }
-
-            Text {
-              text: (systemStatsService.mediaStatus === "Playing") ? "\uf04c" : "\uf04b"
-              color: group.theme.accent
-              font { family: "FiraCode Nerd Font"; pixelSize: 22 }
-              anchors.verticalCenter: parent.verticalCenter
-              
-              MouseArea {
-                id: playMouse
-                anchors.fill: parent
-                anchors.margins: -10
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  Quickshell.execDetached(["playerctl", "play-pause"]);
-                  systemStatsService.mediaStatus = (systemStatsService.mediaStatus === "Playing") ? "Paused" : "Playing";
-                }
-              }
-            }
-
-            Text {
-              text: "\uf051"
-              color: nextMouse.containsMouse ? group.theme.accent : group.theme.textPrimary
-              font { family: "FiraCode Nerd Font"; pixelSize: 16 }
-              anchors.verticalCenter: parent.verticalCenter
-              
-              MouseArea {
-                id: nextMouse
-                anchors.fill: parent
-                anchors.margins: -10
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  Quickshell.execDetached(["playerctl", "next"]);
-                }
-              }
-            }
+          Text {
+            text: mediaVolumeTrack.curMuted ? "Sessiz" : mediaVolumeTrack.curVolume + "%"
+            color: "#e0ffffff"
+            font { family: "JetBrains Mono"; pixelSize: 9; weight: Font.Bold }
+            anchors.right: parent.right
+            anchors.rightMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            enabled: false
           }
         }
       }

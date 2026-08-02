@@ -44,10 +44,24 @@ void print_workspaces_state() {
     }
     pclose(pw);
 
+    FILE *pc = popen("hyprctl clients -j | jq -c '.' 2>/dev/null", "r");
+    static char clients_buf[65536] = {0};
+    clients_buf[0] = '\0';
+    if (pc) {
+        while (fgets(line, sizeof(line), pc)) {
+            if (strlen(clients_buf) + strlen(line) < sizeof(clients_buf) - 1) {
+                strcat(clients_buf, line);
+            }
+        }
+        pclose(pc);
+    }
+
     size_t len_m = strlen(monitors_buf);
     if (len_m > 0 && monitors_buf[len_m - 1] == '\n') monitors_buf[len_m - 1] = '\0';
     size_t len_w = strlen(workspaces_buf);
     if (len_w > 0 && workspaces_buf[len_w - 1] == '\n') workspaces_buf[len_w - 1] = '\0';
+    size_t len_c = strlen(clients_buf);
+    if (len_c > 0 && clients_buf[len_c - 1] == '\n') clients_buf[len_c - 1] = '\0';
 
     if (strlen(monitors_buf) == 0 || monitors_buf[0] != '[') {
         strcpy(monitors_buf, "[]");
@@ -55,8 +69,11 @@ void print_workspaces_state() {
     if (strlen(workspaces_buf) == 0 || workspaces_buf[0] != '[') {
         strcpy(workspaces_buf, "[]");
     }
+    if (strlen(clients_buf) == 0 || clients_buf[0] != '[') {
+        strcpy(clients_buf, "[]");
+    }
 
-    printf("{\"monitors\": %s, \"workspaces\": %s}\n", monitors_buf, workspaces_buf);
+    printf("{\"monitors\": %s, \"workspaces\": %s, \"clients\": %s}\n", monitors_buf, workspaces_buf, clients_buf);
 }
 
 int main() {

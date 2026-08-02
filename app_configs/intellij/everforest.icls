@@ -1,0 +1,21 @@
+<scheme name="OgsEverforest" version="142" parent_scheme="Darcula">
+  <metaInfo>
+    <property name="ide">idea</property>
+    <property name="originalScheme">OgsEverforest</property>
+  </metaInfo>
+  <colors>
+    <option name="CONSOLE_BACKGROUND_KEY" value="2d353b" />
+    <option name="GUTTER_BACKGROUND" value="2d353b" />
+    <option name="PRIMARY_BACKGROUND" value="2d353b" />
+    <option name="SELECTION_BACKGROUND" value="475258" />
+    <option name="SELECTION_FOREGROUND" value="d3c6aa" />
+  </colors>
+  <attributes>
+    <option name="TEXT">
+      <value>
+        <option name="FOREGROUND" value="d3c6aa" />
+        <option name="BACKGROUND" value="2d353b" />
+      </value>
+    </option>
+  </attributes>
+</scheme>

@@ -144,8 +144,8 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
   - `function setWallpaper(path)`: Seçilen duvar kağıdını uygular ve konfigürasyona kaydeder.
 
 ### 2.12. [ThemeSyncService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/ThemeSyncService.qml) ve [theme_sync_helper.c](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/theme_sync_helper.c)
-- **Görev:** OgsShell-qs üzerinde aktif tema değiştirildiğinde sistemdeki harici uygulamaların (GTK3/GTK4 uygulamaları, Dolphin/Qt, Kitty terminal, Zed Editor, Zen Browser, Neovim, Tmux, btop sistem izleyici ve Vesktop Discord istemcisi) temalarını repo içerisindeki şablonlardan (`app_configs/`) kopyalayarak senkronize eder.
-- **Veri Kaynağı:** `services/theme_sync_helper.c` kaynak kodundan derlenen `services/theme_sync_helper` yerel C binary dosyası. `app_configs/<app>/<theme_id>` dizinlerindeki resmi ve yüksek kontrastlı renk şablonlarını `~/.config/kdeglobals`, `~/.config/kitty/current-theme.conf`, `~/.config/zed/themes/` & `settings.json`, `~/.zen/<profile>/chrome/userChrome.css`, `~/.config/nvim/colors/` & `lua/plugins/theme.lua`, `~/.tmux/current-theme.conf`, `~/.config/btop/themes/` & `~/.config/btop/btop.conf`, `~/.config/gtk-3.0`/`gtk-4.0` ve `~/.config/vesktop/` (`quickCss.css` & `themes/ogsshell.theme.css`) hedeflerine doğrudan kopyalar. Kitty terminallerine canlı `SIGUSR1` sinyali, Neovim soketlerine canlı RPC, btop için canlı konfigürasyon güncellemesi ve KDE/Qt uygulamalarına DBus yenileme sinyali gönderir.
+- **Görev:** OgsShell-qs üzerinde aktif tema değiştirildiğinde sistemdeki harici uygulamaların (GTK3/GTK4 uygulamaları, Dolphin/Qt, Kitty terminal, Zed Editor, Zen Browser, Neovim, Tmux, btop sistem izleyici, Vesktop Discord istemcisi ve IntelliJ IDEA / JetBrains IDE'leri) temalarını senkronize eder.
+- **Veri Kaynağı:** `services/theme_sync_helper.c` kaynak kodundan derlenen `services/theme_sync_helper` yerel C binary dosyası. `app_configs/<app>/<theme_id>` dizinlerindeki resmi ve yüksek kontrastlı renk şablonlarını `~/.config/kdeglobals`, `~/.config/kitty/current-theme.conf`, `~/.config/zed/themes/` & `settings.json`, `~/.zen/<profile>/chrome/userChrome.css`, `~/.config/nvim/colors/` & `lua/plugins/theme.lua`, `~/.tmux/current-theme.conf`, `~/.config/btop/themes/` & `~/.config/btop/btop.conf`, `~/.config/gtk-3.0`/`gtk-4.0`, `~/.config/vesktop/` (`quickCss.css` & `themes/ogsshell.theme.css`) ve `~/.config/JetBrains/*/options/` (`colors.scheme.xml` & `laf.xml`) hedeflerine doğrudan kopyalar ve senkronize eder. Kitty terminallerine canlı `SIGUSR1` sinyali, Neovim soketlerine canlı RPC, btop için canlı konfigürasyon güncellemesi ve KDE/Qt uygulamalarına DBus yenileme sinyali gönderir.
 - **Dışa Aktarılan Arayüzler:**
   - `property string activeTheme`: Senkronize edilen aktif tema ID'si.
 
@@ -155,6 +155,21 @@ Sistem durumunu yöneten ve dış veri kaynaklarıyla (C daemon'ları veya CLI a
 - **Dışa Aktarılan Arayüzler:**
   - `property bool isGameModeActive`: Oyun modunun açık/kapalı durumu.
   - `function toggleGameMode()`: Oyun modunu açar veya kapatır.
+
+### 2.14. [AudioMixerService.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/AudioMixerService.qml) ve [audio_mixer_helper.py](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/services/audio_mixer_helper.py)
+- **Görev:** Sistemdeki ses çıkış aygıtlarını (sinks) ve çalışan uygulamaların ses yayınlarını (sink-inputs) tarar, her uygulama/aygıt için bağımsız ses ve sessize alma (mute) kontrollerini yürütür. Kullanıcının en son seçtiği varsayılan ses aygıtını `~/.config/ogsshell/state/audio_device` dosyasında saklar ve sistem açılışında otomatik geri yükler.
+- **Veri Kaynağı:** `pactl` (PulseAudio / PipeWire) komut setlerini JSON formatında çalıştırır.
+- **Dışa Aktarılan Arayüzler:**
+  - `property var sinkList`: Sistemdeki ses çıkış aygıtları listesi.
+  - `property var appList`: Ses çalan aktif uygulamaların listesi.
+  - `property string defaultSink`: Aktif varsayılan ses aygıtının adı.
+  - `property bool isLoading`: Tarama/güncelleme işlem durumu.
+  - `function refresh()`: Aygıt ve uygulama ses durumlarını günceller.
+  - `function setDefaultSink(sinkName)`: Varsayılan ses aygıtını değiştirir, aktif yayınları aktarır ve konfigürasyona kaydeder.
+  - `function setSinkVolume(sinkTarget, volPct)`: Belirtilen ses aygıtının ses seviyesini ayarlar.
+  - `function setSinkMute(sinkTarget)`: Belirtilen ses aygıtını sessize alır veya açar.
+  - `function setAppVolume(appIndex, volPct)`: Belirtilen uygulamanın ses seviyesini ayarlar.
+  - `function setAppMute(appIndex)`: Belirtilen uygulamayı sessize alır veya açar.
 
 ---
 
@@ -171,6 +186,7 @@ Ekran katmanlarını (`exclusiveZone`, `aboveWindows`, `mask` vb.) yöneten, Way
 | [CalendarWindow.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/windows/CalendarWindow.qml) | `WlrLayer.Overlay` (Float) | Takvim ve tatil günlerini gösteren overlay penceresidir. |
 | [AppLauncherWindow.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/windows/AppLauncherWindow.qml) | `WlrLayer.Overlay` (Float) | Arama ve uygulama başlatma paneli olan `AppLauncher` bileşenini barındıran, saat adasının altına konumlanan penceredir. |
 | [AppDashboardWindow.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/windows/AppDashboardWindow.qml) | `WlrLayer.Overlay` (Float) | Uygulama Kütüphanesi (`AppDashboard`) bileşenini barındıran, tüm ekranı kaplayan overlay penceresidir. |
+| [WorkspaceSwitcherWindow.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/windows/WorkspaceSwitcherWindow.qml) | `WlrLayer.Overlay` (Float) | Görsel çalışma alanı geçiş arayüzünü (`WorkspaceSwitcher`) barındıran, ekranın ortasında açılan ve klavye/fare etkileşimini yöneten overlay penceresidir. |
 | [PowerMenuWindow.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/windows/PowerMenuWindow.qml) | `WlrLayer.Overlay` (Global) | Tüm sistemi kaplayan karartılmış arka plana sahip, kapatma, yeniden başlatma ve oturumu kapatma butonlarını barındıran global tekil penceredir. |
 
 ---
@@ -183,7 +199,7 @@ Kullanıcı arayüzünü (UI) oluşturan görsel, etkileşimli ve tekrar kullan�
 - **[LeftWorkspaceBar.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/LeftWorkspaceBar.qml):** Hyprland workspace durumlarını görsel noktalar (dots) halinde çizer. Aktif olan workspace uzatılmış bir nokta olarak görünür, içinde pencere olan workspace'ler daha belirgindir. Tıklandığında o workspace'e geçiş yapar.
 - **[CenterHudIsland.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/CenterHudIsland.qml):** Barın ortasındaki dinamik adadır. Fare üzerine geldiğinde genişler; normal durumlarda saat/tarih ve varsa aktif sayaçları gösterirken, fare ile üzerine gelindiğinde ses, parlaklık ve minimalist donanım istatistiklerine erişim sunar.
 - **[SystemStatsIsland.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/SystemStatsIsland.qml):** Saat adasının soluna sabitlenen dinamik sistem istatistik adasıdır. Temaya uyumlu yarı şeffaf pill kapsül arka planına (`group.theme.bg`), sabitleme vurgusuna (`isPinned` modunda `group.theme.accent` çerçeve) ve her türlü duvar kağıdında okunabilirliği garantileyen yüksek kontrastlı metin dış çizgilerine (`style: Text.Outline`) sahiptir. Fare üzerine geldiğinde (veya sol tıklanıp kilitlendiğinde) akıcı bir şekilde genişleyerek detaylı CPU/GPU sıcaklıklarını, RAM kullanım çubuğunu ve ağ hızını gösterir. Orta tıklama ile göstergeler gizlenebilir.
-- **[RightMediaNotifIsland.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/RightMediaNotifIsland.qml):** Barın sağ tarafındaki dinamik menisküs adadır. Üç duruma sahiptir: `idle` (boşta minimalist saat/durum), `notification` (yeni bildirim geldiğinde genişleyen kart) ve `media` (medya çalar hızlı kontrol kartı).
+- **[RightMediaNotifIsland.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/RightMediaNotifIsland.qml):** Barın sağ tarafındaki dinamik menisküs adadır. Üç duruma sahiptir: `idle` (boşta minimalist saat/durum), `notification` (yeni bildirim geldiğinde genişleyen kart) ve `media` (medya çalar hızlı kontrol kartı, albüm kapağı, parça kontrolleri ve çalmakta olan uygulamanın ses seviyesine özel etkileşimli ses ayar barı).
 
 ### 4.2. Alt Bileşenler ve Araçlar
 - **[Theme.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/Theme.qml):** Renk şemalarını yönetir. `Catppuccin`, `Nord Night`, `Retro Gruvbox` ve `Monochrome` temalarının renk değişkenlerini barındırır. `MonitorGroup` içinde `theme` alias'ı üzerinden erişilir.
@@ -202,12 +218,14 @@ Kullanıcı arayüzünü (UI) oluşturan görsel, etkileşimli ve tekrar kullan�
 - **[AppDashboard.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/AppDashboard.qml):** Uygulama Kütüphanesi (Dashboard) 900×650 px kartı. Sol dikey panel kategori sekmeleri (`Tümü`, `Geliştirme`, `İnternet`, `Grafik`, `Multimedya`, `Oyunlar`, `Ofis`, `Sistem`, `Ayarlar`, `Araçlar`, `Diğer`), sağ panel ise arama destekli `GridView` ızgara görünümü barındırır.
   - **Properties:** `isOpen: bool`, `theme: var`; **Signal:** `closeRequested()`.
   - **Klavye:** `Yön tuşları` ile ızgara gezintisi, `Tab`/`Shift+Tab` ile kategori geçişi, `Enter` ile uygulama başlatma, `Escape` ile kapatma.
+- **[WorkspaceSwitcher.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/WorkspaceSwitcher.qml):** Görsel çalışma alanı (workspace overview & switcher) 860×510 px ızgara kartıdır. Her bir çalışma alanındaki pencerelerin konum ve boyutlarına (`at`, `size`) göre canlı mini pencereler çizer. Fare ile tıklama, `Super+Tab` / `Tab` / `Yön Tuşları` ile geçiş, `Enter` ile onaylama, `1..9` tuşlarıyla doğrudan erişim ve `Escape` ile kapatma destekler.
 - **[ControlCenter.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenter.qml):** Ana kontrol merkezi wrapper arayüzüdür. Üst kısmında dijital saat ve tarih başlığı ile donanım özet barını barındırır. Sayfalar arası geçişleri yönetir ve aşağıdaki alt modülleri çağırır:
   - **[ControlCenterThemeList.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterThemeList.qml):** Görünüm, aktif tema seçici listesi ve entegre duvar kağıdı (wallpaper) seçme arayüzüdür. Temalar ve Duvar Kağıtları sekmeli modlarını barındırır.
   - **[ControlCenterWifiList.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterWifiList.qml):** Kablolu ve kablosuz ağ bağlantıları listesidir.
   - **[ControlCenterWifiPassword.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterWifiPassword.qml):** Wi-Fi şifresi girme arayüzüdür.
   - **[ControlCenterClipboard.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterClipboard.qml):** Kopyalanan ögelerin pano geçmişi listesidir.
   - **[ControlCenterBluetooth.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterBluetooth.qml):** Bluetooth cihazları arama ve eşleştirme arayüzüdür.
+  - **[ControlCenterAudioMixer.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/ControlCenterAudioMixer.qml):** Ses karıştırıcı (Audio Mixer) arayüzüdür; her uygulamanın ve ses çıkış aygıtının ses düzeyini ayrı ayrı ayarlama ve varsayılan ses aygıtları arasında anlık geçiş yapma olanağı sunar.
 - **[TimeManager.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/TimeManager.qml):** Dijital saat, kronometre ve Pomodoro yönetim arayüzünü (süre arttırma, durdurma/başlatma, geçme) sekmeli olarak sunar.
 - **[CalendarWidget.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/CalendarWidget.qml):** Türkiye resmi tatilleriyle senkronize çalışan, ay geçişleri yapılabilen detaylı görsel takvim kartıdır.
 - **[MediaWidget.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/components/MediaWidget.qml):** Kontrol merkezi veya sağ adada gösterilen albüm kapağı, sanatçı adı, şarkı adı ve oynat/durdur/ileri/geri kontrollerini içeren geniş medya kartıdır.

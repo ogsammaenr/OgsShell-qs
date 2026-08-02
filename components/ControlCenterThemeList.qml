@@ -98,13 +98,13 @@ Column {
 
           Text {
             text: "\uf53f" // Palette
-            color: currentTab === 0 ? "#ffffff" : theme.textSecondary
+            color: currentTab === 0 ? theme.textOnAccent : theme.textSecondary
             font { family: "FiraCode Nerd Font"; pixelSize: 11 }
             anchors.verticalCenter: parent.verticalCenter
           }
           Text {
             text: "Temalar"
-            color: currentTab === 0 ? "#ffffff" : theme.textPrimary
+            color: currentTab === 0 ? theme.textOnAccent : theme.textPrimary
             font { family: "JetBrains Mono"; pixelSize: 10; weight: Font.Bold }
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -132,13 +132,13 @@ Column {
 
           Text {
             text: "\uf03e" // Image icon
-            color: currentTab === 1 ? "#ffffff" : theme.textSecondary
+            color: currentTab === 1 ? theme.textOnAccent : theme.textSecondary
             font { family: "FiraCode Nerd Font"; pixelSize: 11 }
             anchors.verticalCenter: parent.verticalCenter
           }
           Text {
             text: "Duvar Kağıdı"
-            color: currentTab === 1 ? "#ffffff" : theme.textPrimary
+            color: currentTab === 1 ? theme.textOnAccent : theme.textPrimary
             font { family: "JetBrains Mono"; pixelSize: 10; weight: Font.Bold }
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -443,7 +443,7 @@ Column {
 
                     Text {
                       text: "\uf00c"
-                      color: "#ffffff"
+                      color: theme.textOnAccent
                       font { family: "FiraCode Nerd Font"; pixelSize: 9; weight: Font.Bold }
                       anchors.centerIn: parent
                     }

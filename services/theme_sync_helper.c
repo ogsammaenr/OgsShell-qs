@@ -620,6 +620,60 @@ static void sync_vesktop(const char *theme_id, const char *pdir, const char *hom
     }
 }
 
+// 10. Sync IntelliJ IDEA & JetBrains IDEs across all installation directories
+static void sync_intellij(const char *theme_id, const char *pdir, const char *home) {
+    char jb_dir[PATH_MAX_LEN];
+    snprintf(jb_dir, sizeof(jb_dir), "%s/.config/JetBrains", home);
+
+    DIR *d = opendir(jb_dir);
+    if (!d) return;
+
+    char src_icls[PATH_MAX_LEN];
+    snprintf(src_icls, sizeof(src_icls), "%s/app_configs/intellij/%s.icls", pdir, theme_id);
+
+    const char *scheme_name = "OgsNord";
+    if (strcmp(theme_id, "catppuccin") == 0) scheme_name = "OgsCatppuccin";
+    else if (strcmp(theme_id, "nord") == 0) scheme_name = "OgsNord";
+    else if (strcmp(theme_id, "tokyonight") == 0) scheme_name = "OgsTokyoNight";
+    else if (strcmp(theme_id, "everforest") == 0) scheme_name = "OgsEverforest";
+    else if (strcmp(theme_id, "gruvbox") == 0) scheme_name = "OgsGruvbox";
+    else if (strcmp(theme_id, "monochrome") == 0) scheme_name = "OgsMonochrome";
+
+    struct dirent *entry;
+    while ((entry = readdir(d)) != NULL) {
+        if (entry->d_type == DT_DIR && entry->d_name[0] != '.') {
+            char colors_dir[PATH_MAX_LEN];
+            snprintf(colors_dir, sizeof(colors_dir), "%s/%s/colors", jb_dir, entry->d_name);
+            ensure_dir(colors_dir);
+
+            char dst_icls[PATH_MAX_LEN];
+            snprintf(dst_icls, sizeof(dst_icls), "%s/%s.icls", colors_dir, scheme_name);
+            copy_file(src_icls, dst_icls);
+
+            char options_dir[PATH_MAX_LEN];
+            snprintf(options_dir, sizeof(options_dir), "%s/%s/options", jb_dir, entry->d_name);
+            ensure_dir(options_dir);
+
+            char colors_path[PATH_MAX_LEN];
+            snprintf(colors_path, sizeof(colors_path), "%s/colors.scheme.xml", options_dir);
+            FILE *fc = fopen(colors_path, "w");
+            if (fc) {
+                fprintf(fc, "<application>\n  <component name=\"EditorColorsManagerImpl\">\n    <global_color_scheme name=\"%s\" />\n  </component>\n</application>\n", scheme_name);
+                fclose(fc);
+            }
+
+            char laf_path[PATH_MAX_LEN];
+            snprintf(laf_path, sizeof(laf_path), "%s/laf.xml", options_dir);
+            FILE *fl = fopen(laf_path, "w");
+            if (fl) {
+                fprintf(fl, "<application>\n  <component name=\"LafManager\">\n    <laf themeId=\"12345678-9123-4567-8a73-14af69073eae\" />\n  </component>\n</application>\n");
+                fclose(fl);
+            }
+        }
+    }
+    closedir(d);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <theme_id>\n", argv[0]);
@@ -655,6 +709,7 @@ int main(int argc, char *argv[]) {
     sync_tmux(theme_id, pdir, home);
     sync_btop(theme_id, pdir, home);
     sync_vesktop(theme_id, pdir, home);
+    sync_intellij(theme_id, pdir, home);
 
     return 0;
 }
