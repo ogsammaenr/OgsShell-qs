@@ -1,0 +1,229 @@
+{
+  "main": {
+    "id": "02f534c3f088eec6",
+    "type": "split",
+    "children": [
+      {
+        "id": "a0259275ffb0fd35",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f74f630c33e8d8ad",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "04-Agent-Rules/Obsidian-Brain-Rules.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Obsidian-Brain-Rules"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "98f4413e417a09dc",
+    "type": "split",
+    "children": [
+      {
+        "id": "c523572c8056813d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "316fb9cb18a69c5c",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Dosya Gezgini"
+            }
+          },
+          {
+            "id": "68e0b767986ee855",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Ara"
+            }
+          },
+          {
+            "id": "082c54c38bee0089",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Yer İmleri"
+            }
+          }
+        ]
+      },
+      {
+        "id": "c29f432549ad0bd0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "70aacf99fc1a43f9",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Grafik Görünümü"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "a0f6f108cb8d3781",
+    "type": "split",
+    "children": [
+      {
+        "id": "c827add83133310c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f2916b59759a0461",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "04-Agent-Rules/Obsidian-Brain-Rules.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Obsidian-Brain-Rules için geri bağlantılar"
+            }
+          },
+          {
+            "id": "e9b7167f224669d1",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "04-Agent-Rules/Obsidian-Brain-Rules.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Obsidian-Brain-Rules'dan giden bağlantılar"
+            }
+          },
+          {
+            "id": "13339d156c9b309d",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiketler"
+            }
+          },
+          {
+            "id": "4a9694f287471630",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Tüm özellikler"
+            }
+          },
+          {
+            "id": "ff54306161ce3542",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "04-Agent-Rules/Obsidian-Brain-Rules.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Obsidian-Brain-Rules ana hatları"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Hızlı geçişi aç": false,
+      "graph:Grafik görünümünü aç": false,
+      "canvas:Yeni tuval oluşturun": false,
+      "daily-notes:Bugünün Notunu Aç": false,
+      "templates:Şablon ekle": false,
+      "command-palette:Komut paletini aç": false,
+      "bases:Yeni taban oluştur": false
+    }
+  },
+  "active": "f74f630c33e8d8ad",
+  "lastOpenFiles": [
+    "04-Agent-Rules/Development-Rules.md",
+    "02-Services/Bluetooth-Service.md",
+    "02-Services/ShellIPC-Service.md",
+    "02-Services/SystemStats-Service.md",
+    "01-Architecture/Theme-System-Spec.md",
+    "01-Architecture/IPC-Protocol-Spec.md",
+    "01-Architecture/Architecture-Overview.md",
+    "05-Agent-Thoughts/Proposal-Restructure-Binaries.md",
+    "Hoş geldiniz.md",
+    "05-Agent-Thoughts/Proposal-Standalone-Settings-App.md",
+    "05-Agent-Thoughts",
+    "04-Agent-Rules/Obsidian-Brain-Rules.md",
+    "04-Agent-Rules",
+    "03-UI-Components/Settings-App-UI.md",
+    "03-UI-Components/ControlCenter-UI.md",
+    "03-UI-Components/Shell-Bar-Components.md",
+    "03-UI-Components",
+    "02-Services/AppLauncher-Service.md",
+    "02-Services/Wallpaper-Service.md",
+    "02-Services/ThemeSync-Service.md",
+    "02-Services/AudioMixer-Service.md",
+    "02-Services/Workspace-Service.md",
+    "02-Services",
+    "01-Architecture"
+  ]
+}

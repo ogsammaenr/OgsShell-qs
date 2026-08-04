@@ -31,3 +31,12 @@ Projeye yeni bir dosya eklemeden, mevcut bir dosyada değişiklik yapmadan veya 
 * **Bileşen/Servis Keşfi:** Yeni bir UI elemanı eklerken veya sistem verisine ihtiyaç duyduğunuzda, ilgili bileşenin veya servisin adını ve konumunu sözlükten bulun.
 * **Arayüzlerin Kontrolü:** Servislerin dışa aktardığı özellikleri (`properties`), sinyalleri (`signals`) ve fonksiyonları sözlükten inceleyerek veri bağlamalarını (binding) doğru şekilde yapın.
 * **Sözlüğün Güncel Tutulması:** Projeye yeni bir QML dosyası, servis, pencere veya C fonksiyonu eklediğinizde, bu dosyanın amacını ve özelliklerini mutlaka [.agents/GLOSSARY.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/GLOSSARY.md) dosyasına ekleyerek güncelleyin.
+
+---
+
+## 5. Obsidian Brain ve Dokümantasyon Yönetimi (`obsidian-glossary`)
+Projeyle ilgili mimari dokümantasyon, servis tanımları, UI bileşenleri veya ajan düşünce günlükleri (`ogsShell-qs_brain/` dizini) yazılırken veya güncellenirken daima [.agents/skills/obsidian-glossary/SKILL.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/skills/obsidian-glossary/SKILL.md) dosyasında tanımlı `obsidian-glossary` skill kurallarına uyulması ZORUNLUDUR:
+* **Dizin Yapısı:** `ogsShell-qs_brain/` altında `01-Architecture/`, `02-Services/`, `03-UI-Components/`, `04-Agent-Rules/` ve `05-Agent-Thoughts/` klasör yapısına sadık kalın.
+* **Wikilink Bağlantıları:** Oluşturulan ve güncellenen tüm notlarda diğer ilgili notlara `[[Not-Adı]]` biçiminde Obsidian Wikilink bağlantısı verin. Bağlantısız (yetim) not oluşturmayın.
+* **Obsidian Standartları:** Notların başında YAML frontmatter (`title`, `type`, `tags`, `created`, `updated`, `status`, `related_notes`) kullanın ve callout bloklarını (`> [!NOTE]`, `> [!WARNING]`, `> [!IDEA]`) uygulayın.
+* **Düşünce Günlüğü (`05-Agent-Thoughts/`):** Karmaşık refactoring ve mimari değişikliklerden önce bir plan/proposal notu oluşturun; işlem tamamlandığında notun durumunu `status: implemented` olarak güncelleyin.

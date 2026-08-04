@@ -1,99 +1,152 @@
 # OgsShell-qs Mimari Dokümantasyonu (ARCHITECTURE.md)
 
-Bu dosya, projenin modüler QML mimarisini, dosya yapısını, veri akış kurallarını ve gelecekte yeni özellikler eklenirken uyulması gereken standartları açıklamaktadır. Gelecekte projede çalışacak yapay zeka (AI) geliştiricileri ve insanlar bu yapıya sadık kalmalıdır.
+Bu doküman, OgsShell-qs ekosisteminin çoklu-uygulama mimarisini, dizin organizasyonunu, veri akış kurallarını, binary yönetimini ve gelecekte sisteme yeni özellikler eklenirken uyulması gereken mimari standartları tanımlar.
 
 ---
 
-## 1. Mimari Genel Bakış
-OgsShell-qs, Quickshell Layer Shell tabanlı bir masaüstü bar/shell uygulamasıdır. Kod tabanı **Servis-Pencere-Bileşen (Service-Window-Component)** deseniyle modülerleştirilmiştir.
+## 1. Ekosistem Mimarisi
 
-* **Servisler (`services/`):** Görsel olmayan, arka plan işlemleri (C daemon'ları), soket dinleme, veri ayrıştırma (JSON parser) ve global durum (state) yönetiminden sorumludur.
-* **Pencereler (`windows/`):** Ekran katmanı ayarlarını (`PanelWindow`, `exclusiveZone`, `Region` maskeleri) yöneten ve ilgili monitöre göre konumlanan çerçevelerdir.
-* **Bileşenler (`components/`):** Sadece çizim, animasyon ve kullanıcı tıklama/üzerine gelme (interaction) olaylarını yöneten tekrar kullanılabilir UI parçalarıdır.
+OgsShell-qs, modülerlik ve yüksek performans sağlamak amacıyla 4 temel katmandan oluşur:
+
+```
++-------------------------------------------------------------------------------+
+|                             OgsShell-qs Ekosistemi                            |
++------------------------------------+------------------------------------------+
+|  Quickshell Desktop Shell (QML/C)  |   Python Qt Settings Application (GUI)  |
+|  - TopBar, Dynamic Islands         |   - Appearance & Live Theme Switcher     |
+|  - Overlays (Control Center, etc.) |   - Module Toggles & Performance Modes   |
++------------------------------------+------------------------------------------+
+|                     Ortak İletişim & Konfigürasyon Katmanı                     |
+|  - IPC Named Pipe ($XDG_RUNTIME_DIR/ogsshell-ipc)                             |
+|  - Shared App Config Templates (shared/app_configs/)                          |
+|  - Shared Themes Registry (shared/themes/themes.json)                         |
++-------------------------------------------------------------------------------+
+|                            Merkezi Binary Katmanı                             |
+|  - bin/monitor, bin/workspaces, bin/theme_sync_helper, etc.                  |
++-------------------------------------------------------------------------------+
+```
+
+1. **Merkezi Çalıştırıcı Dizin (`bin/`):** Tüm derlenmiş C daemon'ları (`monitor`, `workspaces`, `app_launcher_helper`, `wallpaper_helper`, `theme_sync_helper`) ve çalıştırılabilir betikler (`audio_mixer_helper.py`, `bluetooth_helper.sh`).
+2. **Ortak Kaynaklar (`shared/`):** Uygulama tema şablonları (`app_configs/`), tema JSON tanımları (`themes/`) ve IPC haberleşme protokol standartları (`ipc/`).
+3. **Quickshell Desktop Shell (`shell/`):** Quickshell Layer Shell tabanlı masaüstü barı ve overlay pencereleri. **Servis-Pencere-Bileşen (Service-Window-Component)** deseniyle modülerleştirilmiştir.
+   - **Servisler (`shell/services/`):** Görsel olmayan, arka plan işlemleri, C daemon süreç yönetimi ve global durum (state) yönetimi.
+   - **Pencereler (`shell/windows/`):** Ekran katmanı ayarlarını (`PanelWindow`, `exclusiveZone`) yöneten pencereler.
+   - **Bileşenler (`shell/components/`):** Sadece çizim, animasyon ve etkileşimleri yöneten tekrar kullanılabilir UI parçaları.
+4. **Ayarlar Uygulaması (`settings_app/`):** Kontrol merkezinden bağımsız, **Qt for Python (PySide6 / PyQt)** ile yazılmış masaüstü tercihleri GUI uygulaması.
 
 ---
 
-## 2. Dizin Yapısı ve Dosya Sorumlulukları
+## 2. Detaylı Dizin Yapısı ve Dosya Sorumlulukları
 
 ```
 OgsShell-qs/
-├── shell.qml                  # Uygulama giriş noktası (Sadece servisleri ve pencere gruplarını bağlar)
-├── ipc.sh                     # Hyprland kısayolları için dış IPC tetikleyici script
-├── services/                  # Görsel olmayan mantıksal servisler
-│   ├── WorkspaceService.qml   # Hyprland workspaces takibi ve bildirim yığını (stack) yönetimi
-│   ├── ShellIpcService.qml    # Named pipe (IPC) üzerinden gelen dış pencere/sayfa eylemlerini dinler
-│   ├── SystemStatsService.qml # CPU, RAM, GPU, Ağ hızları, ses, parlaklık ve Bluetooth/Medya verileri
-│   ├── TimeService.qml        # Kronometre ve Pomodoro sayaçları/durumları
-│   ├── AppLauncherService.qml # Sistemdeki uygulamaları ve ikonlarını yükleyen arayıcı servis
-│   ├── app_launcher_helper.c  # Hızlı arama için stat/mtime önbellekli C yardımcı kaynak kodu
-│   └── app_launcher_helper    # Derlenmiş yerel uygulama arama ve simge çözümleyici binary dosya
-├── windows/                   # Üst düzey PanelWindow katmanları
-│   ├── MonitorGroup.qml       # Her ekran için pencereleri ve yerel durumları yöneten grup yöneticisi
-│   ├── TopBarWindow.qml       # Ana üst panel barı
-│   ├── ControlCenterWindow.qml# Hızlı ayarları barındıran kontrol merkezi overlay'i
-│   ├── TimeManagerWindow.qml  # Pomodoro/Kronometre yönetim overlay'i
-│   ├── CalendarWindow.qml     # Takvim ve resmi tatiller overlay'i
-│   ├── AppLauncherWindow.qml  # Uygulama arayıcı overlay'i (saat adasının altında açılır)
-│   ├── AppDashboardWindow.qml # Uygulama kütüphanesi overlay'i (ekranı kaplayan dikey sekme paneli)
-│   └── PowerMenuWindow.qml    # Sistem kapatma/uyku/çıkış overlay'i (Global tekil)
-└── components/                # Arayüz bileşenleri (UI Widgets)
-    ├── LeftWorkspaceBar.qml   # Çalışma alanları görsel gösterge barı
-    ├── CenterHudIsland.qml    # Ortadaki dinamik saat, hud slider'ı ve zamanlayıcı adası
-    ├── RightMediaNotifIsland.qml # Sağdaki medya/bildirim adası
-    ├── AppLauncher.qml        # Arama girdisi ve sonuçları gösteren uygulama arayıcı bileşeni
-    ├── AppDashboard.qml       # Kategorize dikey tab bar ve ızgara tabanlı uygulama kütüphanesi
-    └── ...                    # Diğer alt bileşenler (Theme.qml, PowerButton.qml, vb.)
+├── Makefile                       # Kök Makefile (Shell C daemons derler & uygulamaları çalıştırır)
+├── ARCHITECTURE.md                # Mimari dokümantasyonu
+├── bin/                           # Merkezi ikili dosyalar ve çalıştırılabilir betikler
+│   ├── monitor                    # CPU, RAM, GPU, Ağ hızları, Ses, Medya takip daemon'ı (C)
+│   ├── workspaces                 # Hyprland çalışma alanı ve D-Bus bildirim takip daemon'ı (C)
+│   ├── app_launcher_helper        # Uygulama tarama ve simge çözümleyici binary (C)
+│   ├── wallpaper_helper           # Duvar kağıdı tarama ve dinamik değiştirme binary (C)
+│   ├── theme_sync_helper          # GTK, Qt, Kitty, Zed, IntelliJ, Neovim vb. tema senkronize binary (C)
+│   ├── audio_mixer_helper.py      # WirePlumber/PulseAudio ses karıştırıcı betiği (Python)
+│   └── bluetooth_helper.sh        # Bluetoothctl tarama ve eşleştirme betiği (Bash)
+├── shared/                        # Ortak kaynaklar ve yapılandırmalar
+│   ├── app_configs/               # GTK, Qt, Kitty, Zed, IntelliJ, Vesktop, Tmux tema şablonları
+│   ├── themes/                    # Ortak renk teması JSON tanımları (themes.json)
+│   └── ipc/                       # Ortak IPC komut spesifikasyonu (protocol.json)
+├── shell/                         # Quickshell Bar ve Overlay Panelleri
+│   ├── shell.qml                  # Shell giriş noktası (Global servisleri ve MonitorGroup'u başlatır)
+│   ├── reload.sh                  # Shell ortam değişkenli yeniden başlatma scripti
+│   ├── ipc.sh                     # Kısayollar ve dış komutlar için IPC tetikleyici script
+│   ├── Makefile                   # C daemon derleme betiği (Çıktıları ../bin/ içine üretir)
+│   ├── services/                  # Görsel olmayan mantıksal servisler (WorkspaceService, SystemStatsService vb.)
+│   ├── windows/                   # Üst düzey PanelWindow katmanları (MonitorGroup, TopBarWindow, ControlCenterWindow vb.)
+│   └── components/                # UI widget bileşenleri (LeftWorkspaceBar, CenterHudIsland, RightMediaNotifIsland vb.)
+└── settings_app/                  # Bağımsız Python Qt Ayarlar Uygulaması
+    ├── main.py                    # Python uygulama giriş noktası
+    ├── config.py                  # ~/.config/ogsshell/config.json yapılandırma yöneticisi
+    ├── requirements.txt           # Python bağımlılıkları (PySide6)
+    ├── ui/                        # PySide6 arayüz bileşenleri
+    │   ├── qt_compat.py           # PySide6 / PyQt6 / PyQt5 otomatik uyumluluk katmanı
+    │   ├── main_window.py         # Sol gezinti menüsü ve sayfa yığını (QStackedWidget)
+    │   ├── pages/                 # Tercih sayfaları (AppearancePage, ModulesPage, SystemPage, GeneralPage, AboutPage)
+    │   └── widgets/               # Kartlar, şalterler (ToggleSwitch) ve slider'lar
+    └── utils/                     # Yardımcı fonksiyonlar
+        └── ipc_client.py          # Shell named pipe'ına (`ogsshell-ipc`) canlı komut gönderen istemci
 ```
 
 ---
 
-## 3. Veri Akışı ve Durum Yönetimi Kuralları
+## 3. Veri Akışı ve Mimari Kurallar
 
-### A. Global Servislere Erişim
-Global servisler, `shell.qml` içinde tanımlanmış olan `ShellRoot` (`id: root`) altındaki ID'leri aracılığıyla tüm alt QML nesneleri tarafından doğrudan okunabilir.
-* **Çalışma Alanları & Bildirimler:** `workspaceService.workspaceState` ve `workspaceService.activeNotifications`
-* **İstatistikler & Medya:** `systemStatsService.cpuUsage`, `systemStatsService.volume`, `systemStatsService.mediaTitle` vb.
-* **Zamanlayıcılar:** `timeService.stopwatchTime`, `timeService.pomodoroTime` vb.
+### A. Binary Yollarının Dinamik Çözümlenmesi (`binDir`)
+Quickshell QML servislerinde süreç (Process) başlatılırken sabit yollar kullanılmaz. Yol çözünürlüğü `Quickshell.env("ROOT_DIR")` üzerinden dinamik olarak sağlanır:
 
-### B. Monitörler Arası Bağımsızlık ve `MonitorGroup`
-Her ekran için bağımsız olan açılıp kapanma durumları, yerel temalar ve HUD özellikleri `windows/MonitorGroup.qml` üzerinde tanımlanır.
-* `MonitorGroup`, `Quickshell.screens` modeliyle dinamik olarak çoğaltılır.
-* İçindeki pencerelere (`TopBarWindow`, `ControlCenterWindow` vb.) kendi referansını `monitorGroup` veya `group` parametresiyle aktarır.
-* **Kural:** Herhangi bir pencere, kendi monitörüne ait açık/kapalı durumunu veya yerel temasını okumak için bu parametreyi (örneğin `monitorGroup.isControlCenterOpen`) kullanmalıdır.
-
-### C. Shadowing (Ekran Tanımlama) Önlemi
-`PanelWindow` bileşeninin yerleşik `screen` özelliğiyle çakışma yaşanmaması için, alt pencerelere ekran referansı aktarılırken `targetScreen` ismi kullanılmalı ve pencerenin yerleşik özelliğine bağlanmalıdır:
 ```qml
-PanelWindow {
-  id: win
-  required property var targetScreen
-  screen: targetScreen
-  ...
+readonly property string binDir: (typeof Quickshell !== "undefined" && Quickshell.env("ROOT_DIR"))
+                                   ? Quickshell.env("ROOT_DIR") + "/bin"
+                                   : "/home/excalibur/WorkSpace/projects/OgsShell-qs/bin"
+
+Process {
+    command: [service.binDir + "/monitor"]
+    running: true
 }
 ```
 
-### D. Dış Kısayollar ve IPC (ogsshell-ipc)
-Hyprland veya diğer pencere yöneticilerinde klavye kısayolları ile bar üzerindeki panelleri doğrudan açabilmek/kapatabilmek için bir IPC (Inter-Process Communication) yapısı mevcuttur:
-* **Mekanizma:** Arka planda `ShellIpcService.qml` servisi, `$XDG_RUNTIME_DIR/ogsshell-ipc` konumunda bir Named Pipe (FIFO) oluşturur ve `tail -f` aracılığıyla dinler.
-* **Tetikleme:** Kullanıcı veya sistem, `./ipc.sh <komut>` scripti aracılığıyla boruya (pipe) veri gönderdiğinde, bu komut anında yakalanır.
-* **Aktif Ekran Tespiti:** Gelen komutlar, `workspaceService` üzerinden o an aktif/odaklanmış olan monitör (focused: true) tespit edilerek sadece o ekranın `MonitorGroup` örneği üzerinde yürütülür.
-* **Desteklenen Komutlar:**
-  * `control_center` - Kontrol merkezini açar/kapatır.
-  * `control_center:wifi` - Kontrol merkezini Wi-Fi sayfasıyla açar.
-  * `control_center:bluetooth` - Kontrol merkezini Bluetooth sayfasıyla açar.
-  * `control_center:theme` - Kontrol merkezini Tema seçici sayfasıyla açar.
-  * `control_center:clipboard` - Kontrol merkezini Pano geçmişi sayfasıyla açar.
-  * `time_manager` - Pomodoro/Kronometre panelini açar/kapatır.
-  * `calendar` - Takvim panelini açar/kapatır.
+### B. Shadowing (Ekran Tanımlama) Önleme Kuralı
+`PanelWindow` bileşeninin yerleşik `screen` özelliğiyle çakışma yaşanmaması için, alt pencerelere ekran referansı aktarılırken `targetScreen` ismi kullanılmalı ve pencerenin yerleşik özelliğine bağlanmalıdır:
+
+```qml
+PanelWindow {
+    id: win
+    required property var targetScreen
+    screen: targetScreen
+}
+```
+
+### C. Monitör Bağımsızlığı ve `MonitorGroup`
+Her ekran için bağımsız olan açılıp kapanma durumları, yerel temalar ve HUD özellikleri `shell/windows/MonitorGroup.qml` üzerinde tanımlanır.
+* `MonitorGroup`, `Quickshell.screens` modeliyle dinamik olarak çoğaltılır.
+* İçindeki pencereler (`TopBarWindow`, `ControlCenterWindow` vb.) kendi monitörüne ait durumu `monitorGroup.isControlCenterOpen` üzerinden okur.
+
+### D. İki Yönlü IPC (Inter-Process Communication)
+* **Shell Tarafı (`ShellIpcService.qml`):** `$XDG_RUNTIME_DIR/ogsshell-ipc` konumunda bir Named Pipe (FIFO) oluşturur ve `tail -f` ile dinler.
+* **Tetikleyiciler (`ipc.sh` & `settings_app/utils/ipc_client.py`):** Dış kısayollardan veya Python Ayarlar Uygulamasından komut gönderildiğinde tema, oyun modu ve overlay paneller anında güncellenir.
 
 ---
 
-## 4. Yeni Bir Özellik Eklerken İzlenecek Adımlar (AI/İnsan Rehberi)
+## 4. Yeni Bir Özellik Eklerken İzlenecek Adımlar (Rehber)
 
-Eğer sisteme yeni bir özellik (örneğin; hava durumu göstergesi, yeni bir HUD modu vb.) eklemek istiyorsanız şu adımları izleyin:
+1. **Adım 1 (Veri/Arka Plan):**
+   - Sistem verisi çekilecekse C daemon kodunu `shell/services/` altında geliştirin ve `shell/Makefile` ile çıktıyı `../bin/` klasörüne yönlendirin.
+   - QML tarafında mantığı yönetmek için `shell/services/` altında yeni bir QML servisi tanımlayın (örn. `WeatherService.qml`).
+2. **Adım 2 (Global Kayıt):**
+   - Servisi `shell/shell.qml` içindeki `ShellRoot` seviyesinde bir kez başlatın ve ona bir ID verin.
+3. **Adım 3 (Görsel Tasarım):**
+   - Görsel kartı `shell/components/` altında geliştirin.
+4. **Adım 4 (Pencere & Ayarlar Entegrasyonu):**
+   - Yeni bir overlay pencereye ihtiyaç varsa `shell/windows/` altına ekleyip `MonitorGroup.qml` içine dahil edin.
+   - Ayarlar Uygulamasında açıp kapatma düğmesi eklemek için `settings_app/ui/pages/modules_page.py` dosyasını güncelleyin.
+5. **Adım 5 (Dokümantasyon Güncellemesi):**
+   - Yeni bileşeni veya servisi [.agents/GLOSSARY.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/GLOSSARY.md) sözlüğüne ekleyin.
+   - `brain/` alanındaki Obsidian dokümantasyonunu [.agents/skills/obsidian-glossary/SKILL.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/skills/obsidian-glossary/SKILL.md) kurallarına göre güncelleyin.
 
-1. **Adım 1 (Veri/İş Mantığı):** Veriyi çekecek ve işleyecek mantığı `services/` altında yeni bir servis dosyası oluşturarak (örneğin `WeatherService.qml`) ya da mevcut `SystemStatsService.qml` içine ekleyerek tanımlayın.
-2. **Adım 2 (Global Kayıt):** Bu servisi `shell.qml` içindeki `ShellRoot` seviyesinde bir kez başlatın ve ona bir ID (örn: `weatherService`) verin.
-3. **Adım 3 (Görsel Tasarım):** Görsel kartı veya adayı `components/` altında bağımsız bir QML dosyası olarak tasarlayın (örn: `components/WeatherWidget.qml`). Veri okuma işlemlerini doğrudan `weatherService` üzerinden yapın.
-4. **Adım 4 (Pencere Entegrasyonu):** Tasarladığınız widget'ı ya `TopBarWindow.qml` içindeki uygun bir adaya ekleyin, ya da yeni bir overlay pencereye ihtiyaç duyuyorsa `windows/` altında yeni bir `WeatherWindow.qml` (PanelWindow) oluşturup bunu `MonitorGroup.qml` içine dahil edin.
-5. **Adım 5 (Yerel Durumlar):** Eğer özellik her monitörde bağımsız açılıp kapanacak bir yapıdaysa, durum değişkenini (örn: `property bool isWeatherOpen`) `MonitorGroup.qml` içine ekleyin.
+---
+
+## 5. Çalıştırma Komutları
+
+* **Shell'i Başlatma / Yeniden Yükleme:**
+  ```bash
+  make run-shell
+  # veya: ./shell/reload.sh
+  ```
+* **Ayarlar Uygulamasını Başlatma:**
+  ```bash
+  make run-settings
+  # veya: python3 settings_app/main.py
+  ```
+* **Binary'leri Derleme:**
+  ```bash
+  make
+  # veya: make -C shell
+  ```

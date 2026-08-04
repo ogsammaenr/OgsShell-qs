@@ -1,0 +1,50 @@
+[
+  {
+    "id": "nord",
+    "name": "Nord",
+    "accent": "#88c0d0",
+    "bg": "#2e3440",
+    "fg": "#eceff4",
+    "card_bg": "#3b4252"
+  },
+  {
+    "id": "catppuccin",
+    "name": "Catppuccin Macchiato",
+    "accent": "#c6a0f6",
+    "bg": "#24273a",
+    "fg": "#cad3f5",
+    "card_bg": "#363a4f"
+  },
+  {
+    "id": "everforest",
+    "name": "Everforest Dark",
+    "accent": "#a7c080",
+    "bg": "#2d353b",
+    "fg": "#d3c6aa",
+    "card_bg": "#343f44"
+  },
+  {
+    "id": "tokyonight",
+    "name": "Tokyo Night",
+    "accent": "#7aa2f7",
+    "bg": "#1a1b26",
+    "fg": "#c0caf5",
+    "card_bg": "#24283b"
+  },
+  {
+    "id": "gruvbox",
+    "name": "Gruvbox Dark",
+    "accent": "#fe8019",
+    "bg": "#282828",
+    "fg": "#ebdbb2",
+    "card_bg": "#3c3836"
+  },
+  {
+    "id": "monochrome",
+    "name": "Monochrome Minimal",
+    "accent": "#e0e0e0",
+    "bg": "#121212",
+    "fg": "#f0f0f0",
+    "card_bg": "#1e1e1e"
+  }
+]
