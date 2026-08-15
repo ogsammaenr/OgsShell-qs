@@ -13,15 +13,44 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "04-Agent-Rules/Obsidian-Brain-Rules.md",
+                "file": "01-Architecture/IPC-Socket-Schema.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Obsidian-Brain-Rules"
+              "title": "IPC-Socket-Schema"
+            }
+          },
+          {
+            "id": "5dac5067c06cf735",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "04-Agent-Rules/Agent-Workflow-Directives.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Agent-Workflow-Directives"
+            }
+          },
+          {
+            "id": "65341d78f1f546ed",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "01-Architecture/System-Architecture.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "System-Architecture"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -33,6 +62,7 @@
       {
         "id": "c523572c8056813d",
         "type": "tabs",
+        "dimension": 74.56479690522244,
         "children": [
           {
             "id": "316fb9cb18a69c5c",
@@ -41,7 +71,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Dosya Gezgini"
@@ -79,6 +111,7 @@
       {
         "id": "c29f432549ad0bd0",
         "type": "tabs",
+        "dimension": 25.435203094777563,
         "children": [
           {
             "id": "70aacf99fc1a43f9",
@@ -199,31 +232,38 @@
       "bases:Yeni taban oluştur": false
     }
   },
-  "active": "f74f630c33e8d8ad",
+  "active": "5dac5067c06cf735",
   "lastOpenFiles": [
-    "04-Agent-Rules/Development-Rules.md",
-    "02-Services/Bluetooth-Service.md",
-    "02-Services/ShellIPC-Service.md",
-    "02-Services/SystemStats-Service.md",
-    "01-Architecture/Theme-System-Spec.md",
-    "01-Architecture/IPC-Protocol-Spec.md",
-    "01-Architecture/Architecture-Overview.md",
-    "05-Agent-Thoughts/Proposal-Restructure-Binaries.md",
-    "Hoş geldiniz.md",
-    "05-Agent-Thoughts/Proposal-Standalone-Settings-App.md",
-    "05-Agent-Thoughts",
-    "04-Agent-Rules/Obsidian-Brain-Rules.md",
+    "05-Agent-Thoughts/Plan-Theme-App-Wallpapers-Tab.md",
+    "02-Services/Theme-Service.md",
+    "02-Services/RAM-Monitor-Service.md",
+    "02-Services/IPC-Server-Service.md",
+    "03-UI-Components/Shell-Root-PanelWindow.md",
+    "05-Agent-Thoughts/Plan-Theme-Specific-Awww-Wallpaper-Engine.md",
+    "03-UI-Components/Connectivity-Status-Widget.md",
+    "01-Architecture/IPC-Socket-Schema.md",
+    "01-Architecture/System-Architecture.md",
+    "05-Agent-Thoughts/Plan-Expanded-State-5s-Focus-Timeout.md",
+    "05-Agent-Thoughts/Plan-Universal-Qt-KDE-Theming.md",
+    "05-Agent-Thoughts/Plan-Complete-Dolphin-KDE-Color-Format.md",
+    "05-Agent-Thoughts/Plan-Fix-Dolphin-Crash-On-Theme-Switch.md",
+    "05-Agent-Thoughts/Plan-KDE-DBus-NotifyChange-Broadcaster.md",
+    "05-Agent-Thoughts/Plan-Fix-Dolphin-Qt-Color-Integration.md",
+    "05-Agent-Thoughts/Plan-Fix-Dolphin-Theme-Adapter.md",
+    "05-Agent-Thoughts/Plan-Fix-Kitty-Theme-Adapter-Timeout.md",
+    "05-Agent-Thoughts/Plan-Shared-Directory-Theme-Engine.md",
+    "05-Agent-Thoughts/Plan-Async-Theme-Engine-And-Exact-Matching.md",
+    "05-Agent-Thoughts/Plan-Theme-Selector-Gallery-Redesign.md",
+    "05-Agent-Thoughts/Plan-Hover-Right-Click-Control-Center.md",
+    "05-Agent-Thoughts/Plan-Dynamic-Expanded-Layer-Interaction.md",
+    "05-Agent-Thoughts/Plan-Fullscreen-Application-Layer-Clearance.md",
+    "05-Agent-Thoughts/Plan-Clipboard-History-Service.md",
+    "05-Agent-Thoughts/Plan-Theme-Management-Service.md",
+    "02-Services/Keyboard-Service.md",
     "04-Agent-Rules",
-    "03-UI-Components/Settings-App-UI.md",
-    "03-UI-Components/ControlCenter-UI.md",
-    "03-UI-Components/Shell-Bar-Components.md",
     "03-UI-Components",
-    "02-Services/AppLauncher-Service.md",
-    "02-Services/Wallpaper-Service.md",
-    "02-Services/ThemeSync-Service.md",
-    "02-Services/AudioMixer-Service.md",
-    "02-Services/Workspace-Service.md",
     "02-Services",
-    "01-Architecture"
+    "01-Architecture",
+    "05-Agent-Thoughts"
   ]
 }

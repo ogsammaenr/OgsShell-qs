@@ -7,7 +7,7 @@ description: Rules and guidelines for reading, creating, and updating Obsidian m
 
 ## Purpose
 
-This skill governs how the agent interacts with the `ogsShell-qs_brain/` directory (the Obsidian Vault). The agent MUST maintain a structured, interconnected, and up-to-date knowledge base regarding system architecture, services, UI components, development standards, and autonomous agent thought logs inside `ogsShell-qs_brain/`.
+This skill governs how any agent interacts with the `ogsShell-qs_brain/` directory (the Obsidian Vault). The agent MUST maintain a structured, interconnected, and up-to-date knowledge base regarding system architecture, Go daemon services, Unix Domain Socket IPC schemas, Quickshell UI components, development standards, and autonomous agent thought logs inside `ogsShell-qs_brain/`.
 
 ---
 
@@ -17,10 +17,10 @@ All documentation created or updated by the agent MUST strictly adhere to this l
 
 ```text
 ogsShell-qs_brain/
-├── 01-Architecture/      # High-level architecture, IPC schemas, config formats
-├── 02-Services/          # System services (PipeWire, NetworkManager, BlueZ, Hyprland IPC)
-├── 03-UI-Components/     # Quickshell & PySide6 QML UI standards, themes, design tokens
-├── 04-Agent-Rules/       # Coding standards, git commit rules, agent workflows
+├── 01-Architecture/      # High-level architecture, IPC JSON schemas, config formats
+├── 02-Services/          # Go Daemon services (PipeWire, NetworkManager, BlueZ, Hyprland IPC, SysMetrics)
+├── 03-UI-Components/     # Quickshell QML & PySide6 UI standards, themes, Dynamic Island widgets
+├── 04-Agent-Rules/       # Coding standards (Go, QML, Python), git commit rules, agent workflows
 └── 05-Agent-Thoughts/    # Agent scratchpad, autonomous ideas, refactoring proposals, reasoning logs
 ```
 
@@ -33,9 +33,9 @@ To build a fully connected graph in Obsidian, the agent MUST explicitly link not
 1. **Format:** Always use standard Obsidian Wikilinks `[[Note-Name]]`. Do **not** use file extensions (e.g., use `[[Audio-Pipewire]]`, NOT `[[Audio-Pipewire.md]]`).
 2. **Bi-Directional Tracing:**
    * Notes in `05-Agent-Thoughts/` MUST link to the relevant services in `02-Services/` or architecture specs in `01-Architecture/` that they are proposing to alter.
-   * Notes in `02-Services/` MUST link back to related UI components in `03-UI-Components/` and configuration schemas in `01-Architecture/`.
+   * Notes in `02-Services/` MUST link back to related UI components in `03-UI-Components/` and IPC schemas in `01-Architecture/`.
 3. **Contextual Anchors:** Use inline Wikilinks inside narrative text to build context.
-   * *Example:* "This service communicates with `[[Hyprland-IPC]]` to adjust layout parameters defined in `[[Config-Schema]]`."
+   * *Example:* "This Go service communicates with `[[Hyprland-IPC]]` and broadcasts JSON events over `[[IPC-Socket-Schema]]`."
 
 ---
 
@@ -55,7 +55,7 @@ tags:
   - topic/subtopic
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-status: draft | active | deprecated | proposed
+status: draft | active | deprecated | proposed | implemented
 related_notes:
   - "[[Note-Name-1]]"
   - "[[Note-Name-2]]"
@@ -79,7 +79,7 @@ Use callouts to highlight important contexts or warnings:
 
 ### C. Code Blocks & Diagrams
 
-* Always specify language tags in code fences (`qml`, `python`, `bash`, `json`).
+* Always specify language tags in code fences (`go`, `qml`, `python`, `bash`, `json`).
 * Use **Mermaid.js** syntax for data flow or architecture diagrams when explaining complex interactions.
 
 ---
@@ -93,7 +93,7 @@ The `05-Agent-Thoughts/` directory is the agent's dedicated space for internal r
    * When discovering a potential system bottleneck or architectural flaw.
    * To outline a step-by-step execution plan for complex multi-file changes.
 2. **Linking Obligation:** A thought note MUST link to all target notes it intends to modify or reference.
-   * *Example:* A note `[[Refactoring-NetworkManager-Service]]` must explicitly link to `[[Network-Manager]]`, `[[NetworkSettings]]`, and `[[Config-Schema]]`.
+   * *Example:* A note `[[Refactoring-NetworkManager-Service]]` must explicitly link to `[[Network-Manager]]`, `[[NetworkSettings]]`, and `[[IPC-Socket-Schema]]`.
 3. **Lifecycle:** When a proposal in `05-Agent-Thoughts/` is implemented, update its frontmatter `status` to `implemented` and add a link to the commit or the updated official docs.
 
 ---
@@ -109,7 +109,7 @@ When executing coding, refactoring, or feature tasks, the agent MUST follow this
 
 ### Phase 2: Implementation (Write Code)
 
-1. Implement or modify the required code in `shell/` or `settings-app/` following `[[Python-Coding-Style]]` and `[[QML-Best-Practices]]`.
+1. Implement or modify the required code in `core/` (Go), `shell/` (QML), or `settings_app/` (PySide6) following `[[Go-Coding-Style]]`, `[[QML-Best-Practices]]`, and `[[PySide6-Standards]]`.
 
 ### Phase 3: Brain Synchronization (Update Docs)
 
@@ -125,76 +125,87 @@ When executing coding, refactoring, or feature tasks, the agent MUST follow this
 
 ```markdown
 ---
-title: "Proposal: Async NetworkManager D-Bus Scanner"
+title: "Proposal: Async NetworkManager D-Bus Scanner in Go"
 type: agent-thought
 tags:
   - proposal/refactor
   - network/dbus
-created: 2026-08-03
-updated: 2026-08-03
+  - go/daemon
+created: 2026-08-09
+updated: 2026-08-09
 status: proposed
 related_notes:
   - "[[Network-Manager]]"
-  - "[[Config-Schema]]"
+  - "[[IPC-Socket-Schema]]"
 ---
 
-# Proposal: Async NetworkManager D-Bus Scanner
+# Proposal: Async NetworkManager D-Bus Scanner in Go
 
 > [!IDEA]
-> Moving network scanning from synchronous subprocess calls to asynchronous D-Bus signals will prevent UI freezes in `[[NetworkSettings]]`.
+> Moving network scanning from polling to asynchronous D-Bus signals in the Go daemon will reduce idle CPU usage.
 
 ## Problem Statement
-Current implementation in `[[Network-Manager]]` blocks the main Python thread during Wi-Fi scans.
+Current polling routine in `[[Network-Manager]]` queries D-Bus every 2 seconds, generating unnecessary CPU interrupts.
 
 ## Proposed Solution
-1. Replace `nmcli` subprocess calls with `dbus-next` async event loops.
-2. Update `[[NetworkSettings]]` QML component to bind to the new async signal.
+1. Use `godbus/dbus` signal subscriptions inside a dedicated Go goroutine.
+2. Broadcast `net_update` JSON events via Unix Domain Socket only when state changes occur.
+3. Update `[[NetworkSettings]]` and `[[NetworkWidget]]` to react to new socket events.
 
 ## Affected Components
-- `[[Network-Manager]]` - Service implementation
-- `[[NetworkSettings]]` - UI component
-- `[[Config-Schema]]` - Target storage for saved APNs
+- `[[Network-Manager]]` - Go service implementation (`core/internal/services/net.go`)
+- `[[IPC-Socket-Schema]]` - JSON broadcast message specification
+- `[[NetworkWidget]]` - Quickshell QML component
 ```
 
 ### Template B: System Service Note (`02-Services/`)
 
 ```markdown
 ---
-title: "PipeWire Audio Service"
+title: "PipeWire Audio Service (Go Daemon)"
 type: service
 tags:
   - audio/pipewire
-  - python/pyside6
-created: 2026-08-03
-updated: 2026-08-03
+  - go/daemon
+created: 2026-08-09
+updated: 2026-08-09
 status: active
 related_notes:
-  - "[[Config-Schema]]"
+  - "[[IPC-Socket-Schema]]"
+  - "[[AudioWidget]]"
   - "[[AudioSettings]]"
-  - "[[Refactoring-Audio-Pipeline]]"
 ---
 
 # PipeWire Audio Service
 
-Brief description of what this service does and its role in the desktop shell.
+Go daemon subsystem responsible for monitoring system volume, default sinks, and mute states via WirePlumber/PipeWire D-Bus APIs.
 
-## Dependencies & External Tools
-- `wpctl` (WirePlumber CLI)
-- PipeWire Audio Daemon
+## Dependencies & Core Packages
+* `godbus/dbus` - Native Go D-Bus bindings
+* PipeWire / WirePlumber Daemon
 
-## Python Implementation Details
-- **Module:** `settings-app/services/audio_service.py`
-- **QML Expose Name:** `AudioService`
+## Go Implementation Details
+* **Source Path:** `core/internal/services/audio.go`
+* **Execution Model:** Long-running Goroutine with D-Bus Signal Listener Loop
 
-### Signals & Properties
-| Property / Signal | Type | Direction | Description |
-| :--- | :--- | :--- | :--- |
-| `volume` | `int` | Read/Write | Main sink volume percentage (0-100) |
-| `isMuted` | `bool` | Read/Write | Main sink mute state |
-| `volumeChanged` | Signal | Python -> QML | Emitted when system volume changes |
+### Socket Event Broadcast Schema
+When audio state changes, the service broadcasts the following JSON structure over `ogs_shell.sock`:
+
+```json
+{
+  "type": "audio_update",
+  "payload": {
+    "volume": 75,
+    "is_muted": false,
+    "active_sink": "alsa_output.pci-0000_00_1f.3.analog-stereo"
+  }
+}
+```
 
 ## Related Documentation & History
-- Implemented based on proposal: `[[Refactoring-Audio-Pipeline]]`
-- Configuration schema: `[[Config-Schema]]`
-- UI Implementation: `[[AudioSettings]]`
+
+* Socket IPC specification: `[[IPC-Socket-Schema]]`
+* QML Dynamic Island Widget: `[[AudioWidget]]`
+* PySide6 Control Panel: `[[AudioSettings]]`
+
 ```
