@@ -1,0 +1,40 @@
+{
+  "form_factor": "island",
+  "theme": "catppuccin",
+  "island": {
+    "top_margin": 8,
+    "idle_width": 180,
+    "idle_height": 36,
+    "hover_width": 220,
+    "hover_height": 42,
+    "transient_width": 340,
+    "transient_height": 56,
+    "expanded_width": 320,
+    "expanded_height": 140,
+    "radius_full": 18,
+    "radius_expanded": 24
+  },
+  "notch": {
+    "top_margin": 0,
+    "idle_width": 190,
+    "idle_height": 34,
+    "hover_width": 230,
+    "hover_height": 40,
+    "transient_width": 350,
+    "transient_height": 58,
+    "expanded_width": 330,
+    "expanded_height": 150,
+    "bottom_radius": 20,
+    "bottom_radius_expanded": 26
+  },
+  "notifications": {
+    "enabled": true,
+    "default_timeout_ms": 3500
+  },
+  "animation": {
+    "duration_compact": 250,
+    "duration_transient": 280,
+    "duration_expanded": 320,
+    "overshoot_factor": 1.12
+  }
+}

@@ -1,139 +1,130 @@
-import Quickshell
-import Quickshell.Io
 import QtQuick
-import "services"
-import "windows"
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Services.Notifications
+import "components/island"
 
-ShellRoot {
-  id: root
+Scope {
+  id: rootScope
 
-  property bool isPowerMenuOpen: false
-  property string activeTheme: "nord" // Switch between: "catppuccin", "nord", "gruvbox", "monochrome"
-
-  onActiveThemeChanged: {
-    Quickshell.execDetached(["sh", "-c", "mkdir -p ~/.config/ogsshell/state && echo -n '" + activeTheme + "' > ~/.config/ogsshell/state/theme"]);
+  // IPC Service instance
+  DaemonIPC {
+    id: ipcService
   }
 
-  Process {
-    id: themeLoader
-    command: ["sh", "-c", "cat ~/.config/ogsshell/state/theme 2>/dev/null || cat ~/.config/ogsshell/theme 2>/dev/null || true"]
-    running: true
-    stdout: SplitParser {
-      onRead: (line) => {
-        var themeName = line.trim();
-        if (themeName !== "") {
-          root.activeTheme = themeName;
-        }
-      }
+  // =========================================================================
+  // D-Bus Notification Listener (notify-send / freedesktop notifications)
+  // =========================================================================
+  NotificationServer {
+    id: notifServer
+    bodySupported: true
+    actionsSupported: true
+    imageSupported: true
+
+    onNotification: notif => {
+      ipcService.addNotification(
+        notif.appName || "System",
+        notif.summary || "Notification",
+        notif.body || "",
+        notif.appIcon || "",
+        notif.urgency || "normal"
+      )
     }
   }
 
-  // Public Holidays fetched once at startup
-  property var apiHolidays: []
-
-  function fetchHolidays() {
-    var year = new Date().getFullYear();
-    var url = "https://date.nager.at/api/v4/Holidays/TR" + year;
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
-        if (xhr.status === 200) {
-          try {
-            var data = JSON.parse(xhr.responseText);
-            root.apiHolidays = data;
-          } catch(e) {
-            console.log("Error parsing holidays JSON: " + e);
-          }
-        } else {
-          console.log("Error fetching holidays: status " + xhr.status);
-        }
-      }
-    }
-    xhr.open("GET", url);
-    xhr.send();
-  }
-
-  Component.onCompleted: {
-    fetchHolidays();
-  }
-
-  // System Clock service
-  SystemClock {
-    id: clock
-    precision: SystemClock.Minutes
-  }
-
-  // Global Services
-  WorkspaceService {
-    id: workspaceService
-  }
-
-  SystemStatsService {
-    id: systemStatsService
-  }
-
-  TimeService {
-    id: timeService
-  }
-
-  NetworkManagerService {
-    id: networkManagerService
-  }
-
-  ClipboardService {
-    id: clipboardService
-  }
-
-  BluetoothService {
-    id: bluetoothService
-  }
-
-  ShellIpcService {
-    id: shellIpcService
-    onReloadConfig: {
-      if (typeof shellConfigService !== "undefined") {
-        shellConfigService.reloadConfig();
-      }
-    }
-  }
-
-  ShellConfigService {
-    id: shellConfigService
-  }
-
-  AppLauncherService {
-    id: appLauncherService
-  }
-
-  ThemeConfigService {
-    id: themeConfigService
-    activeTheme: root.activeTheme
-  }
-
-  WallpaperService {
-    id: wallpaperService
-    activeTheme: root.activeTheme
-  }
-
-  ThemeSyncService {
-    id: themeSyncService
-    activeTheme: root.activeTheme
-  }
-
-  GameModeService {
-    id: gameModeService
-  }
-
-  AudioMixerService {
-    id: audioMixerService
-  }
-
-  // Monitor-specific Window Groups
+  // =========================================================================
+  // Multi-Monitor Variants: Instances of Island & Backdrop per Screen
+  // =========================================================================
   Variants {
     model: Quickshell.screens
-    MonitorGroup {}
-  }
 
-  // Global Power Menu Overlay Window
-  PowerMenuWindow {}
+    Scope {
+      id: screenScope
+      required property var modelData
+
+      // =========================================================================
+      // Reserved Spacer Window: Invisible layer reserving top exclusive zone
+      // =========================================================================
+      PanelWindow {
+        id: reservedSpacerWindow
+        screen: screenScope.modelData
+        color: "transparent"
+        WlrLayershell.layer: WlrLayer.Bottom
+
+        anchors {
+          top: true
+          left: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Auto
+
+        implicitHeight: Config.isNotch ? (Config.notch.idle_height + 5) : (Config.island.top_margin + Config.island.idle_height + 5)
+
+        // Zero click-blocking: completely empty input mask so all clicks pass through to windows below
+        mask: Region {}
+      }
+
+      // =========================================================================
+      // Backdrop Window: Covers screen only when EXPANDED to catch outside clicks
+      // =========================================================================
+      PanelWindow {
+        id: backdropWindow
+        screen: screenScope.modelData
+        visible: island.stateMode === "EXPANDED"
+        color: "transparent"
+        WlrLayershell.layer: WlrLayer.Top
+
+        anchors {
+          top: true
+          bottom: true
+          left: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        MouseArea {
+          anchors.fill: parent
+          onClicked: {
+            island.collapse()
+          }
+        }
+      }
+
+      // =========================================================================
+      // Island Window: Stable, non-reallocating top overlay canvas
+      // =========================================================================
+      PanelWindow {
+        id: islandWindow
+        screen: screenScope.modelData
+        color: "transparent"
+        WlrLayershell.layer: island.stateMode === "EXPANDED" ? WlrLayer.Overlay : WlrLayer.Top
+        WlrLayershell.keyboardFocus: island.stateMode === "EXPANDED" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+        anchors {
+          top: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        // Fixed high-performance GPU canvas (prevents Wayland surface resize roundtrip latency)
+        implicitWidth: 540
+        implicitHeight: 360
+
+        // Zero click-blocking: Wayland input region strictly conforms to island's dynamic shape
+        mask: Region {
+          item: island
+        }
+
+        DynamicIsland {
+          id: island
+          ipc: ipcService
+          anchors.top: parent.top
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.topMargin: Config.isNotch ? 0 : Config.activeGeometry.top_margin
+        }
+      }
+    }
+  }
 }

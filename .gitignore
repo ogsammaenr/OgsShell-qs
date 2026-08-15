@@ -2,7 +2,8 @@
 # OgsShell-qs Git Ignore Rules
 # ==========================================
 
-# 1. Compiled C Binaries & Daemon Executables
+# 1. Compiled C & Go Binaries & Daemon Executables
+/bin/
 /monitor
 /workspaces
 /services/app_launcher_helper
