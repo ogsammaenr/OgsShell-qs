@@ -8,7 +8,7 @@ tags:
   - dynamic-island/ui
   - system-controls
 created: 2026-08-14
-updated: 2026-08-15
+updated: 2026-08-16
 status: active
 related_notes:
   - "[[Connectivity-Status-Widget]]"
@@ -16,8 +16,11 @@ related_notes:
   - "[[Daemon-IPC-Client]]"
   - "[[Theme-Service]]"
   - "[[System-Architecture]]"
+  - "[[Power-Overlay-Component]]"
   - "[[Plan-Unified-Control-Center-Suite]]"
   - "[[Plan-Theme-Selector-Gallery-Redesign]]"
+  - "[[Plan-Dynamic-Island-System-Metrics-Pinning]]"
+  - "[[Plan-Fullscreen-Power-And-Session-Overlay]]"
 ---
 
 # Control Center UI Component Suite
@@ -32,7 +35,7 @@ related_notes:
 * **Design Inspiration:** Apple macOS Sequoia & iOS 18 minimalist control center. Zero emoji clutter, pure vector Nerd Font iconography, thick rounded capsule sliders, and grouped connectivity tiles.
 * **Entry Point:** Clicking the right-slot `[[Connectivity-Status-Widget]]` pill during `HOVER` mode expands the island into `expandedActiveTab = "CONTROL_CENTER"`.
 * **Sub-App Router (`ControlCenterView.qml`):**
-  - Hosts `ControlCenterMain.qml` alongside 7 dedicated sub-views.
+  - Hosts `ControlCenterMain.qml` alongside dedicated sub-views.
   - **Auto-Reset to Main:** Ada kapandığında (`collapse()`), görünürlük değiştiğinde (`onVisibleChanged`) veya adadan bağlantı butonuna tıklandığında otomatik `resetToMain()` çağrılarak kullanıcının her zaman ana kontrol merkezi menüsünden (`MAIN`) başlaması garanti edilir.
   - Navigating into a sub-application dynamically adapts the island geometry via smooth spring animations.
 
@@ -47,7 +50,7 @@ graph TD
     MAIN --> C["ClipboardView"]
     MAIN --> K["KeyboardLayoutView"]
     MAIN --> T["ThemesView (Visual Gallery)"]
-    MAIN --> P["PowerView"]
+    MAIN -->|Power Button Click| PWR["PowerOverlay (Fullscreen Glass Modal)"]
     MAIN --> G["GameMode Instant Toggle"]
 ```
 
@@ -65,27 +68,16 @@ graph TD
    * **Row 4 - Status Footer:**
      * **Klavye Düzeni:** Clickable `[ 󰌌 TR ]` pill. Hem Go backend `switch_keyboard_layout` hem de `hyprctl switchxkblayout` fallback'i ile anında TR/US/DE/FR düzenleri arasında geçiş yapar.
      * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0` (Go `sys_metrics` stream'inden reaktif okur).
-     * **Güç Butonu:** Circular power action trigger (`󰐥`).
+     * **Güç Butonu (`󰐥`):** Tıklandığında adayı kapatıp tam ekran koyu cam blurlu `[[Power-Overlay-Component]]` menüsünü açar.
 
 2. **Sub-Application Views (`views/`):**
-   - **`WifiView.qml`:**
-     - Taranan erişim noktaları listesi (`scan_results` ve `access_points` modelleri).
-     - Tamamen saf Go IPC (`scan_wifi` ve `get_active_wifi`) üzerinden çalışır.
-     - Go backend'de NetworkManager `GetAllAccessPoints` D-Bus API'si ve sinyal gücüne göre SSID birleştirme/deduplication kullanılır.
-     - Güvenlik rozeti (`WPA2`, `WPA3`, `Açık`), frekans bandı (`2.4/5GHz`) ve dinamik sinyal gücü göstergeleri.
-   - **`BluetoothView.qml`:** Device list, pairing state, connect/disconnect actions, adapter toggle.
-   - **`NotificationsView.qml`:** Notification cards, DND toggle, clear-all action.
-   - **`ClipboardView.qml`:**
-     - Genişletilmiş ve okunaklı kartlar (`48px` yükseklik, `11px` metin, karakter sayısı göstergesi).
-     - **Sol Tık:** Panoya kopyalar ve ana ekrana döner.
-     - **Sağ Tık (Right-Click):** Metnin tamamını scroll edilebilir, seçilebilir ve kopyalanabilir tam metin okuma penceresinde (`Flickable + TextEdit`) açar.
-     - Favorilere sabitleme (★) ve silme (✕) aksiyonları.
-   - **`KeyboardLayoutView.qml`:** Switch between TR, US, DE, FR layouts.
-   - **`ThemesView.qml`:**
-     - **Sekmeli Arayüz (Segmented Tabs):** `🎨 Temalar` ve `🖼️ Duvar Kağıtları` sekmeleri.
-     - **Sekme 1 (Temalar):** 2 sütunlu görsel Tema Galerisi kartları. Her tema kartında gerçek tema renklerini sergileyen minyatür masaüstü/pencere UI önizlemesi, renk paleti şeridi ve aktifleşen `✓` rozeti.
-     - **Sekme 2 (Duvar Kağıtları):** Sadece **aktif temaya ait** (`~/Pictures/Wallpapers/<ActiveTheme>/`) görsel havuzunu 16:9 asenkron önizleme kartları, aktif görsel onay rozeti ve "Sıradaki Duvar Kağıdı" döngü butonu ile sunar. Tıklandığında `awww` ile akıcı geçiş animasyonuyla duvar kağıdı anında uygulanır.
-   - **`PowerView.qml`:** Lock, Suspend, Reboot, Poweroff, and Hyprland Exit triggers.
+   - **`WifiView.qml`:** Taranan Wi-Fi ağları ve bağlantı yönetimi.
+   - **`BluetoothView.qml`:** Bluetooth cihazları ve eşleşme durumu.
+   - **`NotificationsView.qml`:** Bildirim geçmişi ve DND toggle.
+   - **`ClipboardView.qml`:** Pano geçmişi ve favoriler.
+   - **`KeyboardLayoutView.qml`:** Klavye düzeni seçimi.
+   - **`ThemesView.qml`:** Tema galerisi ve duvar kağıdı yöneticisi.
+   - **`PowerOverlay.qml`:** Bağımsız tam ekran oturum ve güç katmanı (`[[Power-Overlay-Component]]`).
 
 ---
 
@@ -93,6 +85,6 @@ graph TD
 
 * Connectivity Pill: `[[Connectivity-Status-Widget]]`
 * Dynamic Island: `[[Dynamic-Island-Component]]`
+* Power Overlay: `[[Power-Overlay-Component]]`
 * Daemon IPC: `[[Daemon-IPC-Client]]`
 * Theme Service: `[[Theme-Service]]`
-* Proposal Notes: `[[Plan-Unified-Control-Center-Suite]]`, `[[Plan-Theme-Selector-Gallery-Redesign]]`

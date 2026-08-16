@@ -3,6 +3,8 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Notifications
 import "components/island"
+import "components/widgets"
+import "components/widgets/controlcenter"
 
 Scope {
   id: rootScope
@@ -109,7 +111,7 @@ Scope {
         exclusionMode: ExclusionMode.Ignore
 
         // Fixed high-performance GPU canvas (prevents Wayland surface resize roundtrip latency)
-        implicitWidth: 540
+        implicitWidth: 1200
         implicitHeight: 360
 
         // Zero click-blocking: Wayland input region strictly conforms to island's dynamic shape
@@ -123,6 +125,41 @@ Scope {
           anchors.top: parent.top
           anchors.horizontalCenter: parent.horizontalCenter
           anchors.topMargin: Config.isNotch ? 0 : Config.activeGeometry.top_margin
+        }
+
+        PinnedMetricsWidget {
+          id: pinnedMetrics
+          ipc: ipcService
+          islandStateMode: island.stateMode
+          anchors.left: island.right
+          anchors.leftMargin: 12
+          anchors.top: parent.top
+          anchors.topMargin: Config.isNotch ? Math.round((Config.notch.idle_height - height) / 2) : Math.round(Config.island.top_margin + (Config.island.idle_height - height) / 2)
+        }
+      }
+
+      // =========================================================================
+      // Power Overlay Window: Fullscreen Dark Glass Session Modal
+      // =========================================================================
+      PanelWindow {
+        id: powerOverlayWindow
+        screen: screenScope.modelData
+        visible: PowerService.isPowerMenuOpen
+        color: "transparent"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: PowerService.isPowerMenuOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        anchors {
+          top: true
+          bottom: true
+          left: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        PowerOverlay {
+          anchors.fill: parent
         }
       }
     }

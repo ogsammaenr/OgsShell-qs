@@ -664,48 +664,83 @@ Item {
         }
       }
 
-      // Minimalist Telemetry Pill
+      // Minimalist Telemetry Pill (Click to pin beside Dynamic Island)
       Rectangle {
         width: parent.width - 72 - 40 - 16
         height: 32
         radius: 8
-        color: Style.surface
-        border.color: Style.border
-        border.width: 1
+        color: Config.showPinnedSystemMetrics ? Style.surfaceActive : (telemetryMouse.containsMouse ? Style.surfaceHover : Style.surface)
+        border.color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.borderHover : Style.border)
+        border.width: Config.showPinnedSystemMetrics ? 1.5 : 1
+
+        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on border.color { ColorAnimation { duration: 150 } }
 
         Row {
           anchors.centerIn: parent
-          spacing: 10
+          spacing: 7
 
           Text {
-            text: `CPU %${(ipc && ipc.cpu && ipc.cpu.cpu_percent !== undefined) ? Math.round(ipc.cpu.cpu_percent) : 0}`
+            text: {
+              let pct = (ipc && ipc.cpu && ipc.cpu.cpu_percent !== undefined) ? Math.round(ipc.cpu.cpu_percent) : 0
+              let temp = (ipc && ipc.cpu && ipc.cpu.cpu_temp !== undefined && ipc.cpu.cpu_temp > 0) ? ` ${Math.round(ipc.cpu.cpu_temp)}°C` : ""
+              return `CPU %${pct}${temp}`
+            }
             font.pixelSize: 9
-            color: Style.textSecondary
-            font.weight: Font.Medium
+            color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
+            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
-          Rectangle { width: 3; height: 3; radius: 1.5; color: Style.textMuted; anchors.verticalCenter: parent.verticalCenter }
+          Rectangle {
+            width: 3
+            height: 3
+            radius: 1.5
+            color: Config.showPinnedSystemMetrics ? Style.accentCyan : Style.textMuted
+            anchors.verticalCenter: parent.verticalCenter
+          }
 
           Text {
             text: `RAM %${(ipc && ipc.ram && ipc.ram.ram_percent !== undefined) ? Math.round(ipc.ram.ram_percent) : 0}`
             font.pixelSize: 9
-            color: Style.textSecondary
-            font.weight: Font.Medium
+            color: Config.showPinnedSystemMetrics ? Style.accentGreen : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
+            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
-          Rectangle { width: 3; height: 3; radius: 1.5; color: Style.textMuted; anchors.verticalCenter: parent.verticalCenter }
+          Rectangle {
+            width: 3
+            height: 3
+            radius: 1.5
+            color: Config.showPinnedSystemMetrics ? Style.accentGreen : Style.textMuted
+            anchors.verticalCenter: parent.verticalCenter
+          }
 
           Text {
-            text: `GPU %${(ipc && ipc.gpu && ipc.gpu.gpu_percent !== undefined && ipc.gpu.gpu_percent >= 0) ? Math.round(ipc.gpu.gpu_percent) : 0}`
+            text: {
+              let pct = (ipc && ipc.gpu && ipc.gpu.gpu_percent !== undefined && ipc.gpu.gpu_percent >= 0) ? Math.round(ipc.gpu.gpu_percent) : 0
+              let temp = (ipc && ipc.gpu && ipc.gpu.gpu_temp !== undefined && ipc.gpu.gpu_temp > 0) ? ` ${Math.round(ipc.gpu.gpu_temp)}°C` : ""
+              return `GPU %${pct}${temp}`
+            }
             font.pixelSize: 9
-            color: Style.textSecondary
-            font.weight: Font.Medium
+            color: Config.showPinnedSystemMetrics ? Style.accentOrange : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
+            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
         }
+
+
+        MouseArea {
+          id: telemetryMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            Config.showPinnedSystemMetrics = !Config.showPinnedSystemMetrics
+          }
+        }
       }
+
 
       // Power Button
       Rectangle {
@@ -728,7 +763,9 @@ Item {
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: root.openView("POWER")
+          onClicked: {
+            PowerService.open()
+          }
         }
       }
     }

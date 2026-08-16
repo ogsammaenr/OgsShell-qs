@@ -7,7 +7,7 @@ Item {
   id: root
 
   property var ipc
-  property string currentView: "MAIN" // "MAIN" | "WIFI" | "BLUETOOTH" | "NOTIFICATIONS" | "CLIPBOARD" | "KEYBOARD" | "THEMES" | "POWER"
+  property string currentView: "MAIN" // "MAIN" | "WIFI" | "BLUETOOTH" | "NOTIFICATIONS" | "CLIPBOARD" | "KEYBOARD" | "THEMES"
 
   function resetToMain() {
     currentView = "MAIN"
@@ -101,16 +101,6 @@ Item {
       visible: active
       sourceComponent: ThemesView {
         ipc: root.ipc
-        onBackRequested: root.currentView = "MAIN"
-      }
-    }
-
-    // 8. Power & Session Sub-App (Lazy Loaded)
-    Loader {
-      anchors.fill: parent
-      active: root.currentView === "POWER"
-      visible: active
-      sourceComponent: PowerView {
         onBackRequested: root.currentView = "MAIN"
       }
     }
