@@ -2,6 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import "../../../.."
 
 QtObject {
   id: root
@@ -186,9 +187,9 @@ QtObject {
   }
 
   readonly property color liveActivityColor: {
-    if (activeLiveActivity === "stopwatch") return "#30d158"
-    if (activeLiveActivity === "pomodoro") return "#ff9f0a"
-    return "#64d2ff"
+    if (activeLiveActivity === "stopwatch") return Style.accentGreen
+    if (activeLiveActivity === "pomodoro") return Style.accentOrange
+    return Style.accentCyan
   }
 
   readonly property string liveActivityTitle: {

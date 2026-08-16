@@ -1,12 +1,13 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import ".."
 
 Item {
   id: root
 
   // Telemetry & Metrics
-  property var cpu: ({ "cpu_percent": 0, "cpu-temp": 0 })
+  property var cpu: ({ "cpu_percent": 0, "cpu_temp": 0 })
   property var ram: ({ "ram_used_mb": 0, "ram_total_mb": 0, "ram_percent": 0 })
   property var gpu: ({ "gpu_temp": 0, "gpu_percent": 0 })
   property var net: ({ "rx_bytes_sec": 0, "tx_bytes_sec": 0, "interface": "", "is_connected": false })
@@ -270,9 +271,12 @@ Item {
       for (let i = 0; i < availableThemes.length; i++) {
         if (availableThemes[i].id === themeId) {
           root.currentTheme = availableThemes[i];
+          Style.applyTheme(availableThemes[i]);
           break;
         }
       }
+    } else {
+      Style.applyThemeById(themeId);
     }
     sendAction("set_active_theme", { "theme_id": themeId });
   }
@@ -425,6 +429,7 @@ Item {
           } else if (msg.type === "theme_update") {
             if (msg.payload.active_theme) {
               root.currentTheme = msg.payload.active_theme;
+              Style.applyTheme(msg.payload.active_theme);
               root.requestThemeWallpapers(msg.payload.active_theme.id);
             }
             if (msg.payload.available_themes) {
