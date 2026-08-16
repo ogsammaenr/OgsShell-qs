@@ -8,7 +8,7 @@ tags:
   - go/daemon
   - quickshell/hud
 created: 2026-08-11
-updated: 2026-08-15
+updated: 2026-08-16
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -21,6 +21,7 @@ related_notes:
   - "[[Go-Daemon-Core]]"
   - "[[Plan-Async-Theme-Engine-And-Exact-Matching]]"
   - "[[Plan-Shared-Directory-Theme-Engine]]"
+  - "[[Plan-Fix-Neovim-Theme-LazyVim-Spec]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service
@@ -65,7 +66,7 @@ graph TD
    - **Kitty:** Copies `shared/app_configs/kitty/<id>.conf` to `~/.config/kitty/current-theme.conf` and signals live reload via `pkill -SIGUSR1 kitty`.
    - **Zed:** Copies `shared/app_configs/zed/<id>.json` to `~/.config/zed/themes/ogsshell.json` and updates `settings.json`.
    - **Vesktop:** Copies `shared/app_configs/vesktop/<id>.css` to `~/.config/vesktop/themes/ogsshell.theme.css`.
-   - **Neovim (LazyVim):** Copies `shared/app_configs/nvim/<id>.lua` to `~/.config/nvim/lua/plugins/theme.lua`.
+   - **Neovim (LazyVim):** Copies `shared/app_configs/nvim/<id>.lua` to `~/.config/nvim/lua/plugins/theme.lua` and reloads active Neovim sessions live via Unix domain sockets.
    - **Dolphin / Qt:** Copies `shared/app_configs/dolphin/<id>.kdeglobals` to `~/.config/kdeglobals` and `shared/app_configs/qt/<id>.conf` to `~/.config/qt5ct/` / `~/.config/qt6ct/`.
    - **Btop:** Copies `shared/app_configs/btop/<id>.theme` to `~/.config/btop/themes/ogsshell.theme`.
    - **GTK:** Copies `shared/app_configs/gtk/<id>.css` & `.ini` to `~/.config/gtk-3.0/` and `~/.config/gtk-4.0/`.
