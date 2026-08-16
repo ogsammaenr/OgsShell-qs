@@ -10,6 +10,7 @@ QtObject {
   // Active form-factor: "island" (floating pill) or "notch" (top-bezel attached)
   property string formFactor: "island"
   property string theme: "catppuccin"
+  property bool showPinnedSystemMetrics: false
 
   // Island configuration preset
   property var island: ({
@@ -81,6 +82,7 @@ QtObject {
       let cfg = JSON.parse(jsonStr)
       if (cfg.form_factor) root.formFactor = cfg.form_factor
       if (cfg.theme) root.theme = cfg.theme
+      if (cfg.show_pinned_system_metrics !== undefined) root.showPinnedSystemMetrics = cfg.show_pinned_system_metrics
       if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)
       if (cfg.notch) root.notch = Object.assign({}, root.notch, cfg.notch)
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)

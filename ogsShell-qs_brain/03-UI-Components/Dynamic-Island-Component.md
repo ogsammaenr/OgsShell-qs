@@ -9,7 +9,7 @@ tags:
   - transient/notifications
   - hover-state
 created: 2026-08-09
-updated: 2026-08-15
+updated: 2026-08-16
 status: active
 related_notes:
   - "[[Apple-Dynamic-Island-HIG]]"
@@ -23,6 +23,7 @@ related_notes:
   - "[[Daemon-IPC-Client]]"
   - "[[Plan-Hover-Expanded-Status-Bar]]"
   - "[[Plan-Hover-Right-Click-Control-Center]]"
+  - "[[Plan-Dynamic-Island-System-Metrics-Pinning]]"
 ---
 
 # Dynamic Island Core QML Component

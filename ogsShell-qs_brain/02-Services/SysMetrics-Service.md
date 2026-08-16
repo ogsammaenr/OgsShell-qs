@@ -6,7 +6,7 @@ tags:
   - go/monitors
   - metrics/aggregation
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-16
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -18,6 +18,7 @@ related_notes:
   - "[[IPC-Server-Service]]"
   - "[[IPC-Socket-Schema]]"
   - "[[Daemon-IPC-Client]]"
+  - "[[Plan-Add-CPU-GPU-Temperature-Metrics]]"
 ---
 
 # SysMetrics Monitoring Manager Service
