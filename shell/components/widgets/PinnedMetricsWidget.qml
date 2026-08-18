@@ -45,18 +45,18 @@ Item {
   Row {
     id: metricsRow
     anchors.centerIn: parent
-    spacing: 7
+    spacing: 8
 
     // ==========================================
     // Metric 1: CPU Telemetry & Temperature
     // ==========================================
     Row {
-      spacing: 3
+      spacing: 4
       anchors.verticalCenter: parent.verticalCenter
 
       Text {
         text: "󰻠"
-        font.pixelSize: 12
+        font.pixelSize: 13
         color: Style.accentCyan
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -65,8 +65,8 @@ Item {
 
       Text {
         text: root.cpuTemp > 0 ? `CPU %${Math.round(root.cpuVal)} ${Math.round(root.cpuTemp)}°C` : `CPU %${Math.round(root.cpuVal)}`
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
+        font.pixelSize: 11
+        font.weight: Font.Bold
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -77,7 +77,7 @@ Item {
     // High-Contrast Dot Separator
     Text {
       text: "•"
-      font.pixelSize: 10
+      font.pixelSize: 11
       color: Qt.rgba(1.0, 1.0, 1.0, 0.70)
       style: Text.Outline
       styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -88,12 +88,12 @@ Item {
     // Metric 2: RAM Telemetry
     // ==========================================
     Row {
-      spacing: 3
+      spacing: 4
       anchors.verticalCenter: parent.verticalCenter
 
       Text {
         text: "󰍛"
-        font.pixelSize: 12
+        font.pixelSize: 13
         color: Style.accentGreen
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -102,8 +102,8 @@ Item {
 
       Text {
         text: `RAM %${Math.round(root.ramVal)}`
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
+        font.pixelSize: 11
+        font.weight: Font.Bold
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -114,7 +114,7 @@ Item {
     // High-Contrast Dot Separator
     Text {
       text: "•"
-      font.pixelSize: 10
+      font.pixelSize: 11
       color: Qt.rgba(1.0, 1.0, 1.0, 0.70)
       style: Text.Outline
       styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -125,12 +125,12 @@ Item {
     // Metric 3: GPU Telemetry & Temperature
     // ==========================================
     Row {
-      spacing: 3
+      spacing: 4
       anchors.verticalCenter: parent.verticalCenter
 
       Text {
         text: "󰢮"
-        font.pixelSize: 12
+        font.pixelSize: 13
         color: Style.accentOrange
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -139,8 +139,8 @@ Item {
 
       Text {
         text: root.gpuTemp > 0 ? `GPU %${Math.round(root.gpuVal)} ${Math.round(root.gpuTemp)}°C` : `GPU %${Math.round(root.gpuVal)}`
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
+        font.pixelSize: 11
+        font.weight: Font.Bold
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)

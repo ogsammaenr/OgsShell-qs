@@ -11,6 +11,7 @@ QtObject {
   property string formFactor: "island"
   property string theme: "catppuccin"
   property bool showPinnedSystemMetrics: false
+  property bool focusMode: false
 
   // Island configuration preset
   property var island: ({
@@ -83,6 +84,7 @@ QtObject {
       if (cfg.form_factor) root.formFactor = cfg.form_factor
       if (cfg.theme) root.theme = cfg.theme
       if (cfg.show_pinned_system_metrics !== undefined) root.showPinnedSystemMetrics = cfg.show_pinned_system_metrics
+      if (cfg.focus_mode !== undefined) root.focusMode = cfg.focus_mode
       if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)
       if (cfg.notch) root.notch = Object.assign({}, root.notch, cfg.notch)
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
