@@ -42,12 +42,12 @@ FocusScope {
   }
 
   // =========================================================================
-  // 1. Dark Translucent Backdrop (Dismisses on outside click)
+  // 1. Dark Translucent / Blurred Backdrop (Dismisses on outside click)
   // =========================================================================
   Rectangle {
     id: backdrop
     anchors.fill: parent
-    color: Qt.rgba(0, 0, 0, 0.72)
+    color: Qt.rgba(6 / 255, 7 / 255, 10 / 255, 0.72)
 
     MouseArea {
       anchors.fill: parent
@@ -59,107 +59,46 @@ FocusScope {
   }
 
   // =========================================================================
-  // 2. Central Power & Session Dialog Card
+  // 2. Central Floating Large Circular Action Buttons
   // =========================================================================
-  Rectangle {
-    id: dialogCard
+  Item {
+    id: centerContainer
     anchors.centerIn: parent
-    width: 600
-    height: 250
-    radius: 22
-    color: Qt.rgba(12 / 255, 12 / 255, 14 / 255, 0.94)
-    border.color: Style.border
-    border.width: 1
-    clip: true
+    width: actionRow.implicitWidth
+    height: 160
 
-    // Catch clicks on card to prevent backdrop dismissal
-    MouseArea {
-      anchors.fill: parent
-      onClicked: {}
-    }
+    RowLayout {
+      id: actionRow
+      anchors.centerIn: parent
+      spacing: 48
 
-    ColumnLayout {
-      anchors.fill: parent
-      anchors.margins: 18
-      spacing: 14
+      // Button 1: Kapat (Power Off)
+      Item {
+        implicitWidth: 104
+        implicitHeight: 160
 
-      // Header: Title & Subtitle
-      Column {
-        Layout.fillWidth: true
-        spacing: 2
-
-        Text {
-          text: "Güç ve Oturum"
-          color: Style.textPrimary
-          font.pixelSize: 15
-          font.weight: Font.Bold
-          font.letterSpacing: 0.3
-        }
-
-        Text {
-          text: "Lütfen gerçekleştirmek istediğiniz eylemi seçin"
-          color: Style.textMuted
-          font.pixelSize: 10
-        }
-      }
-
-      // =========================================================================
-      // 4 Large Action Cards
-      // =========================================================================
-      RowLayout {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        spacing: 12
-
-        // Card 1: Kapat (Power Off)
         Rectangle {
           id: pwrOffBtn
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 16
-          color: offMouse.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.14) : Style.surface
-          border.color: offMouse.containsMouse ? Style.accentRed : Style.border
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          width: 96
+          height: 96
+          radius: 48
+          color: offMouse.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24) : Qt.rgba(24 / 255, 26 / 255, 32 / 255, 0.75)
+          border.color: offMouse.containsMouse ? Style.accentRed : Qt.rgba(255, 255, 255, 0.12)
           border.width: offMouse.containsMouse ? 1.5 : 1
 
-          scale: offMouse.containsMouse ? 1.04 : 1.0
-          Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+          scale: offMouse.pressed ? 0.94 : (offMouse.containsMouse ? 1.10 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 140 } }
           Behavior on border.color { ColorAnimation { duration: 140 } }
 
-          ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 6
-
-            Rectangle {
-              Layout.alignment: Qt.AlignHCenter
-              width: 44
-              height: 44
-              radius: 22
-              color: Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, offMouse.containsMouse ? 0.28 : 0.16)
-
-              Text {
-                anchors.centerIn: parent
-                text: "󰐥"
-                font.pixelSize: 22
-                color: Style.accentRed
-              }
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Kapat"
-              font.pixelSize: 12
-              font.weight: Font.Bold
-              color: Style.textPrimary
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Sistemi Kapat"
-              font.pixelSize: 9
-              color: Style.textMuted
-            }
+          Text {
+            anchors.centerIn: parent
+            text: "󰐥"
+            font.pixelSize: 38
+            color: offMouse.containsMouse ? Style.accentRed : Style.textPrimary
+            Behavior on color { ColorAnimation { duration: 140 } }
           }
 
           MouseArea {
@@ -171,55 +110,55 @@ FocusScope {
           }
         }
 
-        // Card 2: Yeniden Başlat (Reboot)
+        // On-Hover Reveal Label
+        Column {
+          anchors.top: pwrOffBtn.bottom
+          anchors.topMargin: 16
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: 2
+          opacity: offMouse.containsMouse ? 1.0 : 0.0
+          y: offMouse.containsMouse ? 0 : 4
+
+          Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Kapat"
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
+          }
+        }
+      }
+
+      // Button 2: Yeniden Başlat (Reboot)
+      Item {
+        implicitWidth: 104
+        implicitHeight: 160
+
         Rectangle {
           id: rebootBtn
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 16
-          color: rbtMouse.containsMouse ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.14) : Style.surface
-          border.color: rbtMouse.containsMouse ? Style.accentOrange : Style.border
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          width: 96
+          height: 96
+          radius: 48
+          color: rbtMouse.containsMouse ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.24) : Qt.rgba(24 / 255, 26 / 255, 32 / 255, 0.75)
+          border.color: rbtMouse.containsMouse ? Style.accentOrange : Qt.rgba(255, 255, 255, 0.12)
           border.width: rbtMouse.containsMouse ? 1.5 : 1
 
-          scale: rbtMouse.containsMouse ? 1.04 : 1.0
-          Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+          scale: rbtMouse.pressed ? 0.94 : (rbtMouse.containsMouse ? 1.10 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 140 } }
           Behavior on border.color { ColorAnimation { duration: 140 } }
 
-          ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 6
-
-            Rectangle {
-              Layout.alignment: Qt.AlignHCenter
-              width: 44
-              height: 44
-              radius: 22
-              color: Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, rbtMouse.containsMouse ? 0.28 : 0.16)
-
-              Text {
-                anchors.centerIn: parent
-                text: "󰜉"
-                font.pixelSize: 22
-                color: Style.accentOrange
-              }
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Yeniden Başlat"
-              font.pixelSize: 12
-              font.weight: Font.Bold
-              color: Style.textPrimary
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Sistemi Başlat"
-              font.pixelSize: 9
-              color: Style.textMuted
-            }
+          Text {
+            anchors.centerIn: parent
+            text: "󰜉"
+            font.pixelSize: 38
+            color: rbtMouse.containsMouse ? Style.accentOrange : Style.textPrimary
+            Behavior on color { ColorAnimation { duration: 140 } }
           }
 
           MouseArea {
@@ -231,55 +170,55 @@ FocusScope {
           }
         }
 
-        // Card 3: Uyku Modu (Suspend)
+        // On-Hover Reveal Label
+        Column {
+          anchors.top: rebootBtn.bottom
+          anchors.topMargin: 16
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: 2
+          opacity: rbtMouse.containsMouse ? 1.0 : 0.0
+          y: rbtMouse.containsMouse ? 0 : 4
+
+          Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Yeniden Başlat"
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
+          }
+        }
+      }
+
+      // Button 3: Uyku Modu (Suspend)
+      Item {
+        implicitWidth: 104
+        implicitHeight: 160
+
         Rectangle {
           id: sleepBtn
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 16
-          color: slpMouse.containsMouse ? Qt.rgba(Style.accentCyan.r, Style.accentCyan.g, Style.accentCyan.b, 0.14) : Style.surface
-          border.color: slpMouse.containsMouse ? Style.accentCyan : Style.border
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          width: 96
+          height: 96
+          radius: 48
+          color: slpMouse.containsMouse ? Qt.rgba(Style.accentCyan.r, Style.accentCyan.g, Style.accentCyan.b, 0.24) : Qt.rgba(24 / 255, 26 / 255, 32 / 255, 0.75)
+          border.color: slpMouse.containsMouse ? Style.accentCyan : Qt.rgba(255, 255, 255, 0.12)
           border.width: slpMouse.containsMouse ? 1.5 : 1
 
-          scale: slpMouse.containsMouse ? 1.04 : 1.0
-          Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+          scale: slpMouse.pressed ? 0.94 : (slpMouse.containsMouse ? 1.10 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 140 } }
           Behavior on border.color { ColorAnimation { duration: 140 } }
 
-          ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 6
-
-            Rectangle {
-              Layout.alignment: Qt.AlignHCenter
-              width: 44
-              height: 44
-              radius: 22
-              color: Qt.rgba(Style.accentCyan.r, Style.accentCyan.g, Style.accentCyan.b, slpMouse.containsMouse ? 0.28 : 0.16)
-
-              Text {
-                anchors.centerIn: parent
-                text: "󰤄"
-                font.pixelSize: 22
-                color: Style.accentCyan
-              }
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Uyku Modu"
-              font.pixelSize: 12
-              font.weight: Font.Bold
-              color: Style.textPrimary
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Düşük Güç"
-              font.pixelSize: 9
-              color: Style.textMuted
-            }
+          Text {
+            anchors.centerIn: parent
+            text: "󰤄"
+            font.pixelSize: 38
+            color: slpMouse.containsMouse ? Style.accentCyan : Style.textPrimary
+            Behavior on color { ColorAnimation { duration: 140 } }
           }
 
           MouseArea {
@@ -291,55 +230,55 @@ FocusScope {
           }
         }
 
-        // Card 4: Oturumu Kapat (Exit)
+        // On-Hover Reveal Label
+        Column {
+          anchors.top: sleepBtn.bottom
+          anchors.topMargin: 16
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: 2
+          opacity: slpMouse.containsMouse ? 1.0 : 0.0
+          y: slpMouse.containsMouse ? 0 : 4
+
+          Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Uyku Modu"
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
+          }
+        }
+      }
+
+      // Button 4: Oturumu Kapat (Exit)
+      Item {
+        implicitWidth: 104
+        implicitHeight: 160
+
         Rectangle {
           id: logoutBtn
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 16
-          color: lgtMouse.containsMouse ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.14) : Style.surface
-          border.color: lgtMouse.containsMouse ? Style.accent : Style.border
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: parent.top
+          width: 96
+          height: 96
+          radius: 48
+          color: lgtMouse.containsMouse ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.24) : Qt.rgba(24 / 255, 26 / 255, 32 / 255, 0.75)
+          border.color: lgtMouse.containsMouse ? Style.accent : Qt.rgba(255, 255, 255, 0.12)
           border.width: lgtMouse.containsMouse ? 1.5 : 1
 
-          scale: lgtMouse.containsMouse ? 1.04 : 1.0
-          Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+          scale: lgtMouse.pressed ? 0.94 : (lgtMouse.containsMouse ? 1.10 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
           Behavior on color { ColorAnimation { duration: 140 } }
           Behavior on border.color { ColorAnimation { duration: 140 } }
 
-          ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 10
-            spacing: 6
-
-            Rectangle {
-              Layout.alignment: Qt.AlignHCenter
-              width: 44
-              height: 44
-              radius: 22
-              color: Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, lgtMouse.containsMouse ? 0.28 : 0.16)
-
-              Text {
-                anchors.centerIn: parent
-                text: "󰍃"
-                font.pixelSize: 22
-                color: Style.accent
-              }
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Oturumu Kapat"
-              font.pixelSize: 12
-              font.weight: Font.Bold
-              color: Style.textPrimary
-            }
-
-            Text {
-              Layout.alignment: Qt.AlignHCenter
-              text: "Hyprland Çıkış"
-              font.pixelSize: 9
-              color: Style.textMuted
-            }
+          Text {
+            anchors.centerIn: parent
+            text: "󰍃"
+            font.pixelSize: 38
+            color: lgtMouse.containsMouse ? Style.accent : Style.textPrimary
+            Behavior on color { ColorAnimation { duration: 140 } }
           }
 
           MouseArea {
@@ -350,46 +289,41 @@ FocusScope {
             onClicked: root.executeCmd(["hyprctl", "dispatch", "exit"])
           }
         }
-      }
 
-      // =========================================================================
-      // Bottom Bar: Cancel Button
-      // =========================================================================
-      RowLayout {
-        Layout.fillWidth: true
+        // On-Hover Reveal Label
+        Column {
+          anchors.top: logoutBtn.bottom
+          anchors.topMargin: 16
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: 2
+          opacity: lgtMouse.containsMouse ? 1.0 : 0.0
+          y: lgtMouse.containsMouse ? 0 : 4
 
-        Item { Layout.fillWidth: true }
-
-        Rectangle {
-          Layout.preferredHeight: 28
-          Layout.preferredWidth: cancelTxt.implicitWidth + 24
-          radius: 14
-          color: cancelMouse.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-          border.color: Style.border
-          border.width: 1
-
-          Behavior on color { ColorAnimation { duration: 120 } }
+          Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
           Text {
-            id: cancelTxt
-            anchors.centerIn: parent
-            text: "Vazgeç (ESC)"
-            color: Style.textSecondary
-            font.pixelSize: 10
-            font.weight: Font.Medium
-          }
-
-          MouseArea {
-            id: cancelMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: PowerService.close()
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Oturumu Kapat"
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
           }
         }
-
-        Item { Layout.fillWidth: true }
       }
     }
+  }
+
+  // =========================================================================
+  // 3. Subtle Bottom Hint
+  // =========================================================================
+  Text {
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.bottom: parent.bottom
+    anchors.bottomMargin: 42
+    text: "İptal etmek için ESC tuşuna basın veya boşluğa tıklayın"
+    font.pixelSize: 12
+    font.weight: Font.Normal
+    color: Qt.rgba(Style.textMuted.r, Style.textMuted.g, Style.textMuted.b, 0.7)
   }
 }
