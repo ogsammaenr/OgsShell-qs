@@ -16,6 +16,7 @@ set -e
 #   - clock / stopwatch / pomodoro / alarms / world
 #   - wifi
 #   - bluetooth / bt
+#   - audio / mixer / audio_mixer
 #   - launcher
 # ==============================================================================
 
@@ -25,7 +26,7 @@ if [ -z "$1" ]; then
   echo -e "\033[1;33m[ogsShell Usage]\033[0m $0 <app_name> [subview]"
   echo -e "Kullanılabilir uygulamalar:"
   echo -e "  - themes, notifications, control_center, power, media"
-  echo -e "  - calendar, clipboard, clock, wifi, bluetooth, launcher"
+  echo -e "  - calendar, clipboard, clock, wifi, bluetooth, audio/mixer, launcher"
   exit 1
 fi
 

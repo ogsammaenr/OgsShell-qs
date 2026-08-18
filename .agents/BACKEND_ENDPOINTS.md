@@ -113,6 +113,7 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Kısayollar** | `toggle_clock` / `open_clock` | `{}` | `toggle_clock` | Saat, Pomodoro ve Alarm uygulamasını açar/kapatır |
 | **Kısayollar** | `toggle_wifi_view` / `open_wifi` | `{}` | `toggle_wifi_view` | Wi-Fi ayarları panelini açar/kapatır |
 | **Kısayollar** | `toggle_bluetooth_view` / `open_bluetooth` | `{}` | `toggle_bluetooth_view` | Bluetooth ayarları panelini açar/kapatır |
+| **Kısayollar** | `toggle_audio_mixer` / `open_audio_mixer` | `{}` | `toggle_audio_mixer` | Ses karıştırıcısı (uygulama sesleri ve çıkış aygıtları) panelini açar/kapatır |
 
 ---
 

@@ -152,7 +152,7 @@ Item {
       return;
     }
 
-    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD") {
+    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD" || target === "AUDIO" || target === "MIXER" || target === "AUDIO_MIXER") {
       let sub = "MAIN";
       if (target === "THEMES" || target === "THEME") sub = "THEMES";
       else if (target === "NOTIFICATIONS" || target === "NOTIFICATION") sub = "NOTIFICATIONS";
@@ -160,6 +160,7 @@ Item {
       else if (target === "WIFI") sub = "WIFI";
       else if (target === "BLUETOOTH") sub = "BLUETOOTH";
       else if (target === "KEYBOARD") sub = "KEYBOARD";
+      else if (target === "AUDIO" || target === "MIXER" || target === "AUDIO_MIXER") sub = "AUDIO_MIXER";
       else if (subview && subview.length > 0) sub = subview.toUpperCase();
 
       if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "CONTROL_CENTER" && controlCenterLoader.item && controlCenterLoader.item.currentView === sub) {
@@ -209,7 +210,7 @@ Item {
       return;
     }
 
-    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD") {
+    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD" || target === "AUDIO" || target === "MIXER" || target === "AUDIO_MIXER") {
       let sub = "MAIN";
       if (target === "THEMES" || target === "THEME") sub = "THEMES";
       else if (target === "NOTIFICATIONS" || target === "NOTIFICATION") sub = "NOTIFICATIONS";
@@ -217,6 +218,7 @@ Item {
       else if (target === "WIFI") sub = "WIFI";
       else if (target === "BLUETOOTH") sub = "BLUETOOTH";
       else if (target === "KEYBOARD") sub = "KEYBOARD";
+      else if (target === "AUDIO" || target === "MIXER" || target === "AUDIO_MIXER") sub = "AUDIO_MIXER";
       else if (subview && subview.length > 0) sub = subview.toUpperCase();
 
       root.expandedActiveTab = "CONTROL_CENTER";

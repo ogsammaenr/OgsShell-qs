@@ -7,7 +7,7 @@ Item {
   id: root
 
   property var ipc
-  property string currentView: "MAIN" // "MAIN" | "WIFI" | "BLUETOOTH" | "NOTIFICATIONS" | "CLIPBOARD" | "KEYBOARD" | "THEMES"
+  property string currentView: "MAIN" // "MAIN" | "WIFI" | "BLUETOOTH" | "NOTIFICATIONS" | "CLIPBOARD" | "KEYBOARD" | "THEMES" | "AUDIO_MIXER"
 
   function resetToMain() {
     currentView = "MAIN"
@@ -15,15 +15,17 @@ Item {
 
   function setView(v) {
     if (v && v.length > 0) {
-      currentView = v.toUpperCase()
+      let target = v.toUpperCase()
+      if (target === "AUDIO" || target === "MIXER") target = "AUDIO_MIXER"
+      currentView = target
     } else {
       currentView = "MAIN"
     }
   }
 
   // Geometry hints for DynamicIsland container
-  readonly property int preferredIslandWidth: (currentView === "MAIN") ? 440 : 450
-  readonly property int preferredIslandHeight: (currentView === "MAIN") ? 310 : 320
+  readonly property int preferredIslandWidth: (currentView === "MAIN") ? 440 : ((currentView === "AUDIO_MIXER") ? 460 : 450)
+  readonly property int preferredIslandHeight: (currentView === "MAIN") ? 310 : ((currentView === "AUDIO_MIXER") ? 350 : 320)
 
   // ==========================================
   // Sub-Views Container (Lazy Loaded via Loaders)
@@ -102,6 +104,17 @@ Item {
       active: root.currentView === "THEMES"
       visible: active
       sourceComponent: ThemesView {
+        ipc: root.ipc
+        onBackRequested: root.currentView = "MAIN"
+      }
+    }
+
+    // 8. Audio Mixer Sub-App (Lazy Loaded)
+    Loader {
+      anchors.fill: parent
+      active: root.currentView === "AUDIO_MIXER"
+      visible: active
+      sourceComponent: AudioMixerView {
         ipc: root.ipc
         onBackRequested: root.currentView = "MAIN"
       }

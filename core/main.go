@@ -1174,7 +1174,9 @@ func main() {
 			"toggle_clipboard", "open_clipboard",
 			"toggle_clock", "open_clock",
 			"toggle_wifi_view", "open_wifi",
-			"toggle_bluetooth_view", "open_bluetooth":
+			"toggle_bluetooth_view", "open_bluetooth",
+			"toggle_audio_mixer", "open_audio_mixer",
+			"toggle_mixer", "open_mixer":
 			log.Info("Uygulama kısayol aksiyonu alındı", "action", action.Name)
 			payloadBytes := action.Args
 			if len(payloadBytes) == 0 {

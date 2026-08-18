@@ -607,6 +607,7 @@ Item {
       MouseArea {
         anchors.fill: parent
         anchors.leftMargin: 38 // Do not overlap speaker mute button
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
 
@@ -616,9 +617,15 @@ Item {
           root.setVolume(pct)
         }
 
-        onClicked: mouse => updateLevel(mouse)
+        onClicked: mouse => {
+          if (mouse.button === Qt.RightButton) {
+            root.openView("AUDIO_MIXER")
+          } else {
+            updateLevel(mouse)
+          }
+        }
         onPositionChanged: mouse => {
-          if (pressed) updateLevel(mouse)
+          if (pressed && (mouse.buttons & Qt.LeftButton)) updateLevel(mouse)
         }
         onWheel: wheel => {
           let delta = wheel.angleDelta.y > 0 ? 5 : -5

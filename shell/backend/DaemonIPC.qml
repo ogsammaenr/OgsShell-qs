@@ -388,6 +388,18 @@ Item {
     }
   }
 
+  Timer {
+    id: reconnectTimer
+    interval: 1000
+    repeat: true
+    running: !socket.connected
+    onTriggered: {
+      if (!socket.connected) {
+        socket.connected = true;
+      }
+    }
+  }
+
   Socket {
     id: socket
     path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ogs_shell.sock"
@@ -556,6 +568,10 @@ Item {
             root.appToggleRequested({ "app": "bluetooth" });
           } else if (msg.type === "open_bluetooth") {
             root.appOpenRequested({ "app": "bluetooth" });
+          } else if (msg.type === "toggle_audio_mixer" || msg.type === "toggle_mixer") {
+            root.appToggleRequested({ "app": "audio_mixer" });
+          } else if (msg.type === "open_audio_mixer" || msg.type === "open_mixer") {
+            root.appOpenRequested({ "app": "audio_mixer" });
           }
         } catch (e) {
           console.warn("[DaemonIPC] JSON parse hatası: ", e, "Gelen ham veri:", data);
