@@ -12,6 +12,7 @@ CORE_BIN="${REPO_ROOT}/bin/ogsshell-core"
 SHELL_DIR="${REPO_ROOT}/shell"
 SOCK_PATH="${XDG_RUNTIME_DIR:-/tmp}/ogs_shell.sock"
 LOG_FILE="/tmp/ogsshell-core.log"
+export OGSSHELL_SHARED_DIR="${REPO_ROOT}/shared"
 
 # 1. Clean up existing conflicting processes and stale sockets
 echo -e "\033[1;34m[ogsShell]\033[0m Önceki servisler ve çakışan bildirim yöneticileri temizleniyor..."

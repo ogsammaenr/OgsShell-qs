@@ -4,6 +4,7 @@
 
 # 1. Compiled C & Go Binaries & Daemon Executables
 /bin/
+/build/
 /monitor
 /workspaces
 /services/app_launcher_helper

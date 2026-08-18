@@ -10,6 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CORE_BIN="${REPO_ROOT}/bin/ogsshell-core"
 SOCK_PATH="${XDG_RUNTIME_DIR:-/tmp}/ogs_shell.sock"
+export OGSSHELL_SHARED_DIR="${REPO_ROOT}/shared"
 
 echo -e "\033[1;34m[ogsShell Backend]\033[0m Temizleniyor ve önceki servisler durduruluyor..."
 killall -9 ogsshell-core 2>/dev/null || true

@@ -53,6 +53,11 @@ Item {
   property var themeWallpapers: []
   property string activeWallpaper: ""
 
+  // App Launcher Subsystem
+  property var launcherApps: []
+  property var launcherSearchResults: []
+  property string launcherLastQuery: ""
+
   // High-Priority Signals
   signal alarmTriggered(var payload)
   signal calendarReminderTriggered(var payload)
@@ -61,6 +66,11 @@ Item {
   signal keyboardLayoutUpdated(var payload)
   signal themeChanged(var payload)
   signal wallpapersUpdated(var payload)
+  signal launcherResultsUpdated(var payload)
+  signal appLaunched(var payload)
+  signal launcherToggled()
+  signal launcherOpened()
+  signal launcherClosed()
 
   // Send JSON RPC Action to daemon
   function sendAction(name, args) {
@@ -309,6 +319,44 @@ Item {
     sendAction("next_wallpaper", { "theme_id": themeId || (root.currentTheme ? root.currentTheme.id : "") });
   }
 
+  // App Launcher Helpers
+  function searchApps(query, limit) {
+    root.launcherLastQuery = query || "";
+    sendAction("search_apps", {
+      "query": query || "",
+      "limit": limit || 25
+    });
+  }
+
+  function requestAppsList(limit) {
+    sendAction("list_apps", {
+      "limit": limit || 50
+    });
+  }
+
+  function launchApp(id, exec) {
+    sendAction("launch_app", {
+      "id": id || "",
+      "exec": exec || ""
+    });
+  }
+
+  function reindexApps() {
+    sendAction("reindex_apps", {});
+  }
+
+  function toggleLauncher() {
+    sendAction("toggle_launcher", {});
+  }
+
+  function openLauncher() {
+    sendAction("open_launcher", {});
+  }
+
+  function closeLauncher() {
+    sendAction("close_launcher", {});
+  }
+
   function triggerInitialSync() {
     console.log("[DaemonIPC] Triggering initial state sync from Go daemon...");
     let now = new Date();
@@ -324,6 +372,7 @@ Item {
     requestThemeState();
     requestAvailableThemes();
     requestThemeWallpapers("");
+    requestAppsList(50);
     sendAction("get_active_wifi", {});
     sendAction("scan_wifi", {});
     sendAction("get_bluetooth_state", {});
@@ -445,6 +494,19 @@ Item {
             root.themeWallpapers = msg.payload.wallpapers || [];
             root.activeWallpaper = msg.payload.active_wallpaper || "";
             root.wallpapersUpdated(msg.payload);
+          } else if (msg.type === "app_search_results") {
+            root.launcherSearchResults = (msg.payload && msg.payload.results) ? msg.payload.results : [];
+            root.launcherResultsUpdated(msg.payload);
+          } else if (msg.type === "app_list_data") {
+            root.launcherApps = msg.payload || [];
+          } else if (msg.type === "app_launched") {
+            root.appLaunched(msg.payload);
+          } else if (msg.type === "toggle_launcher") {
+            root.launcherToggled();
+          } else if (msg.type === "open_launcher") {
+            root.launcherOpened();
+          } else if (msg.type === "close_launcher") {
+            root.launcherClosed();
           }
         } catch (e) {
           console.warn("[DaemonIPC] JSON parse hatası: ", e, "Gelen ham veri:", data);

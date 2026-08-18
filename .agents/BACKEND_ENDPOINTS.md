@@ -94,6 +94,13 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Duvar Kağıdı** | `get_theme_wallpapers` | `{"theme_id": "everforest"}` *(opsiyonel)* | `theme_wallpapers_data` | Temaya ait havuzdaki tüm görselleri ve aktif olanı döner |
 | **Duvar Kağıdı** | `set_wallpaper` | `{"theme_id": "...", "wallpaper_path": "..."}` | `theme_wallpapers_data` | Belirli bir duvar kağıdını `awww` ile anında uygular ve kaydeder |
 | **Duvar Kağıdı** | `next_wallpaper` | `{"theme_id": "everforest"}` *(opsiyonel)* | `theme_wallpapers_data` | Aktif temanın havuzundaki sıradaki duvar kağıdına geçer |
+| **Launcher** | `search_apps` | `{"query": "gimp", "limit": 15}` | `app_search_results` | Akıllı fuzzy/akronym arama yapar ve ilk X sonucu döner |
+| **Launcher** | `list_apps` | `{"limit": 50}` | `app_list_data` | İndekslenen uygulamaları popülerliğe göre listeler |
+| **Launcher** | `launch_app` | `{"id": "...", "exec": "..."}` | `app_launched` | Uygulamayı bağımsız/izole süreç (`systemd-run`) olarak başlatır |
+| **Launcher** | `reindex_apps` | `{}` | `app_list_data` | Masaüstü uygulama indeksini yeniden tarar |
+| **Launcher** | `toggle_launcher` | `{}` | `toggle_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar/kapatır |
+| **Launcher** | `open_launcher` | `{}` | `open_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar |
+| **Launcher** | `close_launcher` | `{}` | `close_launcher` | Açık olan App Launcher görünümünü kapatır |
 
 ---
 
@@ -127,6 +134,12 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `theme_update` | Tema değiştiğinde veya adaptör güncellendiğinde | `ThemeState` | Aktif tema, renk haritası, tüm temalar ve adaptörler |
 | `available_themes_data` | `get_available_themes` yanıtı | `[]ThemePalette` | Diskten taranan tüm tema paletleri |
 | `theme_wallpapers_data` | Duvar kağıdı sorgulandığında / değiştiğinde | `ThemeWallpapersResponse` | Temanın havuzundaki görseller ve aktif duvar kağıdı yolu |
+| `app_search_results` | `search_apps` RPC komutuna yanıt | `AppSearchResultPayload` | Arama sorgusuna göre puanlanmış ve sıralanmış uygulama listesi |
+| `app_list_data` | `list_apps` / `reindex_apps` / dosya değişikliği | `[]AppEntry` | Sistemdeki tüm indekslenmiş masaüstü uygulamaları |
+| `app_launched` | `launch_app` RPC komutu yürütüldüğünde | `AppLaunchedPayload` | Uygulama başlatma durumu ve hata mesajı |
+| `toggle_launcher` | `toggle_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açıp/kapatması için sinyal |
+| `open_launcher` | `open_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açması için sinyal |
+| `close_launcher` | `close_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu kapatması için sinyal |
 
 ---
 
@@ -886,6 +899,109 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
     "adapter_id": "vesktop",
     "enabled": false
   }
+}
+```
+
+---
+
+### 3.10. Uygulama Arama ve Başlatıcı Servisi (`core/services/launcher/`)
+
+* **Bellek İçi Arama:** <0.5ms gecikme süresi ile 300+ masaüstü uygulamasını RAM üzerinde fuzzy/akronym eşleştirmesi ile filtreler.
+* **Frecency ve Kalıcılık:** Uygulama kullanım istatistikleri `$XDG_CONFIG_HOME/ogsShell/launcher_stats.json` dosyasında saklanır.
+* **İzole Süreç:** Uygulamalar `systemd-run --user --scope` veya `Setsid` bağımsız process group ile başlatılır.
+
+#### A. Veri Modelleri
+
+1. **`AppEntry`**:
+```json
+{
+  "id": "org.gimp.GIMP.desktop",
+  "name": "GNU Image Manipulation Program",
+  "generic_name": "Image Editor",
+  "exec": "gimp-2.10",
+  "exec_binary": "gimp-2.10",
+  "icon": "gimp",
+  "categories": ["Graphics", "RasterEditor"],
+  "keywords": ["photo", "paint", "edit"],
+  "acronym": "gimp",
+  "launch_count": 5,
+  "score": 100,
+  "comment": "Create images and edit photographs"
+}
+```
+
+2. **`AppSearchResultPayload`** (`app_search_results` Event):
+```json
+{
+  "type": "app_search_results",
+  "payload": {
+    "query": "gimp",
+    "results": [
+      {
+        "id": "org.gimp.GIMP.desktop",
+        "name": "GNU Image Manipulation Program",
+        "generic_name": "Image Editor",
+        "exec": "gimp-2.10",
+        "icon": "gimp",
+        "launch_count": 5,
+        "score": 100
+      }
+    ],
+    "total": 1
+  }
+}
+```
+
+3. **`AppLaunchedPayload`** (`app_launched` Event):
+```json
+{
+  "type": "app_launched",
+  "payload": {
+    "id": "org.gimp.GIMP.desktop",
+    "name": "GNU Image Manipulation Program",
+    "success": true
+  }
+}
+```
+
+#### B. RPC Komut Örnekleri
+
+* **Uygulama Arama (Fuzzy/Typo Tolere):**
+```json
+{
+  "name": "search_apps",
+  "args": {
+    "query": "firfox",
+    "limit": 10
+  }
+}
+```
+
+* **Tüm Uygulamaları Listeleme:**
+```json
+{
+  "name": "list_apps",
+  "args": {
+    "limit": 50
+  }
+}
+```
+
+* **Uygulamayı Başlatma:**
+```json
+{
+  "name": "launch_app",
+  "args": {
+    "id": "org.gimp.GIMP.desktop"
+  }
+}
+```
+
+* **İndeksi Yeniden Tarama:**
+```json
+{
+  "name": "reindex_apps",
+  "args": {}
 }
 ```
 
