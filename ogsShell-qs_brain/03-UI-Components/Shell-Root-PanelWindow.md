@@ -8,10 +8,11 @@ tags:
   - multimonitor
   - dynamic-island
 created: 2026-08-14
-updated: 2026-08-15
+updated: 2026-08-17
 status: implemented
 related_notes:
   - "[[Dynamic-Island-Component]]"
+  - "[[Dock-Component]]"
   - "[[Daemon-IPC-Client]]"
   - "[[Wayland-LayerShell-Integration]]"
   - "[[QML-Best-Practices]]"
@@ -19,6 +20,9 @@ related_notes:
   - "[[Plan-Reserved-Spacer-Window-Layer]]"
   - "[[Plan-Fullscreen-Application-Layer-Clearance]]"
   - "[[Plan-Dynamic-Expanded-Layer-Interaction]]"
+  - "[[Plan-Focus-Mode-And-Smart-Autohide]]"
+  - "[[Plan-Per-Monitor-Focus-Mode-Autohide]]"
+  - "[[Plan-Dock-Component]]"
 ---
 
 # Shell Root Scope & Multi-Window Architecture
@@ -49,6 +53,11 @@ related_notes:
    * **Exclusion Mode:** `ExclusionMode.Ignore` (Ada genişlediğinde pencereleri aşağı itip titretmez).
    * **Canvas:** Sabit `540x360` GPU yüzeyi.
    * **Girdi:** `mask: Region { item: island }` ile piksel düzeyinde girdi maskesi.
+
+4. **`powerOverlayWindow` (Tam Ekran Güç Menüsü):**
+   * **Katman:** `WlrLayershell.layer: WlrLayer.Overlay`
+   * **Odak:** `WlrKeyboardFocus.Exclusive`
+   * Klavye ve fare odaklı OLED cam oturum modalı.
 
 ```mermaid
 graph TD
@@ -82,3 +91,8 @@ graph TD
 3. **Synchronized Global Events & Autonomous State:**
    * Alarms, Pomodoro milestones, and Freedesktop/D-Bus notifications broadcast via `DaemonIPC` trigger animations across all active display islands simultaneously.
    * Mouse hover and expanded app interactions remain independent per monitor.
+
+4. **Monitöre Özel Bağımsız Odak Modu (Per-Monitor Focus Mode Autohide):**
+   * Her ekran örneği (`screenScope`), `Hyprland.monitorFor(screenScope.modelData)` üzerinden kendi fiziksel monitörünün `activeWorkspace` nesnesini bağımsız olarak çözümler.
+   * `hasTilingWindows` sorgusu sadece ilgili ekranın aktif çalışma alanındaki pencereleri denetler.
+   * Bir monitörde tiling uygulama açıkken adası otomatik olarak yukarı gizlenir; uygulamanın olmadığı (boş masaüstü) monitörde ise ada görünmeye devam eder. Detaylar için: `[[Plan-Per-Monitor-Focus-Mode-Autohide]]`.

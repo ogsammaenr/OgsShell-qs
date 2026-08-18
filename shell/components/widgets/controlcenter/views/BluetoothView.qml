@@ -9,7 +9,9 @@ Item {
   signal backRequested()
 
   Component.onCompleted: {
-    if (ipc) ipc.sendAction("get_bluetooth_state", {})
+    if (ipc) {
+      ipc.sendAction("get_bluetooth_devices", {})
+    }
   }
 
   ColumnLayout {
@@ -22,15 +24,15 @@ Item {
       spacing: 6
 
       Rectangle {
-        width: 22
-        height: 22
-        radius: 11
+        width: 24
+        height: 24
+        radius: 12
         color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
         Text {
           anchors.centerIn: parent
           text: "‹"
-          font.pixelSize: 15
+          font.pixelSize: 16
           font.weight: Font.Bold
           color: Style.textPrimary
         }
@@ -47,23 +49,24 @@ Item {
       Text {
         text: "Bluetooth Aygıtları"
         color: Style.textPrimary
-        font.pixelSize: 11
-        font.weight: Font.DemiBold
+        font.pixelSize: 13
+        font.weight: Font.Bold
         Layout.fillWidth: true
       }
 
       // Power Toggle Pill
       Rectangle {
-        Layout.preferredHeight: 20
-        Layout.preferredWidth: 44
-        radius: 10
+        Layout.preferredHeight: 22
+        Layout.preferredWidth: btPwrTxt.implicitWidth + 14
+        radius: 11
         color: (ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered) ? Style.accentGreen : Style.surfaceHover
 
         Text {
+          id: btPwrTxt
           anchors.centerIn: parent
           text: (ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered) ? "Açık" : "Kapalı"
-          font.pixelSize: 8
-          font.weight: Font.DemiBold
+          font.pixelSize: 10
+          font.weight: Font.Bold
           color: (ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered) ? "#000000" : Style.textMuted
         }
 
@@ -78,15 +81,15 @@ Item {
 
       // Rescan Button
       Rectangle {
-        width: 22
-        height: 22
-        radius: 11
+        width: 26
+        height: 26
+        radius: 13
         color: scanBtHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
         Text {
           anchors.centerIn: parent
           text: "↻"
-          font.pixelSize: 12
+          font.pixelSize: 14
           color: Style.textPrimary
         }
 
@@ -116,14 +119,14 @@ Item {
         id: btList
         anchors.fill: parent
         anchors.margins: 4
-        spacing: 3
+        spacing: 4
         reuseItems: true
         cacheBuffer: 60
         model: (ipc && ipc.bluetooth && ipc.bluetooth.devices) ? ipc.bluetooth.devices : []
 
         delegate: Rectangle {
           width: btList.width
-          height: 32
+          height: 42
           radius: 6
           color: modelData.connected ? Style.surfaceActive : (devHover.containsMouse ? Style.surfaceVariant : "transparent")
 
@@ -131,7 +134,7 @@ Item {
             anchors.fill: parent
             anchors.leftMargin: 8
             anchors.rightMargin: 8
-            spacing: 6
+            spacing: 8
 
             Text {
               text: {
@@ -142,38 +145,39 @@ Item {
                 if (ic.indexOf("phone") !== -1) return "📱"
                 return "󰂯"
               }
-              font.pixelSize: 12
+              font.pixelSize: 14
             }
 
             Column {
               Layout.fillWidth: true
+              spacing: 1
               Text {
                 text: modelData.name || modelData.mac || "Bilinmeyen Cihaz"
-                font.pixelSize: 9
-                font.weight: modelData.connected ? Font.DemiBold : Font.Normal
+                font.pixelSize: 12
+                font.weight: modelData.connected ? Font.Bold : Font.Medium
                 color: modelData.connected ? Style.accentCyan : Style.textPrimary
                 elide: Text.ElideRight
-                width: 160
+                width: btList.width - 120
               }
               Text {
                 text: modelData.connected ? "Bağlı" : (modelData.paired ? "Eşleşmiş" : "Eşleşmemiş")
-                font.pixelSize: 8
+                font.pixelSize: 10
                 color: modelData.connected ? Style.accentGreen : Style.textMuted
               }
             }
 
             // Connect / Disconnect Action Pill
             Rectangle {
-              Layout.preferredHeight: 18
-              Layout.preferredWidth: modelData.connected ? 42 : 36
-              radius: 4
+              Layout.preferredHeight: 24
+              Layout.preferredWidth: modelData.connected ? 52 : 60
+              radius: 6
               color: modelData.connected ? Style.surfaceVariant : Style.accent
 
               Text {
                 anchors.centerIn: parent
                 text: modelData.connected ? "Kes" : "Bağlan"
-                font.pixelSize: 8
-                font.weight: Font.Medium
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
                 color: modelData.connected ? Style.accentRed : "#ffffff"
               }
 
@@ -197,14 +201,9 @@ Item {
             id: devHover
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
             onClicked: {
-              if (ipc) {
-                if (modelData.connected) {
-                  ipc.sendAction("disconnect_bluetooth", { "mac": modelData.mac })
-                } else {
-                  ipc.sendAction("connect_bluetooth", { "mac": modelData.mac })
-                }
+              if (ipc && !modelData.connected) {
+                ipc.sendAction("connect_bluetooth", { "mac": modelData.mac })
               }
             }
           }
@@ -216,9 +215,9 @@ Item {
           visible: btList.count === 0
           Text {
             anchors.centerIn: parent
-            text: (ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered) ? "Cihaz bulunamadı, taratın..." : "Bluetooth kapalı"
+            text: (ipc && ipc.bluetooth && !ipc.bluetooth.adapter_powered) ? "Bluetooth Kapalı" : "Cihaz Bulunamadı"
             color: Style.textMuted
-            font.pixelSize: 9
+            font.pixelSize: 11
           }
         }
       }

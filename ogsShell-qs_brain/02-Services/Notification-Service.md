@@ -104,4 +104,6 @@ Dispatched on notification CRUD operations and read-state updates:
 * IPC Socket Protocol: `[[IPC-Socket-Schema]]`
 * QML IPC Singleton: `[[Daemon-IPC-Client]]`
 * Dynamic Island: `[[Dynamic-Island-Component]]`
+* Control Center UI: `[[Control-Center-Widget]]`
 * Go Daemon: `[[Go-Daemon-Core]]`
+* Proposal: `[[Plan-Notification-Detail-Inspection-View]]`

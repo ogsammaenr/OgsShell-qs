@@ -125,35 +125,35 @@ Item {
         Text {
           text: root.activeTab === 0 ? "Tema Galerisi" : "Duvar Kağıtları"
           color: Style.textPrimary
-          font.pixelSize: 12
+          font.pixelSize: 13
           font.weight: Font.Bold
         }
 
         Text {
           text: root.activeTab === 0 ? "Sistem ve uygulama renk temaları" : (root.currentActiveThemeName + " havuzu")
           color: Style.textMuted
-          font.pixelSize: 9
+          font.pixelSize: 10
         }
       }
 
       // Active Theme Chip
       Rectangle {
-        height: 22
-        radius: 11
+        height: 24
+        radius: 12
         color: Style.surfaceHover
         border.color: Style.accentCyan
         border.width: 1
-        implicitWidth: activeChipRow.implicitWidth + 14
+        implicitWidth: activeChipRow.implicitWidth + 16
 
         Row {
           id: activeChipRow
           anchors.centerIn: parent
-          spacing: 5
+          spacing: 6
 
           Rectangle {
-            width: 6
-            height: 6
-            radius: 3
+            width: 7
+            height: 7
+            radius: 3.5
             color: Style.accentCyan
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -161,8 +161,8 @@ Item {
           Text {
             text: root.currentActiveThemeName
             color: Style.textPrimary
-            font.pixelSize: 9
-            font.weight: Font.DemiBold
+            font.pixelSize: 10
+            font.weight: Font.Bold
             anchors.verticalCenter: parent.verticalCenter
           }
         }
@@ -174,8 +174,8 @@ Item {
     // =========================================================================
     Rectangle {
       Layout.fillWidth: true
-      height: 28
-      radius: 7
+      height: 30
+      radius: 8
       color: Style.surfaceVariant
       border.color: Style.border
       border.width: 1
@@ -189,7 +189,7 @@ Item {
         Rectangle {
           Layout.fillWidth: true
           Layout.fillHeight: true
-          radius: 5
+          radius: 6
           color: root.activeTab === 0 ? Style.surfaceActive : (tab0Hover.containsMouse ? Style.surfaceHover : "transparent")
           border.color: root.activeTab === 0 ? Style.accentCyan : "transparent"
           border.width: root.activeTab === 0 ? 1 : 0
@@ -198,19 +198,19 @@ Item {
 
           Row {
             anchors.centerIn: parent
-            spacing: 5
+            spacing: 6
 
             Text {
               text: "🎨"
-              font.pixelSize: 10
+              font.pixelSize: 12
               anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
               text: "Temalar"
               color: root.activeTab === 0 ? Style.textPrimary : Style.textMuted
-              font.pixelSize: 10
-              font.weight: root.activeTab === 0 ? Font.Bold : Font.Normal
+              font.pixelSize: 11
+              font.weight: root.activeTab === 0 ? Font.Bold : Font.Medium
               anchors.verticalCenter: parent.verticalCenter
             }
           }
@@ -228,7 +228,7 @@ Item {
         Rectangle {
           Layout.fillWidth: true
           Layout.fillHeight: true
-          radius: 5
+          radius: 6
           color: root.activeTab === 1 ? Style.surfaceActive : (tab1Hover.containsMouse ? Style.surfaceHover : "transparent")
           border.color: root.activeTab === 1 ? Style.accentCyan : "transparent"
           border.width: root.activeTab === 1 ? 1 : 0
@@ -237,19 +237,19 @@ Item {
 
           Row {
             anchors.centerIn: parent
-            spacing: 5
+            spacing: 6
 
             Text {
               text: "🖼️"
-              font.pixelSize: 10
+              font.pixelSize: 12
               anchors.verticalCenter: parent.verticalCenter
             }
 
             Text {
               text: "Duvar Kağıtları"
               color: root.activeTab === 1 ? Style.textPrimary : Style.textMuted
-              font.pixelSize: 10
-              font.weight: root.activeTab === 1 ? Font.Bold : Font.Normal
+              font.pixelSize: 11
+              font.weight: root.activeTab === 1 ? Font.Bold : Font.Medium
               anchors.verticalCenter: parent.verticalCenter
             }
           }
@@ -398,7 +398,7 @@ Item {
                   Text {
                     text: themeItem.name || themeItem.id
                     color: Style.textPrimary
-                    font.pixelSize: 10
+                    font.pixelSize: 12
                     font.weight: Font.Bold
                     elide: Text.ElideRight
                     Layout.fillWidth: true
@@ -406,16 +406,16 @@ Item {
 
                   Rectangle {
                     visible: isActive
-                    width: 12
-                    height: 12
-                    radius: 6
+                    width: 14
+                    height: 14
+                    radius: 7
                     color: Style.accentCyan
 
                     Text {
                       anchors.centerIn: parent
                       text: "✓"
                       color: "#000000"
-                      font.pixelSize: 8
+                      font.pixelSize: 9
                       font.weight: Font.Bold
                     }
                   }
@@ -424,7 +424,7 @@ Item {
                 Text {
                   text: themeItem.author ? ("by " + themeItem.author) : "ogsShell"
                   color: Style.textMuted
-                  font.pixelSize: 8
+                  font.pixelSize: 10
                   elide: Text.ElideRight
                 }
 
@@ -434,10 +434,10 @@ Item {
                 Row {
                   spacing: 4
                   Layout.topMargin: 2
-                  Rectangle { width: 9; height: 9; radius: 4.5; color: thmBg; border.color: "#ffffff"; border.width: 0.6 }
-                  Rectangle { width: 9; height: 9; radius: 4.5; color: thmSurface }
-                  Rectangle { width: 9; height: 9; radius: 4.5; color: thmAccent }
-                  Rectangle { width: 9; height: 9; radius: 4.5; color: thmCyan }
+                  Rectangle { width: 10; height: 10; radius: 5; color: thmBg; border.color: "#ffffff"; border.width: 0.6 }
+                  Rectangle { width: 10; height: 10; radius: 5; color: thmSurface }
+                  Rectangle { width: 10; height: 10; radius: 5; color: thmAccent }
+                  Rectangle { width: 10; height: 10; radius: 5; color: thmCyan }
                 }
               }
             }
@@ -484,37 +484,37 @@ Item {
           Text {
             text: root.activeWallpapersList.length + " Duvar Kağıdı Bulundu"
             color: Style.textMuted
-            font.pixelSize: 9
+            font.pixelSize: 10
             Layout.fillWidth: true
           }
 
           // Next Wallpaper Quick Button
           Rectangle {
-            height: 22
-            radius: 5
+            height: 24
+            radius: 6
             color: nextHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
             border.color: nextHover.containsMouse ? Style.accentCyan : Style.border
             border.width: 1
-            implicitWidth: nextBtnRow.implicitWidth + 12
+            implicitWidth: nextBtnRow.implicitWidth + 14
 
             Behavior on color { ColorAnimation { duration: 150 } }
 
             Row {
               id: nextBtnRow
               anchors.centerIn: parent
-              spacing: 4
+              spacing: 5
 
               Text {
                 text: "🎲"
-                font.pixelSize: 9
+                font.pixelSize: 11
                 anchors.verticalCenter: parent.verticalCenter
               }
 
               Text {
                 text: "Sıradaki Görsel"
                 color: Style.textPrimary
-                font.pixelSize: 9
-                font.weight: Font.DemiBold
+                font.pixelSize: 10
+                font.weight: Font.Bold
                 anchors.verticalCenter: parent.verticalCenter
               }
             }
@@ -547,14 +547,14 @@ Item {
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "🖼️"
-              font.pixelSize: 28
+              font.pixelSize: 32
             }
 
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "Bu tema için görsel bulunamadı"
               color: Style.textPrimary
-              font.pixelSize: 11
+              font.pixelSize: 12
               font.weight: Font.Bold
               horizontalAlignment: Text.AlignHCenter
             }
@@ -563,7 +563,7 @@ Item {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "~/Pictures/Wallpapers/" + root.currentActiveThemeName.split(" ")[0] + "/ klasörüne resim ekleyebilirsiniz."
               color: Style.textMuted
-              font.pixelSize: 9
+              font.pixelSize: 10
               wrapMode: Text.Wrap
               horizontalAlignment: Text.AlignHCenter
               width: parent.width
@@ -625,7 +625,7 @@ Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                height: 22
+                height: 24
                 color: "#cc11111b"
 
                 Text {
@@ -636,7 +636,7 @@ Item {
                   anchors.verticalCenter: parent.verticalCenter
                   text: fileName
                   color: Style.textPrimary
-                  font.pixelSize: 9
+                  font.pixelSize: 10
                   font.weight: Font.DemiBold
                   elide: Text.ElideMiddle
                 }

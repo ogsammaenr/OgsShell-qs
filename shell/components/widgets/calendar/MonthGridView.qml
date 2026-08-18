@@ -223,23 +223,23 @@ Item {
       Text {
         text: `${root.monthNames[root.viewMonth - 1]} ${root.viewYear}`
         color: Style.textPrimary
-        font.pixelSize: 13
-        font.weight: Font.DemiBold
+        font.pixelSize: 14
+        font.weight: Font.Bold
         Layout.fillWidth: true
       }
 
       // Prev Month
       Rectangle {
-        width: 24
-        height: 24
-        radius: 12
+        width: 26
+        height: 26
+        radius: 13
         color: prevMouse.containsMouse ? Style.surfaceVariant : "transparent"
 
         Text {
           anchors.centerIn: parent
           text: "‹"
           color: Style.textPrimary
-          font.pixelSize: 15
+          font.pixelSize: 16
         }
 
         MouseArea {
@@ -253,16 +253,16 @@ Item {
 
       // Next Month
       Rectangle {
-        width: 24
-        height: 24
-        radius: 12
+        width: 26
+        height: 26
+        radius: 13
         color: nextMouse.containsMouse ? Style.surfaceVariant : "transparent"
 
         Text {
           anchors.centerIn: parent
           text: "›"
           color: Style.textPrimary
-          font.pixelSize: 15
+          font.pixelSize: 16
         }
 
         MouseArea {
@@ -276,9 +276,9 @@ Item {
 
       // Today Pill Button
       Rectangle {
-        Layout.preferredHeight: 22
-        Layout.preferredWidth: todayTxt.implicitWidth + 14
-        radius: 11
+        Layout.preferredHeight: 24
+        Layout.preferredWidth: todayTxt.implicitWidth + 16
+        radius: 12
         color: todayMouse.containsMouse ? Style.surfaceHover : Style.surface
         border.color: Style.border
         border.width: 1
@@ -288,8 +288,8 @@ Item {
           anchors.centerIn: parent
           text: "Bugün"
           color: Style.accent
-          font.pixelSize: 10
-          font.weight: Font.Medium
+          font.pixelSize: 11
+          font.weight: Font.DemiBold
         }
 
         MouseArea {
@@ -316,8 +316,8 @@ Item {
           horizontalAlignment: Text.AlignHCenter
           text: modelData
           color: Style.textMuted
-          font.pixelSize: 10
-          font.weight: Font.Medium
+          font.pixelSize: 11
+          font.weight: Font.Bold
         }
       }
     }
@@ -362,8 +362,8 @@ Item {
             anchors.centerIn: parent
             anchors.verticalCenterOffset: (isHoliday || modelData.eventCount > 0) ? -2 : 0
             text: modelData.day
-            font.pixelSize: 11
-            font.weight: (modelData.isToday || isSelected || isHoliday) ? Font.DemiBold : Font.Normal
+            font.pixelSize: 12
+            font.weight: (modelData.isToday || isSelected || isHoliday) ? Font.Bold : Font.Normal
             color: {
               if (isSelected) return Style.textPrimary
               if (isHoliday && modelData.isCurrentMonth) return Style.accentRed
@@ -429,7 +429,7 @@ Item {
     // ==========================================
     Rectangle {
       Layout.fillWidth: true
-      Layout.preferredHeight: 22
+      Layout.preferredHeight: 24
       radius: 6
       color: root.selectedHoliday ? Qt.rgba(1.0, 0.27, 0.23, 0.12) : Style.surface
       border.color: root.selectedHoliday ? Style.accentRed : Style.border
@@ -444,7 +444,7 @@ Item {
           text: root.selectedHoliday ? (root.selectedHoliday.name + " · Resmi Tatil (Etkinlikler için sağ tık)") : "Etkinlikler: Sağ tık  ·  Yeni Ekle: Çift tık"
           color: root.selectedHoliday ? Style.accentRed : Style.textMuted
           font.pixelSize: 10
-          font.weight: root.selectedHoliday ? Font.DemiBold : Font.Normal
+          font.weight: root.selectedHoliday ? Font.Bold : Font.Medium
           elide: Text.ElideRight
           Layout.fillWidth: true
         }

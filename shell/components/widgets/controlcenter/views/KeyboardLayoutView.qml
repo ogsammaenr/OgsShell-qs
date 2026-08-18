@@ -73,8 +73,8 @@ Item {
       Text {
         text: "Klavye Düzeni"
         color: Style.textPrimary
-        font.pixelSize: 12
-        font.weight: Font.DemiBold
+        font.pixelSize: 13
+        font.weight: Font.Bold
         Layout.fillWidth: true
       }
     }
@@ -82,7 +82,7 @@ Item {
     // Active Layout Banner
     Rectangle {
       Layout.fillWidth: true
-      Layout.preferredHeight: 38
+      Layout.preferredHeight: 44
       radius: 8
       color: Style.surfaceVariant
       border.color: Style.accentCyan
@@ -96,7 +96,7 @@ Item {
 
         Text {
           text: "󰌌"
-          font.pixelSize: 16
+          font.pixelSize: 18
           color: Style.accentCyan
         }
 
@@ -105,21 +105,21 @@ Item {
           spacing: 1
           Text {
             text: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_keymap) ? ipc.keyboardLayout.current_keymap : "Türkçe (TR)"
-            font.pixelSize: 11
-            font.weight: Font.DemiBold
+            font.pixelSize: 12
+            font.weight: Font.Bold
             color: Style.textPrimary
           }
           Text {
             text: `Aktif Kısa Kod: ${(ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code : "TR"}`
-            font.pixelSize: 9
+            font.pixelSize: 10
             color: Style.textMuted
           }
         }
 
         // Switch Next Layout Button
         Rectangle {
-          Layout.preferredHeight: 24
-          Layout.preferredWidth: 78
+          Layout.preferredHeight: 26
+          Layout.preferredWidth: 88
           radius: 6
           color: nextLayoutHover.containsMouse ? Style.surfaceActive : Style.surface
           border.color: Style.border
@@ -128,8 +128,8 @@ Item {
           Text {
             anchors.centerIn: parent
             text: "Sonraki (↻)"
-            font.pixelSize: 9
-            font.weight: Font.Medium
+            font.pixelSize: 10
+            font.weight: Font.DemiBold
             color: Style.accentCyan
           }
 
@@ -168,7 +168,7 @@ Item {
 
         delegate: Rectangle {
           width: layoutList.width
-          height: 38
+          height: 44
           radius: 8
           readonly property bool isActive: {
             if (!ipc || !ipc.keyboardLayout) return modelData.code === "tr"
@@ -188,14 +188,14 @@ Item {
             spacing: 10
 
             Rectangle {
-              width: 28
-              height: 20
-              radius: 4
+              width: 32
+              height: 24
+              radius: 5
               color: isActive ? Style.accentCyan : Style.surfaceVariant
               Text {
                 anchors.centerIn: parent
                 text: modelData.short
-                font.pixelSize: 9
+                font.pixelSize: 11
                 font.weight: Font.Bold
                 color: isActive ? "#000000" : Style.textPrimary
               }
@@ -203,8 +203,8 @@ Item {
 
             Text {
               text: modelData.name
-              font.pixelSize: 11
-              font.weight: isActive ? Font.DemiBold : Font.Normal
+              font.pixelSize: 12
+              font.weight: isActive ? Font.Bold : Font.Medium
               color: isActive ? Style.accentCyan : Style.textPrimary
               Layout.fillWidth: true
             }
@@ -212,7 +212,7 @@ Item {
             Text {
               visible: isActive
               text: "✓"
-              font.pixelSize: 12
+              font.pixelSize: 13
               color: Style.accentCyan
               font.weight: Font.Bold
             }

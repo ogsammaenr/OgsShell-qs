@@ -5,6 +5,7 @@ tags:
   - ui/styling
   - theme/dynamic-sync
   - oled/pure-black
+  - ui/typography
   - animation/spring
 created: 2026-08-09
 updated: 2026-08-16
@@ -17,12 +18,13 @@ related_notes:
   - "[[Daemon-IPC-Client]]"
   - "[[Control-Center-Widget]]"
   - "[[Clock-Manager]]"
+  - "[[Plan-Typography-Scale-And-Readability-Optimization]]"
 ---
 
 # Style Design Tokens Specification
 
 > [!NOTE]
-> Centralized design token system ([Style.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/theme/Style.qml)) managing dynamic theme color synchronization, geometry constants, and spring/bezier animation parameters.
+> Centralized design token system ([Style.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/theme/Style.qml)) managing dynamic theme color synchronization, typography scale hierarchy, geometry constants, and spring/bezier animation parameters.
 
 ---
 
@@ -34,7 +36,20 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 
 ---
 
-## 2. Token Sözlüğü (Token Matrix)
+## 2. Tipografi Ölçeği (Typography Scale Hierarchy)
+
+| Tipografi Düzeyi | Boyut (`pixelSize`) | Yazı Tipi Ağırlığı | Kullanım Alanı |
+| :--- | :--- | :--- | :--- |
+| **Micro Caption / Status** | `10px - 10.5px` | `Font.Medium` | Zaman damgaları, alt ipuçları, rozetler |
+| **Subtext / List Caption** | `10.5px - 11.5px`| `Font.Medium / Bold` | Pano karakter sayısı, Wi-Fi sinyali, DND butonu |
+| **Body / List Item** | `12px - 12.5px` | `Font.Medium / DemiBold`| Pano önizleme metni, bildirim başlığı, Wi-Fi adı |
+| **Section Title** | `12.5px - 13.5px`| `Font.Bold` | Modül başlıkları, alt uygulama başlıkları, diyalog butonları |
+| **Modal / Window Title** | `14px - 16px` | `Font.Bold` | Güç menüsü başlığı, Ay/Yıl takvim başlığı, Pano tam ekran başlığı |
+| **Glyph / Vector Icon** | `13px - 22px` | `Nerd Font` | Aksiyon ikonları, telemetri sembolleri, ada HUD glifleri |
+
+---
+
+## 3. Renk Token Sözlüğü (Color Token Matrix)
 
 | Token | Değer / Davranış | Kullanım Amacı |
 | :--- | :--- | :--- |
@@ -58,7 +73,7 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 
 ---
 
-## 3. Desteklenen Sistem Temaları
+## 4. Desteklenen Sistem Temaları
 
 1. **Everforest Dark (`everforest`):** `#a7c080` (Accent), `#d3c6aa` (FG), `#83c092` (Cyan)
 2. **Catppuccin Macchiato (`catppuccin`):** `#c6a0f6` (Mauve Accent), `#cad3f5` (FG), `#8aadf4` (Blue)
@@ -69,9 +84,10 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 
 ---
 
-## 4. İlgili Bağlantılar
+## 5. İlgili Bağlantılar
 
 * Dynamic Island: `[[Dynamic-Island-Component]]`
 * Dynamic Notch: `[[Dynamic-Notch-Design-Specification]]`
 * Tema Servisi: `[[Theme-Service]]`
 * IPC İstemcisi: `[[Daemon-IPC-Client]]`
+* Tipografi Planı: `[[Plan-Typography-Scale-And-Readability-Optimization]]`

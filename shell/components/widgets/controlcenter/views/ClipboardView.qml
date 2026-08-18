@@ -66,29 +66,30 @@ Item {
       Text {
         text: "Pano Geçmişi"
         color: Style.textPrimary
-        font.pixelSize: 12
-        font.weight: Font.DemiBold
+        font.pixelSize: 13
+        font.weight: Font.Bold
         Layout.fillWidth: true
       }
 
       Text {
-        text: "Sağ tık: Tam Metin"
+        text: "Sağ tık: Oku"
         color: Style.textMuted
-        font.pixelSize: 9
+        font.pixelSize: 10
       }
 
       // Clear All Button
       Rectangle {
-        Layout.preferredHeight: 22
-        Layout.preferredWidth: 60
+        Layout.preferredHeight: 24
+        Layout.preferredWidth: 64
         radius: 6
         color: wipeHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
         Text {
           anchors.centerIn: parent
           text: "Temizle"
-          font.pixelSize: 9
-          color: Style.textMuted
+          font.pixelSize: 11
+          font.weight: Font.Medium
+          color: Style.textSecondary
         }
 
         MouseArea {
@@ -124,7 +125,7 @@ Item {
 
         delegate: Rectangle {
           width: clipList.width
-          height: 48
+          height: 52
           radius: 8
           color: itemMouseArea.containsMouse ? Style.surfaceHover : Style.surfaceVariant
           border.color: modelData.is_pinned ? Style.accentCyan : Style.border
@@ -138,15 +139,15 @@ Item {
 
             // Left Icon Badge
             Rectangle {
-              width: 28
-              height: 28
-              radius: 14
+              width: 30
+              height: 30
+              radius: 15
               color: modelData.is_pinned ? Style.accentCyan : Style.surfaceActive
 
               Text {
                 anchors.centerIn: parent
                 text: modelData.is_pinned ? "★" : "󰅍"
-                font.pixelSize: 13
+                font.pixelSize: 14
                 color: modelData.is_pinned ? "#000000" : Style.textPrimary
               }
             }
@@ -162,11 +163,11 @@ Item {
                   let str = (modelData.content || modelData.preview || "").trim().replace(/\n/g, " ")
                   return str.length > 0 ? str : "Boş Metin"
                 }
-                font.pixelSize: 11
+                font.pixelSize: 12
                 font.weight: Font.Medium
                 color: Style.textPrimary
                 elide: Text.ElideRight
-                width: clipList.width - 120
+                width: clipList.width - 130
               }
 
               Text {
@@ -174,22 +175,22 @@ Item {
                   let len = (modelData.content || modelData.preview || "").length
                   return `${len} karakter • Sağ tıkla oku`
                 }
-                font.pixelSize: 9
+                font.pixelSize: 10
                 color: Style.textMuted
               }
             }
 
             // Pin / Favorite Action
             Rectangle {
-              width: 24
-              height: 24
-              radius: 12
+              width: 26
+              height: 26
+              radius: 13
               color: pinHover.containsMouse ? Style.surfaceActive : "transparent"
 
               Text {
                 anchors.centerIn: parent
                 text: modelData.is_pinned ? "★" : "☆"
-                font.pixelSize: 13
+                font.pixelSize: 14
                 color: modelData.is_pinned ? Style.accentCyan : Style.textMuted
               }
 
@@ -212,16 +213,16 @@ Item {
 
             // Delete Action
             Rectangle {
-              width: 24
-              height: 24
-              radius: 12
-              color: delHover.containsMouse ? Style.surfaceActive : "transparent"
+              width: 26
+              height: 26
+              radius: 13
+              color: delHover.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.25) : "transparent"
 
               Text {
                 anchors.centerIn: parent
                 text: "✕"
-                font.pixelSize: 10
-                color: Style.textMuted
+                font.pixelSize: 11
+                color: delHover.containsMouse ? Style.accentRed : Style.textMuted
               }
 
               MouseArea {
@@ -240,7 +241,7 @@ Item {
           MouseArea {
             id: itemMouseArea
             anchors.fill: parent
-            anchors.rightMargin: 56 // Keep pin and delete clickable
+            anchors.rightMargin: 64 // Keep pin and delete clickable
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
@@ -269,14 +270,14 @@ Item {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "Pano Geçmişi Boş"
               color: Style.textPrimary
-              font.pixelSize: 11
+              font.pixelSize: 12
               font.weight: Font.DemiBold
             }
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "Kopyaladığınız metinler burada listelenecektir."
               color: Style.textMuted
-              font.pixelSize: 9
+              font.pixelSize: 10
             }
           }
         }
@@ -307,15 +308,15 @@ Item {
 
         // Back / Close Button
         Rectangle {
-          width: 22
-          height: 22
-          radius: 11
+          width: 24
+          height: 24
+          radius: 12
           color: detBackHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
           Text {
             anchors.centerIn: parent
             text: "‹"
-            font.pixelSize: 15
+            font.pixelSize: 16
             font.weight: Font.Bold
             color: Style.textPrimary
           }
@@ -331,15 +332,15 @@ Item {
 
         Text {
           text: "Tam Metin Önizleme"
-          font.pixelSize: 11
-          font.weight: Font.DemiBold
+          font.pixelSize: 13
+          font.weight: Font.Bold
           color: Style.textPrimary
           Layout.fillWidth: true
         }
 
         Text {
           text: `${(root.detailItem && (root.detailItem.content || root.detailItem.preview)) ? (root.detailItem.content || root.detailItem.preview).length : 0} Karakter`
-          font.pixelSize: 9
+          font.pixelSize: 11
           color: Style.textMuted
         }
       }
@@ -366,7 +367,7 @@ Item {
             id: fullTextEdit
             width: flick.width
             text: root.detailItem ? (root.detailItem.content || root.detailItem.preview || "") : ""
-            font.pixelSize: 11
+            font.pixelSize: 12
             color: Style.textPrimary
             wrapMode: TextEdit.WrapAnywhere
             readOnly: true
@@ -382,15 +383,15 @@ Item {
 
         // Close Button
         Rectangle {
-          Layout.preferredWidth: 80
-          Layout.preferredHeight: 28
+          Layout.preferredWidth: 84
+          Layout.preferredHeight: 30
           radius: 6
           color: closeBtnHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
           Text {
             anchors.centerIn: parent
             text: "Kapat"
-            font.pixelSize: 10
+            font.pixelSize: 12
             font.weight: Font.Medium
             color: Style.textSecondary
           }
@@ -407,14 +408,14 @@ Item {
         // Copy to Clipboard Primary Button
         Rectangle {
           Layout.fillWidth: true
-          Layout.preferredHeight: 28
+          Layout.preferredHeight: 30
           radius: 6
           color: copyBtnHover.containsMouse ? Style.accentHover : Style.accent
 
           Text {
             anchors.centerIn: parent
             text: "Panoya Kopyala"
-            font.pixelSize: 10
+            font.pixelSize: 12
             font.weight: Font.DemiBold
             color: "#ffffff"
           }

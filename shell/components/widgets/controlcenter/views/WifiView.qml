@@ -60,22 +60,22 @@ Item {
       Text {
         text: "Wi-Fi Ağları"
         color: Style.textPrimary
-        font.pixelSize: 12
-        font.weight: Font.DemiBold
+        font.pixelSize: 13
+        font.weight: Font.Bold
         Layout.fillWidth: true
       }
 
       // Rescan Button
       Rectangle {
-        width: 24
-        height: 24
-        radius: 12
+        width: 26
+        height: 26
+        radius: 13
         color: scanHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
 
         Text {
           anchors.centerIn: parent
           text: "↻"
-          font.pixelSize: 13
+          font.pixelSize: 14
           color: Style.textPrimary
         }
 
@@ -92,7 +92,7 @@ Item {
     // Active Connection Banner
     Rectangle {
       Layout.fillWidth: true
-      Layout.preferredHeight: 38
+      Layout.preferredHeight: 44
       radius: 8
       color: Style.surfaceVariant
       border.color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.border
@@ -106,7 +106,7 @@ Item {
 
         Text {
           text: (ipc && ipc.wifi && ipc.wifi.connected) ? "󰤨" : "󰤮"
-          font.pixelSize: 16
+          font.pixelSize: 18
           color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.textMuted
         }
 
@@ -115,14 +115,14 @@ Item {
           spacing: 1
           Text {
             text: (ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı") ? ipc.wifi.ssid : ((ipc && ipc.wifi && ipc.wifi.connected) ? "Bağlı Ağ" : "Bağlantı Yok")
-            font.pixelSize: 11
-            font.weight: Font.DemiBold
+            font.pixelSize: 12
+            font.weight: Font.Bold
             color: Style.textPrimary
             elide: Text.ElideRight
           }
           Text {
             text: (ipc && ipc.wifi && ipc.wifi.connected) ? `Sinyal Gücü: %${ipc.wifi.signal || 75}` : "Kullanılabilir bir ağ seçip bağlanın"
-            font.pixelSize: 9
+            font.pixelSize: 10
             color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.textMuted
           }
         }
@@ -130,8 +130,8 @@ Item {
         // Disconnect Button
         Rectangle {
           visible: !!(ipc && ipc.wifi && ipc.wifi.connected)
-          Layout.preferredHeight: 24
-          Layout.preferredWidth: 68
+          Layout.preferredHeight: 26
+          Layout.preferredWidth: 80
           radius: 6
           color: disHover.containsMouse ? Style.surfaceActive : Style.surface
           border.color: Style.border
@@ -140,7 +140,7 @@ Item {
           Text {
             anchors.centerIn: parent
             text: "Bağlantıyı Kes"
-            font.pixelSize: 8
+            font.pixelSize: 10
             font.weight: Font.Medium
             color: Style.accentRed
           }
@@ -183,7 +183,7 @@ Item {
 
         delegate: Rectangle {
           width: wifiList.width
-          height: 38
+          height: 44
           radius: 8
           readonly property bool isActive: !!(modelData.is_active || modelData.is_connected)
           color: isActive ? Style.surfaceActive : (itemHover.containsMouse ? Style.surfaceVariant : "transparent")
@@ -199,7 +199,7 @@ Item {
             // Signal Icon
             Text {
               text: (modelData.signal >= 70) ? "󰤨" : ((modelData.signal >= 45) ? "󰤥" : ((modelData.signal >= 20) ? "󰤢" : "󰤟"))
-              font.pixelSize: 14
+              font.pixelSize: 16
               color: isActive ? Style.accentCyan : Style.textPrimary
             }
 
@@ -209,7 +209,7 @@ Item {
               spacing: 1
               Text {
                 text: modelData.ssid || "Gizli Ağ (Hidden)"
-                font.pixelSize: 11
+                font.pixelSize: 12
                 font.weight: isActive ? Font.Bold : Font.Medium
                 color: isActive ? Style.accentCyan : Style.textPrimary
                 elide: Text.ElideRight
@@ -217,7 +217,7 @@ Item {
               }
               Text {
                 text: `${modelData.band || "2.4/5GHz"} • Sinyal: %${modelData.signal || 0}`
-                font.pixelSize: 8
+                font.pixelSize: 10
                 color: Style.textMuted
               }
             }
@@ -225,15 +225,15 @@ Item {
             // Security Badge / Icon
             Rectangle {
               visible: !!(modelData.security && modelData.security !== "OPEN")
-              Layout.preferredHeight: 18
-              Layout.preferredWidth: 42
+              Layout.preferredHeight: 20
+              Layout.preferredWidth: 46
               radius: 4
               color: Style.surfaceVariant
 
               Text {
                 anchors.centerIn: parent
                 text: modelData.security || "WPA2"
-                font.pixelSize: 8
+                font.pixelSize: 10
                 font.weight: Font.Medium
                 color: Style.textMuted
               }
@@ -243,7 +243,7 @@ Item {
             Text {
               visible: isActive
               text: "✓"
-              font.pixelSize: 12
+              font.pixelSize: 13
               color: Style.accentCyan
               font.weight: Font.Bold
             }
@@ -278,14 +278,14 @@ Item {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "Ağlar Taranıyor..."
               color: Style.textPrimary
-              font.pixelSize: 11
-              font.weight: Font.DemiBold
+              font.pixelSize: 12
+              font.weight: Font.Bold
             }
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
               text: "Çevredeki Wi-Fi ağları aranıyor, lütfen bekleyin."
               color: Style.textMuted
-              font.pixelSize: 9
+              font.pixelSize: 10
             }
           }
         }
@@ -295,7 +295,7 @@ Item {
     // Inline Password Input Sheet
     Rectangle {
       Layout.fillWidth: true
-      Layout.preferredHeight: 38
+      Layout.preferredHeight: 42
       radius: 8
       color: Style.surfaceActive
       border.color: Style.accentCyan
@@ -312,7 +312,7 @@ Item {
           Layout.fillWidth: true
           verticalAlignment: TextInput.AlignVCenter
           color: Style.textPrimary
-          font.pixelSize: 10
+          font.pixelSize: 12
           echoMode: TextInput.Password
           text: root.wifiPasswordInput
           onTextChanged: root.wifiPasswordInput = text
@@ -323,23 +323,23 @@ Item {
             verticalAlignment: Text.AlignVCenter
             text: `${root.selectedSsid} ağ parolası...`
             color: Style.textMuted
-            font.pixelSize: 10
+            font.pixelSize: 12
             visible: !passInput.text && !passInput.activeFocus
           }
         }
 
         // Connect Button
         Rectangle {
-          Layout.preferredWidth: 60
-          Layout.preferredHeight: 26
+          Layout.preferredWidth: 68
+          Layout.preferredHeight: 28
           radius: 6
           color: Style.accent
 
           Text {
             anchors.centerIn: parent
             text: "Bağlan"
-            font.pixelSize: 9
-            font.weight: Font.DemiBold
+            font.pixelSize: 11
+            font.weight: Font.Bold
             color: "#ffffff"
           }
 
@@ -357,15 +357,15 @@ Item {
 
         // Cancel Button
         Rectangle {
-          Layout.preferredWidth: 26
-          Layout.preferredHeight: 26
+          Layout.preferredWidth: 28
+          Layout.preferredHeight: 28
           radius: 6
           color: Style.surfaceVariant
 
           Text {
             anchors.centerIn: parent
             text: "✕"
-            font.pixelSize: 10
+            font.pixelSize: 11
             color: Style.textMuted
           }
 

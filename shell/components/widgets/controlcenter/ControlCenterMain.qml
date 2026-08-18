@@ -166,13 +166,13 @@ Item {
 
                 Text {
                   text: "Wi-Fi"
-                  font.pixelSize: 11
-                  font.weight: Font.DemiBold
+                  font.pixelSize: 12
+                  font.weight: Font.Bold
                   color: Style.textPrimary
                 }
                 Text {
                   text: root.wifiSsidText
-                  font.pixelSize: 9
+                  font.pixelSize: 10
                   color: root.isWifiConnected ? Style.accentCyan : Style.textMuted
                   elide: Text.ElideRight
                   width: parent.width
@@ -182,7 +182,7 @@ Item {
               Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "›"
-                font.pixelSize: 14
+                font.pixelSize: 15
                 color: Style.textMuted
               }
             }
@@ -229,7 +229,7 @@ Item {
                 Text {
                   anchors.centerIn: parent
                   text: root.isBtPowered ? "󰂯" : "󰂲"
-                  font.pixelSize: 15
+                  font.pixelSize: 16
                   color: root.isBtPowered ? "#000000" : Style.textMuted
                 }
               }
@@ -242,13 +242,13 @@ Item {
 
                 Text {
                   text: "Bluetooth"
-                  font.pixelSize: 11
-                  font.weight: Font.DemiBold
+                  font.pixelSize: 12
+                  font.weight: Font.Bold
                   color: Style.textPrimary
                 }
                 Text {
                   text: root.isBtPowered ? "Açık" : "Kapalı"
-                  font.pixelSize: 9
+                  font.pixelSize: 10
                   color: root.isBtPowered ? Style.accentCyan : Style.textMuted
                 }
               }
@@ -256,7 +256,7 @@ Item {
               Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "›"
-                font.pixelSize: 14
+                font.pixelSize: 15
                 color: Style.textMuted
               }
             }
@@ -284,13 +284,13 @@ Item {
           height: 57
           spacing: 8
 
-          // Tile 1: GameMode
+          // Tile 1: Focus Mode (Odak Modu)
           Rectangle {
             width: (parent.width - 8) / 2
             height: parent.height
             radius: 12
-            color: root.gameModeActive ? Style.accent : (gmMouse.containsMouse ? Style.surfaceHover : Style.surface)
-            border.color: root.gameModeActive ? Style.accent : Style.border
+            color: Config.focusMode ? Style.accent : (focusMouse.containsMouse ? Style.surfaceHover : Style.surface)
+            border.color: Config.focusMode ? Style.accent : Style.border
             border.width: 1
 
             Behavior on color { ColorAnimation { duration: 150 } }
@@ -301,26 +301,28 @@ Item {
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "󰓅"
-                font.pixelSize: 17
-                color: root.gameModeActive ? "#ffffff" : Style.accentCyan
+                text: Config.focusMode ? "󰈈" : "󰈉"
+                font.pixelSize: 18
+                color: Config.focusMode ? "#ffffff" : Style.accentCyan
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "GameMode"
-                font.pixelSize: 9
-                font.weight: Font.Medium
-                color: root.gameModeActive ? "#ffffff" : Style.textPrimary
+                text: "Odak Modu"
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
+                color: Config.focusMode ? "#ffffff" : Style.textPrimary
               }
             }
 
             MouseArea {
-              id: gmMouse
+              id: focusMouse
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.toggleGameMode()
+              onClicked: {
+                Config.focusMode = !Config.focusMode
+              }
             }
           }
 
@@ -340,15 +342,15 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: (ipc && ipc.dndEnabled) ? "󰂛" : "󰂚"
-                font.pixelSize: 17
+                font.pixelSize: 18
                 color: (ipc && ipc.dndEnabled) ? Style.accentRed : Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Bildirimler"
-                font.pixelSize: 9
-                font.weight: Font.Medium
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
                 color: Style.textPrimary
               }
             }
@@ -385,15 +387,15 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "󰔎"
-                font.pixelSize: 17
+                font.pixelSize: 18
                 color: Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Tema"
-                font.pixelSize: 9
-                font.weight: Font.Medium
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
                 color: Style.textPrimary
               }
             }
@@ -423,15 +425,15 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "󰅍"
-                font.pixelSize: 17
+                font.pixelSize: 18
                 color: Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pano"
-                font.pixelSize: 9
-                font.weight: Font.Medium
+                font.pixelSize: 10
+                font.weight: Font.DemiBold
                 color: Style.textPrimary
               }
             }
@@ -481,14 +483,14 @@ Item {
         Text {
           anchors.verticalCenter: parent.verticalCenter
           text: "󰃟"
-          font.pixelSize: 15
+          font.pixelSize: 16
           color: Style.textPrimary
         }
 
         Text {
           anchors.verticalCenter: parent.verticalCenter
           text: "Ekran Parlaklığı"
-          font.pixelSize: 11
+          font.pixelSize: 12
           font.weight: Font.Medium
           color: Style.textPrimary
         }
@@ -500,8 +502,8 @@ Item {
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: `%${root.brightnessLevel}`
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
+        font.pixelSize: 12
+        font.weight: Font.Bold
         color: Style.textSecondary
       }
 
@@ -568,7 +570,7 @@ Item {
           Text {
             anchors.centerIn: parent
             text: root.isMuted ? "󰖁" : (root.volumeLevel > 50 ? "󰕾" : (root.volumeLevel > 0 ? "󰖀" : "󰕿"))
-            font.pixelSize: 15
+            font.pixelSize: 16
             color: root.isMuted ? Style.accentRed : Style.textPrimary
           }
 
@@ -584,7 +586,7 @@ Item {
         Text {
           anchors.verticalCenter: parent.verticalCenter
           text: root.isMuted ? "Sessiz (Muted)" : "Ses Düzeyi"
-          font.pixelSize: 11
+          font.pixelSize: 12
           font.weight: Font.Medium
           color: root.isMuted ? Style.accentRed : Style.textPrimary
         }
@@ -596,8 +598,8 @@ Item {
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: root.isMuted ? "0%" : `%${root.volumeLevel}`
-        font.pixelSize: 10
-        font.weight: Font.DemiBold
+        font.pixelSize: 12
+        font.weight: Font.Bold
         color: Style.textSecondary
       }
 
@@ -636,7 +638,7 @@ Item {
       // Keyboard Layout Pill
       Rectangle {
         height: 32
-        width: 72
+        width: 76
         radius: 8
         color: kbMouse.containsMouse ? Style.surfaceHover : Style.surface
         border.color: Style.border
@@ -645,11 +647,11 @@ Item {
         Row {
           anchors.centerIn: parent
           spacing: 5
-          Text { text: "󰌌"; font.pixelSize: 12; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+          Text { text: "󰌌"; font.pixelSize: 13; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
           Text {
             text: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code : "TR"
-            font.pixelSize: 10
-            font.weight: Font.DemiBold
+            font.pixelSize: 11
+            font.weight: Font.Bold
             color: Style.textPrimary
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -666,7 +668,7 @@ Item {
 
       // Minimalist Telemetry Pill (Click to pin beside Dynamic Island)
       Rectangle {
-        width: parent.width - 72 - 40 - 16
+        width: parent.width - 76 - 40 - 16
         height: 32
         radius: 8
         color: Config.showPinnedSystemMetrics ? Style.surfaceActive : (telemetryMouse.containsMouse ? Style.surfaceHover : Style.surface)
@@ -683,12 +685,12 @@ Item {
           Text {
             text: {
               let pct = (ipc && ipc.cpu && ipc.cpu.cpu_percent !== undefined) ? Math.round(ipc.cpu.cpu_percent) : 0
-              let temp = (ipc && ipc.cpu && ipc.cpu.cpu_temp !== undefined && ipc.cpu.cpu_temp > 0) ? ` ${Math.round(ipc.cpu.cpu_temp)}°C` : ""
+              let temp = (ipc && ipc.cpu && ipc.cpu.cpu_temp !== undefined && ipc.cpu.cpu_temp > 0) ? ` ${Math.round(ipc.cpu.cpu_temp)}°` : ""
               return `CPU %${pct}${temp}`
             }
-            font.pixelSize: 9
+            font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -702,9 +704,9 @@ Item {
 
           Text {
             text: `RAM %${(ipc && ipc.ram && ipc.ram.ram_percent !== undefined) ? Math.round(ipc.ram.ram_percent) : 0}`
-            font.pixelSize: 9
+            font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentGreen : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -719,12 +721,12 @@ Item {
           Text {
             text: {
               let pct = (ipc && ipc.gpu && ipc.gpu.gpu_percent !== undefined && ipc.gpu.gpu_percent >= 0) ? Math.round(ipc.gpu.gpu_percent) : 0
-              let temp = (ipc && ipc.gpu && ipc.gpu.gpu_temp !== undefined && ipc.gpu.gpu_temp > 0) ? ` ${Math.round(ipc.gpu.gpu_temp)}°C` : ""
+              let temp = (ipc && ipc.gpu && ipc.gpu.gpu_temp !== undefined && ipc.gpu.gpu_temp > 0) ? ` ${Math.round(ipc.gpu.gpu_temp)}°` : ""
               return `GPU %${pct}${temp}`
             }
-            font.pixelSize: 9
+            font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentOrange : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.DemiBold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
         }

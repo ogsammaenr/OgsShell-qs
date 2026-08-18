@@ -2,7 +2,7 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import "../../../.."
+import "../../.."
 
 QtObject {
   id: root

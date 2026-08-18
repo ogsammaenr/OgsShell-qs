@@ -27,8 +27,8 @@ Item {
     Rectangle {
       id: segmentTrack
       Layout.fillWidth: true
-      Layout.preferredHeight: 30
-      radius: 15
+      Layout.preferredHeight: 32
+      radius: 16
       color: Style.surface
       border.color: Style.border
       border.width: 1
@@ -40,7 +40,7 @@ Item {
         height: parent.height - 6
         width: (segmentTrack.width - 8) / 4
         x: 4 + (root.activeIndex * width)
-        radius: 12
+        radius: 13
         color: Style.surfaceActive
 
         Behavior on x {
@@ -68,8 +68,8 @@ Item {
             anchors.centerIn: parent
             text: "Saat"
             color: root.activeTab === "WORLD" ? Style.textPrimary : Style.textSecondary
-            font.pixelSize: 11
-            font.weight: root.activeTab === "WORLD" ? Font.DemiBold : Font.Normal
+            font.pixelSize: 12
+            font.weight: root.activeTab === "WORLD" ? Font.Bold : Font.Medium
           }
 
           HoverHandler { cursorShape: Qt.PointingHandCursor }
@@ -85,8 +85,8 @@ Item {
             anchors.centerIn: parent
             text: "Pomodoro"
             color: root.activeTab === "POMODORO" ? Style.textPrimary : Style.textSecondary
-            font.pixelSize: 11
-            font.weight: root.activeTab === "POMODORO" ? Font.DemiBold : Font.Normal
+            font.pixelSize: 12
+            font.weight: root.activeTab === "POMODORO" ? Font.Bold : Font.Medium
           }
 
           HoverHandler { cursorShape: Qt.PointingHandCursor }
@@ -102,8 +102,8 @@ Item {
             anchors.centerIn: parent
             text: "Kronometre"
             color: root.activeTab === "STOPWATCH" ? Style.textPrimary : Style.textSecondary
-            font.pixelSize: 11
-            font.weight: root.activeTab === "STOPWATCH" ? Font.DemiBold : Font.Normal
+            font.pixelSize: 12
+            font.weight: root.activeTab === "STOPWATCH" ? Font.Bold : Font.Medium
           }
 
           HoverHandler { cursorShape: Qt.PointingHandCursor }
@@ -119,8 +119,8 @@ Item {
             anchors.centerIn: parent
             text: "Alarmlar"
             color: root.activeTab === "ALARMS" ? Style.textPrimary : Style.textSecondary
-            font.pixelSize: 11
-            font.weight: root.activeTab === "ALARMS" ? Font.DemiBold : Font.Normal
+            font.pixelSize: 12
+            font.weight: root.activeTab === "ALARMS" ? Font.Bold : Font.Medium
           }
 
           HoverHandler { cursorShape: Qt.PointingHandCursor }

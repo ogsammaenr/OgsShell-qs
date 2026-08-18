@@ -21,6 +21,7 @@ related_notes:
   - "[[Plan-Theme-Selector-Gallery-Redesign]]"
   - "[[Plan-Dynamic-Island-System-Metrics-Pinning]]"
   - "[[Plan-Fullscreen-Power-And-Session-Overlay]]"
+  - "[[Plan-Notification-Detail-Inspection-View]]"
 ---
 
 # Control Center UI Component Suite
@@ -73,7 +74,9 @@ graph TD
 2. **Sub-Application Views (`views/`):**
    - **`WifiView.qml`:** Taranan Wi-Fi ağları ve bağlantı yönetimi.
    - **`BluetoothView.qml`:** Bluetooth cihazları ve eşleşme durumu.
-   - **`NotificationsView.qml`:** Bildirim geçmişi ve DND toggle.
+   - **`NotificationsView.qml`:**
+     - Bildirim kartları geçmişi, DND toggle ve tümünü temizleme aksiyonu.
+     - **Sağ Tık (veya Sol Tık) Detay İnceleme:** Bildirimin üzerine sağ tıklandığında tam başlık, kaydırılabilir ve seçilebilir tam gövde metni, zaman damgası ve silme aksiyonu içeren dahili inceleme sayfası (`detailModal`) açılır.
    - **`ClipboardView.qml`:** Pano geçmişi ve favoriler.
    - **`KeyboardLayoutView.qml`:** Klavye düzeni seçimi.
    - **`ThemesView.qml`:** Tema galerisi ve duvar kağıdı yöneticisi.
