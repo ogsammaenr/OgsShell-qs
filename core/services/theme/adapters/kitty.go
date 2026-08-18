@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 type KittyAdapter struct {
@@ -51,8 +52,17 @@ func (a *KittyAdapter) Apply(palette *theme.ThemePalette) error {
 		return err
 	}
 
-	// Live reload via POSIX SIGUSR1 signal (instant <1ms)
-	_ = exec.Command("pkill", "-SIGUSR1", "kitty").Run()
+	// 1. Touch main kitty.conf so kitten __watch_conf__ triggers instant config reload (<1ms)
+	mainConfig := filepath.Join(filepath.Dir(destPath), "kitty.conf")
+	if _, err := os.Stat(mainConfig); err == nil {
+		now := time.Now()
+		_ = os.Chtimes(mainConfig, now, now)
+		_ = exec.Command("touch", mainConfig).Run()
+	}
+
+	// 2. POSIX signal reload across all kitty instances
+	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
+	_ = exec.Command("pkill", "-SIGUSR1", "-x", "kitty").Run()
 
 	return nil
 }

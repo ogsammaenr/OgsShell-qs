@@ -111,17 +111,76 @@ var DefaultSharedThemes = []ThemePalette{
 func GetSharedDir() string {
 	// 1. Environment variable override
 	if env := os.Getenv("OGSSHELL_SHARED_DIR"); env != "" {
-		return env
+		if fi, err := os.Stat(env); err == nil && fi.IsDir() {
+			return env
+		}
 	}
 
-	// 2. Relative to current working directory
-	candidates := []string{
-		"shared",
-		"../shared",
-		"../../shared",
+	// Helper to check if directory contains the valid themes.json or app_configs
+	isValidShared := func(dir string) bool {
+		if dir == "" {
+			return false
+		}
+		if _, err := os.Stat(filepath.Join(dir, "themes", "themes.json")); err == nil {
+			return true
+		}
+		if _, err := os.Stat(filepath.Join(dir, "app_configs")); err == nil {
+			return true
+		}
+		return false
+	}
+
+	var candidates []string
+
+	// 2. Relative to the running executable
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(exeDir, "shared"),
+			filepath.Join(exeDir, "..", "shared"),
+			filepath.Join(exeDir, "..", "..", "shared"),
+			filepath.Join(exeDir, "..", "..", "..", "shared"),
+		)
+	}
+
+	// 3. Relative to current working directory
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates,
+			filepath.Join(cwd, "shared"),
+			filepath.Join(cwd, "..", "shared"),
+			filepath.Join(cwd, "..", "..", "shared"),
+			filepath.Join(cwd, "..", "..", "..", "shared"),
+		)
+	}
+
+	// 4. User data & config paths
+	homeDir, _ := os.UserHomeDir()
+	if homeDir != "" {
+		candidates = append(candidates,
+			filepath.Join(homeDir, "WorkSpace", "projects", "OgsShell-qs", "shared"),
+			filepath.Join(homeDir, ".local", "share", "ogsShell", "shared"),
+			filepath.Join(homeDir, ".config", "ogsShell", "shared"),
+		)
+	}
+
+	// 5. System wide installation directories
+	candidates = append(candidates,
+		"/usr/local/share/ogsshell/shared",
 		"/usr/share/ogsshell/shared",
+		"shared",
+	)
+
+	for _, cand := range candidates {
+		if isValidShared(cand) {
+			abs, err := filepath.Abs(cand)
+			if err == nil {
+				return abs
+			}
+			return cand
+		}
 	}
 
+	// Fallback to first existing directory among candidates
 	for _, cand := range candidates {
 		if fi, err := os.Stat(cand); err == nil && fi.IsDir() {
 			abs, err := filepath.Abs(cand)

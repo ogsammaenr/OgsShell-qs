@@ -44,15 +44,31 @@ func (a *ZedAdapter) IsInstalled() bool {
 	return err == nil
 }
 
+func (a *ZedAdapter) ensureThemeTemplates() {
+	themesDir := a.getThemesDir()
+	_ = os.MkdirAll(themesDir, 0755)
+
+	themeIDs := []string{"catppuccin", "everforest", "gruvbox", "monochrome", "nord", "tokyonight"}
+	for _, id := range themeIDs {
+		if srcFile, err := GetSharedAppConfigFile(a.sharedDir, "zed", id, "json"); err == nil {
+			destFile := filepath.Join(themesDir, fmt.Sprintf("%s.json", id))
+			_ = CopyFileInPlace(srcFile, destFile)
+		}
+	}
+}
+
 func (a *ZedAdapter) Apply(palette *theme.ThemePalette) error {
-	// 1. Copy full theme JSON to ~/.config/zed/themes/ogsshell.json
+	// 1. Ensure all theme definitions exist in ~/.config/zed/themes/
+	a.ensureThemeTemplates()
+
+	// 2. Copy current theme JSON in-place to ~/.config/zed/themes/ogsshell.json preserving inode
 	srcFile, err := GetSharedAppConfigFile(a.sharedDir, "zed", palette.ID, "json")
 	if err == nil {
 		destThemeFile := filepath.Join(a.getThemesDir(), "ogsshell.json")
-		_ = CopyFile(srcFile, destThemeFile)
+		_ = CopyFileInPlace(srcFile, destThemeFile)
 	}
 
-	// 2. Patch theme name in ~/.config/zed/settings.json
+	// 3. Patch theme name in ~/.config/zed/settings.json IN-PLACE preserving inode
 	settingsPath := a.getSettingsPath()
 	if _, err := os.Stat(settingsPath); err != nil {
 		return nil
@@ -83,18 +99,12 @@ func (a *ZedAdapter) Apply(palette *theme.ThemePalette) error {
 
 	root["theme"] = themeName
 
-	// If UI font or theme settings exist
 	newData, err := json.MarshalIndent(root, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// Preserve trailing newline
+	// Preserve trailing newline and write directly in-place preserving inode
 	content := strings.TrimSpace(string(newData)) + "\n"
-	tmpPath := fmt.Sprintf("%s.tmp", settingsPath)
-	if err := os.WriteFile(tmpPath, []byte(content), 0644); err != nil {
-		return err
-	}
-
-	return os.Rename(tmpPath, settingsPath)
+	return WriteFileInPlace(settingsPath, []byte(content))
 }
