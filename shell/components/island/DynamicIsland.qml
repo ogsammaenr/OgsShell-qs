@@ -6,6 +6,8 @@ import "../widgets"
 import "../widgets/clock"
 import "../widgets/calendar"
 import "../widgets/controlcenter"
+import "../widgets/launcher"
+import "../widgets/media"
 
 Item {
   id: root
@@ -16,8 +18,9 @@ Item {
   // State Machine: "IDLE" | "HOVER" | "EXPANDED" | "TRANSIENT"
   property string stateMode: "IDLE"
   property string previousState: "IDLE"
-  property string expandedActiveTab: "CLOCK" // "CLOCK" | "CALENDAR" | "CONTROL_CENTER"
+  property string expandedActiveTab: "CLOCK" // "CLOCK" | "CALENDAR" | "CONTROL_CENTER" | "LAUNCHER" | "MEDIA"
   property string clockAppActiveTab: "WORLD" // "WORLD" | "POMODORO" | "STOPWATCH" | "ALARMS"
+  readonly property bool isIslandHovered: islandHoverHandler.hovered
 
   // Transient notification metadata
   property string transientSummary: "Notification"
@@ -45,6 +48,8 @@ Item {
     }
   }
 
+  property bool isScreenFocused: true
+
   // IPC Signal Listeners for Real-Time Island Morphing
   Connections {
     target: root.ipc || null
@@ -61,6 +66,28 @@ Item {
       if (payload && payload.should_popup) {
         let n = payload.notification || {};
         root.triggerNotification(n.summary || "Notification", n.body || "", n.app_name || "System", 3500);
+      }
+    }
+
+    function onLauncherToggled() {
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "LAUNCHER") {
+        root.collapse();
+      } else if (root.isScreenFocused) {
+        root.expandedActiveTab = "LAUNCHER";
+        root.stateMode = "EXPANDED";
+      }
+    }
+
+    function onLauncherOpened() {
+      if (root.isScreenFocused) {
+        root.expandedActiveTab = "LAUNCHER";
+        root.stateMode = "EXPANDED";
+      }
+    }
+
+    function onLauncherClosed() {
+      if (root.expandedActiveTab === "LAUNCHER") {
+        root.collapse();
       }
     }
   }
@@ -88,6 +115,13 @@ Item {
       controlCenterLoader.item.resetToMain()
     }
     stateMode = "IDLE"
+  }
+
+  // Reset inactivity countdown when user interacts with expanded widgets
+  function resetInactivityTimer() {
+    if (stateMode === "EXPANDED") {
+      expandedUnhoverTimer.restart()
+    }
   }
 
   // Trigger transient notification display
@@ -118,6 +152,12 @@ Item {
         if (expandedActiveTab === "CONTROL_CENTER") {
           return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandWidth) ? controlCenterLoader.item.preferredIslandWidth : 440
         }
+        if (expandedActiveTab === "LAUNCHER") {
+          return 520
+        }
+        if (expandedActiveTab === "MEDIA") {
+          return 390
+        }
         return geo.expanded_width
       default:          return geo.idle_width
     }
@@ -131,6 +171,12 @@ Item {
       case "EXPANDED":
         if (expandedActiveTab === "CONTROL_CENTER") {
           return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandHeight) ? controlCenterLoader.item.preferredIslandHeight : 310
+        }
+        if (expandedActiveTab === "LAUNCHER") {
+          return 440
+        }
+        if (expandedActiveTab === "MEDIA") {
+          return 170
         }
         return geo.expanded_height
       default:          return geo.idle_height
@@ -371,6 +417,10 @@ Item {
         opacity: root.stateMode === "HOVER" ? 1.0 : 0.0
         scale: root.stateMode === "HOVER" ? 1.0 : 0.82
         visible: opacity > 0.0
+        onMediaRightClicked: {
+          root.expandedActiveTab = "MEDIA"
+          root.stateMode = "EXPANDED"
+        }
 
         Behavior on opacity {
           NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
@@ -541,6 +591,32 @@ Item {
         visible: active
         sourceComponent: ControlCenterView {
           ipc: root.ipc
+        }
+      }
+
+      // Focused App 4: App Launcher Suite (Lazy Loaded)
+      Loader {
+        id: launcherLoader
+        anchors.fill: parent
+        active: root.stateMode === "EXPANDED" && root.expandedActiveTab === "LAUNCHER"
+        visible: active
+        sourceComponent: AppLauncherWidget {
+          ipc: root.ipc
+          onLaunchRequested: root.collapse()
+          onCloseRequested: root.collapse()
+          onUserActivity: root.resetInactivityTimer()
+        }
+      }
+
+      // Focused App 5: Media Player App (Lazy Loaded)
+      Loader {
+        id: mediaPlayerLoader
+        anchors.fill: parent
+        active: root.stateMode === "EXPANDED" && root.expandedActiveTab === "MEDIA"
+        visible: active
+        sourceComponent: MediaPlayerView {
+          onCloseRequested: root.collapse()
+          onUserActivity: root.resetInactivityTimer()
         }
       }
     }

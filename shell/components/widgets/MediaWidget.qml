@@ -7,6 +7,8 @@ import "../.."
 Item {
   id: root
 
+  signal mediaRightClicked()
+
   // Query active player from Mpris service
   readonly property var activePlayer: {
     if (!Mpris || !Mpris.players || !Mpris.players.values || Mpris.players.values.length === 0) return null
@@ -46,10 +48,18 @@ Item {
     }
 
     TapHandler {
+      acceptedButtons: Qt.LeftButton
       onTapped: {
         if (root.activePlayer) {
           root.activePlayer.togglePlaying()
         }
+      }
+    }
+
+    TapHandler {
+      acceptedButtons: Qt.RightButton
+      onTapped: {
+        root.mediaRightClicked()
       }
     }
 

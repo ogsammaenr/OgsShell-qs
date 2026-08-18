@@ -8,6 +8,8 @@ tags:
   - animations
   - transient/notifications
   - hover-state
+  - focus-mode
+  - autohide
 created: 2026-08-09
 updated: 2026-08-16
 status: active
@@ -24,12 +26,13 @@ related_notes:
   - "[[Plan-Hover-Expanded-Status-Bar]]"
   - "[[Plan-Hover-Right-Click-Control-Center]]"
   - "[[Plan-Dynamic-Island-System-Metrics-Pinning]]"
+  - "[[Plan-Focus-Mode-And-Smart-Autohide]]"
 ---
 
 # Dynamic Island Core QML Component
 
 > [!NOTE]
-> `shell/components/island/DynamicIsland.qml` contains the core UI container, reactive sizing calculations, spring animations, state machine (`IDLE`, `HOVER`, `EXPANDED`, `TRANSIENT`), D-Bus notification receiver, and gesture handling.
+> `shell/components/island/DynamicIsland.qml` contains the core UI container, reactive sizing calculations, spring animations, state machine (`IDLE`, `HOVER`, `EXPANDED`, `TRANSIENT`), D-Bus notification receiver, gesture handling, and smart Focus Mode (autohide) integration.
 
 ---
 
@@ -51,7 +54,22 @@ graph TD
 
 ---
 
-## 2. Geometry & Gesture Interactions
+## 2. Focus Modu & Akıllı Autohide (Smart Reveal Architecture)
+
+1. **Sıfır Üst Kenar Boşluğu (Zero Top Exclusion Zone):** Focus Modu aktifken `reservedSpacerWindow`'ın `exclusionMode` özelliği `ExclusionMode.Ignore` yapılarak Hyprland pencerelerinin ekranın en üstüne (`y: 0`) kadar tam ekran büyümesi sağlanır.
+2. **Akıllı Monitör Bazlı Tiling Tespiti (Per-Monitor Smart Tiling Detection):**
+   - Her monitör (`screenScope`) için bağımsız `Hyprland.monitorFor(screen)` üzerinden aktif çalışma alanı çözümlenir.
+   - İlgili monitörün aktif çalışma alanında **tiling (floating olmayan)** bir pencere varsa $\to$ Ada yalnızca o monitörde ekranın dışına (`y: -height - 12`) saklanır.
+   - İlgili monitörde **tiling pencere yoksa** (boş masaüstü veya serbest pencereler) $\to$ Ada o monitörde masaüstünde estetik bir şekilde görünür kalır.
+   - Detaylı plan: `[[Plan-Per-Monitor-Focus-Mode-Autohide]]`.
+3. **Ekran Üst Kenar Reveal Hotspot:**
+   - Fare ekranın en üst kenarına yaklaştığında (`topHotspotMouseArea`) ada `SpringAnimation` ile aşağı iner.
+   - Fare ayrıldığında 350ms debounce ile tekrar yukarı saklanır.
+   - `EXPANDED` veya `TRANSIENT` durumlarında ada kullanıcı işlemi bitene kadar açık kalır.
+
+---
+
+## 3. Geometry & Gesture Interactions
 
 * **IDLE State:** `180-190px` $\times$ `34-36px`. Displays single-line `[[Clock-Widget]]`.
 * **HOVER State:** `420-430px` $\times$ `48-50px`. Expands into a 3-column status bar with:
@@ -65,7 +83,7 @@ graph TD
 
 ---
 
-## 3. Related Links
+## 4. Related Links
 
 * Shell Root: `[[Shell-Root-PanelWindow]]`
 * Clock Widget: `[[Clock-Widget]]`
@@ -73,4 +91,4 @@ graph TD
 * Connectivity Status Widget: `[[Connectivity-Status-Widget]]`
 * Control Center: `[[Control-Center-Widget]]`
 * Design Tokens: `[[Style-Design-Tokens]]`
-* Implementation Plans: `[[Plan-Hover-Expanded-Status-Bar]]`, `[[Plan-Hover-Right-Click-Control-Center]]`
+* Implementation Plans: `[[Plan-Hover-Expanded-Status-Bar]]`, `[[Plan-Hover-Right-Click-Control-Center]]`, `[[Plan-Focus-Mode-And-Smart-Autohide]]`, `[[Plan-Per-Monitor-Focus-Mode-Autohide]]`
