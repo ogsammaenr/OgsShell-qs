@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="termBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e2326" />
+      <stop offset="100%" stop-color="#0f1112" />
+    </linearGradient>
+  </defs>
+  <!-- Background Squircle Container -->
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#termBg)" stroke="#a7c080" stroke-opacity="0.3" stroke-width="1.5" />
+  
+  <!-- Terminal Prompt Chevron >_ -->
+  <path d="M16 20 L28 32 L16 44" fill="none" stroke="#a7c080" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  <line x1="32" y1="44" x2="48" y2="44" stroke="#83c092" stroke-width="4" stroke-linecap="round" />
+</svg>

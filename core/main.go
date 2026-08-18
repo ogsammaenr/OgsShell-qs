@@ -12,6 +12,8 @@ import (
 	"ogsShell/core/services/calendar"
 	"ogsShell/core/services/clipboard"
 	"ogsShell/core/services/keyboard"
+	"ogsShell/core/services/launcher"
+	"ogsShell/core/services/launcher/entry"
 	"ogsShell/core/services/notifications"
 	"ogsShell/core/services/theme"
 	"ogsShell/core/services/theme/adapters"
@@ -240,6 +242,7 @@ func main() {
 			adapters.NewBtopAdapter(),
 			adapters.NewGtkAdapter(),
 			adapters.NewTmuxAdapter(),
+			adapters.NewIntelliJAdapter(),
 			wallpaperAdapter,
 		)
 		themeMgr.SetUpdateCallback(func(state *theme.ThemeState) {
@@ -251,6 +254,23 @@ func main() {
 		})
 		themeMgr.Start(ctx)
 		log.Info("Tema yöneticisi ve adaptörleri başarıyla başlatıldı")
+	}
+
+	// Uygulama Arama ve Başlatma (Launcher) servisini başlat
+	launcherMgr, err := launcher.NewDefaultLauncherManager("", nil)
+	if err != nil {
+		log.Error("Launcher servisi başlatılamadı", "err", err)
+	} else {
+		defer launcherMgr.Close()
+		launcherMgr.SetUpdateCallback(func(apps []entry.AppEntry) {
+			payloadBytes, _ := json.Marshal(apps)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "app_list_data",
+				Payload: payloadBytes,
+			})
+		})
+		launcherMgr.Start(ctx)
+		log.Info("Launcher servisi başarıyla başlatıldı")
 	}
 
 	// Socket üzerinden gelecek RPC komutlarını işleyecek Handler
@@ -1024,6 +1044,99 @@ func main() {
 			return server.Broadcast(ipc.Event{
 				Type:    "theme_wallpapers_data",
 				Payload: payloadBytes,
+			})
+
+		case "search_apps":
+			if launcherMgr == nil {
+				return fmt.Errorf("launcher servisi devrede değil")
+			}
+			var p entry.SearchQueryPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			results := launcherMgr.Search(p.Query, p.Limit)
+			respPayload := entry.AppSearchResultPayload{
+				Query:   p.Query,
+				Results: results,
+				Total:   len(results),
+			}
+			payloadBytes, _ := json.Marshal(respPayload)
+			return server.Broadcast(ipc.Event{
+				Type:    "app_search_results",
+				Payload: payloadBytes,
+			})
+
+		case "list_apps":
+			if launcherMgr == nil {
+				return fmt.Errorf("launcher servisi devrede değil")
+			}
+			var p entry.ListAppsPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			apps := launcherMgr.List(p.Limit)
+			payloadBytes, _ := json.Marshal(apps)
+			return server.Broadcast(ipc.Event{
+				Type:    "app_list_data",
+				Payload: payloadBytes,
+			})
+
+		case "launch_app":
+			if launcherMgr == nil {
+				return fmt.Errorf("launcher servisi devrede değil")
+			}
+			var p entry.LaunchAppPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("launch_app args çözülemedi: %w", err)
+			}
+			err := launcherMgr.Launch(p.ID, p.Exec)
+			launchResult := entry.AppLaunchedPayload{
+				ID:      p.ID,
+				Success: err == nil,
+			}
+			if err != nil {
+				launchResult.Error = err.Error()
+			} else if app, ok := launcherMgr.GetAppByID(p.ID); ok {
+				launchResult.Name = app.Name
+			}
+			payloadBytes, _ := json.Marshal(launchResult)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "app_launched",
+				Payload: payloadBytes,
+			})
+			return err
+
+		case "reindex_apps":
+			if launcherMgr == nil {
+				return fmt.Errorf("launcher servisi devrede değil")
+			}
+			launcherMgr.Reindex()
+			apps := launcherMgr.List(0)
+			payloadBytes, _ := json.Marshal(apps)
+			return server.Broadcast(ipc.Event{
+				Type:    "app_list_data",
+				Payload: payloadBytes,
+			})
+
+		case "toggle_launcher":
+			log.Info("Uygulama başlatıcı tetiklendi (toggle_launcher)")
+			return server.Broadcast(ipc.Event{
+				Type:    "toggle_launcher",
+				Payload: []byte("{}"),
+			})
+
+		case "open_launcher":
+			log.Info("Uygulama başlatıcı açılıyor (open_launcher)")
+			return server.Broadcast(ipc.Event{
+				Type:    "open_launcher",
+				Payload: []byte("{}"),
+			})
+
+		case "close_launcher":
+			log.Info("Uygulama başlatıcı kapatılıyor (close_launcher)")
+			return server.Broadcast(ipc.Event{
+				Type:    "close_launcher",
+				Payload: []byte("{}"),
 			})
 		}
 
