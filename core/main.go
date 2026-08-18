@@ -1138,6 +1138,52 @@ func main() {
 				Type:    "close_launcher",
 				Payload: []byte("{}"),
 			})
+
+		case "open_app":
+			var p struct {
+				App     string `json:"app"`
+				Subview string `json:"subview,omitempty"`
+			}
+			_ = json.Unmarshal(action.Args, &p)
+			log.Info("Uygulama açma isteği alındı (open_app)", "app", p.App)
+			payloadBytes, _ := json.Marshal(p)
+			return server.Broadcast(ipc.Event{
+				Type:    "open_app",
+				Payload: payloadBytes,
+			})
+
+		case "toggle_app":
+			var p struct {
+				App     string `json:"app"`
+				Subview string `json:"subview,omitempty"`
+			}
+			_ = json.Unmarshal(action.Args, &p)
+			log.Info("Uygulama tetikleme isteği alındı (toggle_app)", "app", p.App)
+			payloadBytes, _ := json.Marshal(p)
+			return server.Broadcast(ipc.Event{
+				Type:    "toggle_app",
+				Payload: payloadBytes,
+			})
+
+		case "toggle_control_center", "open_control_center", "close_control_center",
+			"toggle_themes", "open_themes",
+			"toggle_notifications", "open_notifications",
+			"toggle_power_menu", "open_power_menu",
+			"toggle_media_player", "open_media_player",
+			"toggle_calendar", "open_calendar",
+			"toggle_clipboard", "open_clipboard",
+			"toggle_clock", "open_clock",
+			"toggle_wifi_view", "open_wifi",
+			"toggle_bluetooth_view", "open_bluetooth":
+			log.Info("Uygulama kısayol aksiyonu alındı", "action", action.Name)
+			payloadBytes := action.Args
+			if len(payloadBytes) == 0 {
+				payloadBytes = []byte("{}")
+			}
+			return server.Broadcast(ipc.Event{
+				Type:    action.Name,
+				Payload: payloadBytes,
+			})
 		}
 
 		return nil

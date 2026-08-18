@@ -101,6 +101,18 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Launcher** | `toggle_launcher` | `{}` | `toggle_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar/kapatır |
 | **Launcher** | `open_launcher` | `{}` | `open_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar |
 | **Launcher** | `close_launcher` | `{}` | `close_launcher` | Açık olan App Launcher görünümünü kapatır |
+| **App Routing** | `open_app` | `{"app": "themes", "subview": "..."}` | `open_app` | Belirtilen uygulamayı Dynamic Island üzerinde odaklar ve açar |
+| **App Routing** | `toggle_app` | `{"app": "...", "subview": "..."}` | `toggle_app` | Belirtilen uygulamayı Dynamic Island üzerinde açar veya kapatır |
+| **Kısayollar** | `toggle_control_center` / `open_control_center` | `{}` | `toggle_control_center` | Kontrol Merkezi görünümünü açar/kapatır |
+| **Kısayollar** | `toggle_themes` / `open_themes` | `{}` | `toggle_themes` | Tema galerisi ve ayarları görünümünü açar/kapatır |
+| **Kısayollar** | `toggle_notifications` / `open_notifications` | `{}` | `toggle_notifications` | Bildirim merkezi görünümünü açar/kapatır |
+| **Kısayollar** | `toggle_power_menu` / `open_power_menu` | `{}` | `toggle_power_menu` | Dairesel güç ve oturum menüsünü açar/kapatır |
+| **Kısayollar** | `toggle_media_player` / `open_media_player` | `{}` | `toggle_media_player` | Medya oynatıcısı görünümünü açar/kapatır |
+| **Kısayollar** | `toggle_calendar` / `open_calendar` | `{}` | `toggle_calendar` | Takvim ve etkinlikler görünümünü açar/kapatır |
+| **Kısayollar** | `toggle_clipboard` / `open_clipboard` | `{}` | `toggle_clipboard` | Pano geçmişi yöneticisini açar/kapatır |
+| **Kısayollar** | `toggle_clock` / `open_clock` | `{}` | `toggle_clock` | Saat, Pomodoro ve Alarm uygulamasını açar/kapatır |
+| **Kısayollar** | `toggle_wifi_view` / `open_wifi` | `{}` | `toggle_wifi_view` | Wi-Fi ayarları panelini açar/kapatır |
+| **Kısayollar** | `toggle_bluetooth_view` / `open_bluetooth` | `{}` | `toggle_bluetooth_view` | Bluetooth ayarları panelini açar/kapatır |
 
 ---
 

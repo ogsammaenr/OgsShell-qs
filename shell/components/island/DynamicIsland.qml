@@ -70,25 +70,161 @@ Item {
     }
 
     function onLauncherToggled() {
-      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "LAUNCHER") {
-        root.collapse();
-      } else if (root.isScreenFocused) {
-        root.expandedActiveTab = "LAUNCHER";
-        root.stateMode = "EXPANDED";
-      }
+      root.toggleApp("LAUNCHER", "");
     }
 
     function onLauncherOpened() {
-      if (root.isScreenFocused) {
-        root.expandedActiveTab = "LAUNCHER";
-        root.stateMode = "EXPANDED";
-      }
+      root.openApp("LAUNCHER", "");
     }
 
     function onLauncherClosed() {
       if (root.expandedActiveTab === "LAUNCHER") {
         root.collapse();
       }
+    }
+
+    function onAppToggleRequested(payload) {
+      if (payload && payload.app) {
+        root.toggleApp(payload.app, payload.subview || "");
+      }
+    }
+
+    function onAppOpenRequested(payload) {
+      if (payload && payload.app) {
+        root.openApp(payload.app, payload.subview || "");
+      }
+    }
+
+    function onAppCloseRequested(payload) {
+      root.collapse();
+    }
+  }
+
+  // App routing and toggle methods
+  function toggleApp(appName, subview) {
+    if (!root.isScreenFocused) return;
+    let target = (appName || "").toUpperCase();
+
+    if (target === "POWER" || target === "POWER_MENU" || target === "SESSION") {
+      PowerService.toggle();
+      return;
+    }
+
+    if (target === "LAUNCHER") {
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "LAUNCHER") {
+        root.collapse();
+      } else {
+        root.expandedActiveTab = "LAUNCHER";
+        root.stateMode = "EXPANDED";
+      }
+      return;
+    }
+
+    if (target === "MEDIA" || target === "MEDIA_PLAYER") {
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "MEDIA") {
+        root.collapse();
+      } else {
+        root.expandedActiveTab = "MEDIA";
+        root.stateMode = "EXPANDED";
+      }
+      return;
+    }
+
+    if (target === "CALENDAR") {
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "CALENDAR") {
+        root.collapse();
+      } else {
+        root.expandedActiveTab = "CALENDAR";
+        root.stateMode = "EXPANDED";
+      }
+      return;
+    }
+
+    if (target === "CLOCK" || target === "STOPWATCH" || target === "POMODORO" || target === "ALARMS" || target === "WORLD") {
+      let clockTab = (target === "CLOCK") ? (subview ? subview.toUpperCase() : "WORLD") : target;
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "CLOCK" && root.clockAppActiveTab === clockTab) {
+        root.collapse();
+      } else {
+        root.clockAppActiveTab = clockTab;
+        root.expandedActiveTab = "CLOCK";
+        root.stateMode = "EXPANDED";
+      }
+      return;
+    }
+
+    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD") {
+      let sub = "MAIN";
+      if (target === "THEMES" || target === "THEME") sub = "THEMES";
+      else if (target === "NOTIFICATIONS" || target === "NOTIFICATION") sub = "NOTIFICATIONS";
+      else if (target === "CLIPBOARD") sub = "CLIPBOARD";
+      else if (target === "WIFI") sub = "WIFI";
+      else if (target === "BLUETOOTH") sub = "BLUETOOTH";
+      else if (target === "KEYBOARD") sub = "KEYBOARD";
+      else if (subview && subview.length > 0) sub = subview.toUpperCase();
+
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab === "CONTROL_CENTER" && controlCenterLoader.item && controlCenterLoader.item.currentView === sub) {
+        root.collapse();
+      } else {
+        root.expandedActiveTab = "CONTROL_CENTER";
+        root.stateMode = "EXPANDED";
+        if (controlCenterLoader.item) {
+          controlCenterLoader.item.setView(sub);
+        }
+      }
+      return;
+    }
+  }
+
+  function openApp(appName, subview) {
+    if (!root.isScreenFocused) return;
+    let target = (appName || "").toUpperCase();
+
+    if (target === "POWER" || target === "POWER_MENU" || target === "SESSION") {
+      PowerService.open();
+      return;
+    }
+
+    if (target === "LAUNCHER") {
+      root.expandedActiveTab = "LAUNCHER";
+      root.stateMode = "EXPANDED";
+      return;
+    }
+
+    if (target === "MEDIA" || target === "MEDIA_PLAYER") {
+      root.expandedActiveTab = "MEDIA";
+      root.stateMode = "EXPANDED";
+      return;
+    }
+
+    if (target === "CALENDAR") {
+      root.expandedActiveTab = "CALENDAR";
+      root.stateMode = "EXPANDED";
+      return;
+    }
+
+    if (target === "CLOCK" || target === "STOPWATCH" || target === "POMODORO" || target === "ALARMS" || target === "WORLD") {
+      root.clockAppActiveTab = (target === "CLOCK") ? (subview ? subview.toUpperCase() : "WORLD") : target;
+      root.expandedActiveTab = "CLOCK";
+      root.stateMode = "EXPANDED";
+      return;
+    }
+
+    if (target === "CONTROL_CENTER" || target === "THEMES" || target === "THEME" || target === "NOTIFICATIONS" || target === "NOTIFICATION" || target === "CLIPBOARD" || target === "WIFI" || target === "BLUETOOTH" || target === "KEYBOARD") {
+      let sub = "MAIN";
+      if (target === "THEMES" || target === "THEME") sub = "THEMES";
+      else if (target === "NOTIFICATIONS" || target === "NOTIFICATION") sub = "NOTIFICATIONS";
+      else if (target === "CLIPBOARD") sub = "CLIPBOARD";
+      else if (target === "WIFI") sub = "WIFI";
+      else if (target === "BLUETOOTH") sub = "BLUETOOTH";
+      else if (target === "KEYBOARD") sub = "KEYBOARD";
+      else if (subview && subview.length > 0) sub = subview.toUpperCase();
+
+      root.expandedActiveTab = "CONTROL_CENTER";
+      root.stateMode = "EXPANDED";
+      if (controlCenterLoader.item) {
+        controlCenterLoader.item.setView(sub);
+      }
+      return;
     }
   }
 

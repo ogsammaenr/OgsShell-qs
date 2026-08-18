@@ -71,6 +71,9 @@ Item {
   signal launcherToggled()
   signal launcherOpened()
   signal launcherClosed()
+  signal appToggleRequested(var payload)
+  signal appOpenRequested(var payload)
+  signal appCloseRequested(var payload)
 
   // Send JSON RPC Action to daemon
   function sendAction(name, args) {
@@ -507,6 +510,52 @@ Item {
             root.launcherOpened();
           } else if (msg.type === "close_launcher") {
             root.launcherClosed();
+          } else if (msg.type === "open_app") {
+            root.appOpenRequested(msg.payload || {});
+          } else if (msg.type === "toggle_app") {
+            root.appToggleRequested(msg.payload || {});
+          } else if (msg.type === "toggle_control_center") {
+            root.appToggleRequested({ "app": "control_center" });
+          } else if (msg.type === "open_control_center") {
+            root.appOpenRequested({ "app": "control_center" });
+          } else if (msg.type === "close_control_center") {
+            root.appCloseRequested({ "app": "control_center" });
+          } else if (msg.type === "toggle_themes") {
+            root.appToggleRequested({ "app": "themes" });
+          } else if (msg.type === "open_themes") {
+            root.appOpenRequested({ "app": "themes" });
+          } else if (msg.type === "toggle_notifications") {
+            root.appToggleRequested({ "app": "notifications" });
+          } else if (msg.type === "open_notifications") {
+            root.appOpenRequested({ "app": "notifications" });
+          } else if (msg.type === "toggle_power_menu") {
+            root.appToggleRequested({ "app": "power" });
+          } else if (msg.type === "open_power_menu") {
+            root.appOpenRequested({ "app": "power" });
+          } else if (msg.type === "toggle_media_player") {
+            root.appToggleRequested({ "app": "media" });
+          } else if (msg.type === "open_media_player") {
+            root.appOpenRequested({ "app": "media" });
+          } else if (msg.type === "toggle_calendar") {
+            root.appToggleRequested({ "app": "calendar" });
+          } else if (msg.type === "open_calendar") {
+            root.appOpenRequested({ "app": "calendar" });
+          } else if (msg.type === "toggle_clipboard") {
+            root.appToggleRequested({ "app": "clipboard" });
+          } else if (msg.type === "open_clipboard") {
+            root.appOpenRequested({ "app": "clipboard" });
+          } else if (msg.type === "toggle_clock") {
+            root.appToggleRequested({ "app": "clock" });
+          } else if (msg.type === "open_clock") {
+            root.appOpenRequested({ "app": "clock" });
+          } else if (msg.type === "toggle_wifi_view") {
+            root.appToggleRequested({ "app": "wifi" });
+          } else if (msg.type === "open_wifi") {
+            root.appOpenRequested({ "app": "wifi" });
+          } else if (msg.type === "toggle_bluetooth_view") {
+            root.appToggleRequested({ "app": "bluetooth" });
+          } else if (msg.type === "open_bluetooth") {
+            root.appOpenRequested({ "app": "bluetooth" });
           }
         } catch (e) {
           console.warn("[DaemonIPC] JSON parse hatası: ", e, "Gelen ham veri:", data);

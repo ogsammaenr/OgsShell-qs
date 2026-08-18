@@ -11,6 +11,7 @@ import (
 )
 
 func TestHolidayEngine_NationalHolidays(t *testing.T) {
+	t.Setenv("XDG_CACHE_HOME", t.TempDir())
 	engine := NewHolidayEngine()
 	holidays2026 := engine.GetHolidaysForYear(2026)
 

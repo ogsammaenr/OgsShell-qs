@@ -13,9 +13,11 @@ Item {
     currentView = "MAIN"
   }
 
-  onVisibleChanged: {
-    if (visible) {
-      resetToMain()
+  function setView(v) {
+    if (v && v.length > 0) {
+      currentView = v.toUpperCase()
+    } else {
+      currentView = "MAIN"
     }
   }
 
