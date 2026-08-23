@@ -7,7 +7,7 @@ tags:
   - quickshell/qml
   - mpris/player
 created: 2026-08-12
-updated: 2026-08-18
+updated: 2026-08-23
 status: active
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -16,6 +16,7 @@ related_notes:
   - "[[Connectivity-Status-Widget]]"
   - "[[Style-Design-Tokens]]"
   - "[[Apple-Dynamic-Island-HIG]]"
+  - "[[Plan-Dynamic-Island-Idle-And-Hover-Typography-Enlargement]]"
 ---
 
 # Media Widget Component (MPRIS)
@@ -28,7 +29,11 @@ related_notes:
 ## 1. Features & Architecture
 
 * **Active Player Resolution:** Dynamically scans `Mpris.players.values`, prioritizing active playing sessions (`MprisPlaybackState.Playing`).
-* **Animated Sound Equalizer:** Utilizes 3 independent `SequentialAnimation` bars with staggered sine easing to visually indicate active playback.
+* **Animated Sound Equalizer:** Utilizes 3 independent `SequentialAnimation` bars (heights 11-13px, width 2.5px) inside a `26x26px` circular badge with staggered sine easing to visually indicate active playback.
+* **Refined Typography Scale:**
+  - Track Title: **`12px DemiBold`** with auto-elide.
+  - Artist / Identity: **`11px Normal`** in muted secondary text color.
+  - Placeholder & Status Icons: **`11px / 14px`** glyphs.
 * **Idle & Fallback States:** Renders a clean placeholder icon (`󰎆`) and localized text (`"Medya Yok"` / `"Çalınmıyor"`) when no media is playing.
 * **Dual Click Gestures:**
   - **Sol Tık (Left Click):** Medyayı duraklatır veya oynatır (`player.togglePlaying()`).
@@ -55,4 +60,5 @@ related_notes:
 * Dynamic Island: `[[Dynamic-Island-Component]]`
 * Connectivity Status Widget: `[[Connectivity-Status-Widget]]`
 * Design Tokens: `[[Style-Design-Tokens]]`
+* Typography Plan: `[[Plan-Dynamic-Island-Idle-And-Hover-Typography-Enlargement]]`
 

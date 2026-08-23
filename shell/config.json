@@ -1,6 +1,19 @@
 {
   "form_factor": "notch",
   "theme": "catppuccin",
+  "typography": {
+    "clock_idle_size": 18,
+    "clock_hover_size": 22,
+    "date_hover_size": 13,
+    "media_title_size": 12,
+    "media_artist_size": 11,
+    "connectivity_text_size": 11,
+    "connectivity_icon_size": 14,
+    "notification_title_size": 13,
+    "notification_body_size": 11,
+    "pinned_metrics_size": 11,
+    "pinned_metrics_icon_size": 13
+  },
   "island": {
     "top_margin": 8,
     "idle_width": 180,
@@ -17,7 +30,7 @@
   "notch": {
     "top_margin": 0,
     "idle_width": 190,
-    "idle_height": 34,
+    "idle_height": 32,
     "hover_width": 490,
     "hover_height": 54,
     "transient_width": 350,

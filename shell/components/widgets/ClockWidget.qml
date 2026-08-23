@@ -14,7 +14,7 @@ Item {
   readonly property bool isLiveActivity: ClockManager.activeLiveActivity !== "none"
 
   implicitWidth: Math.max(timeContainer.width, dateText.implicitWidth)
-  implicitHeight: 32
+  implicitHeight: 34
 
   // ==========================================
   // Primary Time Container (Glides vertically on hover)
@@ -23,7 +23,7 @@ Item {
     id: timeContainer
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
-    anchors.verticalCenterOffset: root.hoverMode ? -8 : 0
+    anchors.verticalCenterOffset: root.hoverMode ? -10 : 0
 
     width: rowContent.implicitWidth
     height: rowContent.implicitHeight
@@ -55,8 +55,8 @@ Item {
       // Animated Live Pulse Indicator Dot (Visible ONLY when a Live Activity is active)
       Item {
         id: dotContainer
-        width: (root.hoverMode || !root.isLiveActivity) ? 0 : 6
-        height: 6
+        width: (root.hoverMode || !root.isLiveActivity) ? 0 : 7
+        height: 7
         anchors.verticalCenter: parent.verticalCenter
         clip: true
         visible: root.isLiveActivity
@@ -70,9 +70,9 @@ Item {
 
         // Live Pulse Dot
         Rectangle {
-          width: 6
-          height: 6
-          radius: 3
+          width: 7
+          height: 7
+          radius: 3.5
           color: ClockManager.liveActivityColor
           anchors.centerIn: parent
           opacity: (root.hoverMode || !root.isLiveActivity) ? 0.0 : 1.0
@@ -97,7 +97,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.isLiveActivity ? ClockManager.liveActivityTitle : ClockManager.currentDisplayTime
         color: root.isLiveActivity ? ClockManager.liveActivityColor : Style.textPrimary
-        font.pixelSize: root.hoverMode ? 17 : 13
+        font.pixelSize: root.hoverMode ? (Config.typography.clock_hover_size || 20) : (Config.typography.clock_idle_size || 16)
         font.weight: root.hoverMode ? Font.Bold : Font.DemiBold
         font.letterSpacing: root.hoverMode ? 0.5 : 0.3
 
@@ -119,10 +119,10 @@ Item {
     id: dateText
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: timeContainer.bottom
-    anchors.topMargin: root.hoverMode ? 2 : 4
+    anchors.topMargin: root.hoverMode ? 3 : 5
     text: root.isLiveActivity ? ClockManager.liveActivitySubtitle : ClockManager.currentDisplayDate
     color: dateHover.hovered ? Style.textPrimary : Style.textMuted
-    font.pixelSize: 11
+    font.pixelSize: Config.typography.date_hover_size || 13
     font.weight: Font.Medium
     font.letterSpacing: 0.3
     opacity: root.hoverMode ? 1.0 : 0.0

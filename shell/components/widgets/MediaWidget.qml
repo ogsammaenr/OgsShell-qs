@@ -34,7 +34,7 @@ Item {
   Rectangle {
     id: container
     anchors.fill: parent
-    radius: 10
+    radius: 12
     color: mediaHoverHandler.hovered ? Style.surfaceVariant : "transparent"
     border.color: mediaHoverHandler.hovered ? Style.border : "transparent"
     border.width: 1
@@ -66,18 +66,18 @@ Item {
     RowLayout {
       id: contentRow
       anchors.fill: parent
-      anchors.leftMargin: 6
-      anchors.rightMargin: 8
-      spacing: 7
+      anchors.leftMargin: 8
+      anchors.rightMargin: 10
+      spacing: 8
 
       // ==========================================
       // Animated Equalizer / Music Icon Badge
       // ==========================================
       Rectangle {
-        Layout.preferredWidth: 24
-        Layout.preferredHeight: 24
+        Layout.preferredWidth: 26
+        Layout.preferredHeight: 26
         Layout.alignment: Qt.AlignVCenter
-        radius: 12
+        radius: 13
         color: root.hasMedia ? Style.surface : "transparent"
 
         // Animated 3-bar equalizer when playing (only animates when visible)
@@ -87,8 +87,8 @@ Item {
           visible: root.isPlaying
 
           Rectangle {
-            width: 2
-            height: 10
+            width: 2.5
+            height: 11
             radius: 1
             color: Style.accent
             anchors.bottom: parent.bottom
@@ -96,14 +96,14 @@ Item {
             SequentialAnimation on height {
               loops: Animation.Infinite
               running: root.canAnimate
-              PropertyAnimation { from: 3; to: 10; duration: 420; easing.type: Easing.InOutSine }
-              PropertyAnimation { from: 10; to: 3; duration: 420; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 4; to: 12; duration: 420; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 12; to: 4; duration: 420; easing.type: Easing.InOutSine }
             }
           }
 
           Rectangle {
-            width: 2
-            height: 12
+            width: 2.5
+            height: 13
             radius: 1
             color: Style.accent
             anchors.bottom: parent.bottom
@@ -111,14 +111,14 @@ Item {
             SequentialAnimation on height {
               loops: Animation.Infinite
               running: root.canAnimate
-              PropertyAnimation { from: 12; to: 4; duration: 320; easing.type: Easing.InOutSine }
-              PropertyAnimation { from: 4; to: 12; duration: 320; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 13; to: 5; duration: 320; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 5; to: 13; duration: 320; easing.type: Easing.InOutSine }
             }
           }
 
           Rectangle {
-            width: 2
-            height: 7
+            width: 2.5
+            height: 8
             radius: 1
             color: Style.accent
             anchors.bottom: parent.bottom
@@ -126,8 +126,8 @@ Item {
             SequentialAnimation on height {
               loops: Animation.Infinite
               running: root.canAnimate
-              PropertyAnimation { from: 5; to: 11; duration: 500; easing.type: Easing.InOutSine }
-              PropertyAnimation { from: 11; to: 5; duration: 500; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 6; to: 12; duration: 500; easing.type: Easing.InOutSine }
+              PropertyAnimation { from: 12; to: 6; duration: 500; easing.type: Easing.InOutSine }
             }
           }
         }
@@ -138,7 +138,7 @@ Item {
           visible: !root.isPlaying
           text: root.hasMedia ? "⏸" : "󰎆"
           color: root.hasMedia ? Style.textPrimary : Style.textMuted
-          font.pixelSize: root.hasMedia ? 9 : 12
+          font.pixelSize: root.hasMedia ? 11 : 14
         }
       }
 
@@ -154,7 +154,7 @@ Item {
           width: parent.width
           text: root.title
           color: root.hasMedia ? Style.textPrimary : Style.textMuted
-          font.pixelSize: 10
+          font.pixelSize: Config.typography.media_title_size || 12
           font.weight: Font.DemiBold
           elide: Text.ElideRight
         }
@@ -163,7 +163,7 @@ Item {
           width: parent.width
           text: root.artist
           color: Style.textMuted
-          font.pixelSize: 9
+          font.pixelSize: Config.typography.media_artist_size || 11
           font.weight: Font.Normal
           elide: Text.ElideRight
         }

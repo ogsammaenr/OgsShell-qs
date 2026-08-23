@@ -550,8 +550,8 @@ Item {
         id: mediaWidget
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
-        width: Math.min(130, Math.floor(parent.width * 0.32))
-        height: 28
+        width: Math.min(150, Math.floor(parent.width * 0.32))
+        height: 30
         opacity: root.stateMode === "HOVER" ? 1.0 : 0.0
         scale: root.stateMode === "HOVER" ? 1.0 : 0.82
         visible: opacity > 0.0
@@ -591,7 +591,7 @@ Item {
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         width: implicitWidth
-        height: 28
+        height: 30
         opacity: root.stateMode === "HOVER" ? 1.0 : 0.0
         scale: root.stateMode === "HOVER" ? 1.0 : 0.82
         visible: opacity > 0.0
@@ -667,7 +667,7 @@ Item {
             width: parent.width
             text: root.transientSummary
             color: Style.textPrimary
-            font.pixelSize: 13
+            font.pixelSize: Config.typography.notification_title_size || 13
             font.weight: Font.DemiBold
             elide: Text.ElideRight
           }
@@ -676,7 +676,7 @@ Item {
             width: parent.width
             text: root.transientBody.length > 0 ? root.transientBody : root.transientAppName
             color: Style.textMuted
-            font.pixelSize: 11
+            font.pixelSize: Config.typography.notification_body_size || 11
             elide: Text.ElideRight
           }
         }
