@@ -22,6 +22,12 @@ else
   echo -e "\033[1;32m[ogsShell Frontend]\033[0m Backend IPC soketi aktif (${SOCK_PATH})."
 fi
 
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ogsShell"
+mkdir -p "${CONFIG_DIR}"
+if [ ! -f "${CONFIG_DIR}/config.json" ]; then
+  cp "${SHELL_DIR}/config.json" "${CONFIG_DIR}/config.json" 2>/dev/null || true
+fi
+
 echo -e "\033[1;36m[ogsShell Frontend]\033[0m Quickshell Dynamic Island başlatılıyor (QML Konsol Logları):"
 echo -e "\033[0;90mDurdurmak için Ctrl+C tuşlarına basabilirsiniz.\033[0m"
 echo "--------------------------------------------------------------------------------"

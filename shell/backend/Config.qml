@@ -13,17 +13,20 @@ QtObject {
   property bool showPinnedSystemMetrics: false
   property bool focusMode: false
 
+  // Re-evaluation generation trigger counter (forces dependent bindings to re-evaluate)
+  property int configRevision: 0
+
   // Island configuration preset
   property var island: ({
     "top_margin": 8,
     "idle_width": 180,
     "idle_height": 36,
-    "hover_width": 420,
-    "hover_height": 50,
+    "hover_width": 480,
+    "hover_height": 56,
     "transient_width": 340,
     "transient_height": 56,
-    "expanded_width": 420,
-    "expanded_height": 280,
+    "expanded_width": 440,
+    "expanded_height": 310,
     "radius_full": 18,
     "radius_expanded": 24
   })
@@ -33,14 +36,35 @@ QtObject {
     "top_margin": 0,
     "idle_width": 190,
     "idle_height": 34,
-    "hover_width": 430,
-    "hover_height": 48,
+    "hover_width": 490,
+    "hover_height": 54,
     "transient_width": 350,
     "transient_height": 58,
-    "expanded_width": 430,
-    "expanded_height": 280,
+    "expanded_width": 450,
+    "expanded_height": 310,
     "bottom_radius": 20,
     "bottom_radius_expanded": 26
+  })
+
+  // Notifications configuration preset
+  property var notifications: ({
+    "enabled": true,
+    "default_timeout_ms": 3500
+  })
+
+  // Typography configuration preset (reactive font sizes across Island & HUD)
+  property var typography: ({
+    "clock_idle_size": 16,
+    "clock_hover_size": 20,
+    "date_hover_size": 13,
+    "media_title_size": 12,
+    "media_artist_size": 11,
+    "connectivity_text_size": 11,
+    "connectivity_icon_size": 14,
+    "notification_title_size": 13,
+    "notification_body_size": 11,
+    "pinned_metrics_size": 11,
+    "pinned_metrics_icon_size": 13
   })
 
   // Animation configuration preset
@@ -51,28 +75,49 @@ QtObject {
     "overshoot_factor": 1.12
   })
 
-  // Computed helper accessors
+  // Computed helper accessors (reactive to formFactor and configRevision)
   readonly property bool isNotch: formFactor === "notch"
-  readonly property var activeGeometry: isNotch ? notch : island
+  readonly property var activeGeometry: {
+    let _rev = configRevision
+    return isNotch ? notch : island
+  }
 
-  // FileView to watch and parse config.json
+  // Paths
+  readonly property string userConfigPath: Quickshell.env("XDG_CONFIG_HOME") ? (Quickshell.env("XDG_CONFIG_HOME") + "/ogsShell/config.json") : (Quickshell.env("HOME") ? (Quickshell.env("HOME") + "/.config/ogsShell/config.json") : "")
+  readonly property string workspaceConfigPath: Qt.resolvedUrl("../config.json").toString().replace("file://", "")
+
+  property Process syncProc: Process {
+    id: syncProc
+  }
+
+  function syncToUserConfig(jsonContent) {
+    if (!userConfigPath || !jsonContent || jsonContent.trim().length === 0) return
+    let dir = userConfigPath.substring(0, userConfigPath.lastIndexOf("/"))
+    syncProc.command = ["bash", "-c", "mkdir -p '" + dir + "' && cat > '" + userConfigPath + "' << 'EOF'\n" + jsonContent + "\nEOF"]
+    syncProc.running = true
+  }
+
+  // FileView to watch user config (~/.config/ogsShell/config.json)
   property var configFile: FileView {
-    path: Quickshell.env("XDG_CONFIG_HOME") ? (Quickshell.env("XDG_CONFIG_HOME") + "/ogsShell/config.json") : ""
+    path: root.userConfigPath
     preload: true
     printErrors: false
     onTextChanged: {
-      root.loadConfigString(text())
+      if (text() && text().trim().length > 0) {
+        root.loadConfigString(text())
+      }
     }
   }
 
-  // Fallback workspace file reader
+  // FileView to watch workspace config (shell/config.json)
   property var workspaceConfigFile: FileView {
-    path: Qt.resolvedUrl("../config.json").toString().replace("file://", "")
+    path: root.workspaceConfigPath
     preload: true
     printErrors: false
     onTextChanged: {
-      if (!configFile.path || configFile.text().length === 0) {
+      if (text() && text().trim().length > 0) {
         root.loadConfigString(text())
+        root.syncToUserConfig(text())
       }
     }
   }
@@ -87,19 +132,23 @@ QtObject {
       if (cfg.focus_mode !== undefined) root.focusMode = cfg.focus_mode
       if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)
       if (cfg.notch) root.notch = Object.assign({}, root.notch, cfg.notch)
+      if (cfg.notifications) root.notifications = Object.assign({}, root.notifications, cfg.notifications)
+      if (cfg.typography) root.typography = Object.assign({}, root.typography, cfg.typography)
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
-      console.log("[Config] Loaded configuration. Mode:", root.formFactor, "Theme:", root.theme)
+      root.configRevision++
+      console.log("[Config] Loaded configuration. Mode:", root.formFactor, "Theme:", root.theme, "Notch Height:", root.notch.idle_height, "Clock Idle Size:", root.typography.clock_idle_size)
     } catch (e) {
       console.warn("[Config] Error parsing config.json:", e)
     }
   }
 
   Component.onCompleted: {
-    // Initial parse pass
-    if (configFile.text().length > 0) {
-      loadConfigString(configFile.text())
-    } else if (workspaceConfigFile.text().length > 0) {
+    // Initial parse pass (load workspace config then user config if present)
+    if (workspaceConfigFile && workspaceConfigFile.text().length > 0) {
       loadConfigString(workspaceConfigFile.text())
+    }
+    if (configFile && configFile.text().length > 0) {
+      loadConfigString(configFile.text())
     }
   }
 }

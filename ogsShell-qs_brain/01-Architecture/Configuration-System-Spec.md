@@ -7,7 +7,7 @@ tags:
   - quickshell/qml
   - theming/schema
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-23
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -15,21 +15,24 @@ related_notes:
   - "[[Configuration-Themes-Spec]]"
   - "[[Style-Design-Tokens]]"
   - "[[Dynamic-Island-Component]]"
+  - "[[Plan-Reactive-Config-Geometry-And-Synchronization]]"
 ---
 
 # Configuration System & JSON Schema Specification
 
 > [!NOTE]
-> `ogsShell-qs` configuration is centralized in `config.json`, allowing users to switch between **Dynamic Island** and **Dynamic Notch** modes, configure geometry, choose themes, and adjust animation parameters without modifying QML code.
+> `ogsShell-qs` configuration is centralized in `config.json`, allowing users and developers to switch between **Dynamic Island** and **Dynamic Notch** modes, configure geometry (idle/hover/transient/expanded height and width), choose themes, and adjust animation parameters without modifying QML code.
 
 ---
 
-## 1. Configuration File Locations
+## 1. Configuration File Locations & Dual Reactive Synchronization
 
-The configuration file is resolved in the following priority order:
-1. **User Custom Config:** `$XDG_CONFIG_HOME/ogsShell/config.json` (or `~/.config/ogsShell/config.json`)
-2. **Project Workspace Config:** `shared/app_configs/shell/config.json`
-3. **Shell Fallback Config:** `shell/config.json`
+The configuration system continuously watches both locations:
+1. **User Custom Config (Canonical):** `$XDG_CONFIG_HOME/ogsShell/config.json` (or `~/.config/ogsShell/config.json`)
+2. **Project Workspace Config:** `shell/config.json`
+
+* **Automatic Two-Way Sync:** Whenever `shell/config.json` or `~/.config/ogsShell/config.json` is modified, `Config.qml` immediately parses the updated payload, updates the reactive `configRevision` generation counter, and synchronizes the active config to `$XDG_CONFIG_HOME/ogsShell/config.json`.
+* **Hot Reloading:** Window spacers (`reservedSpacerWindow`), input masks (`activeInputEnvelope`), and Dynamic Notch vector Bézier paths instantly resize upon saving without requiring a manual shell restart.
 
 ---
 
@@ -52,6 +55,22 @@ The configuration file is resolved in the following priority order:
       "enum": ["catppuccin", "nord", "tokyonight", "everforest", "gruvbox", "monochrome"],
       "default": "catppuccin",
       "description": "Active color scheme palette from shared/themes/themes.json."
+    },
+    "typography": {
+      "type": "object",
+      "properties": {
+        "clock_idle_size": { "type": "integer", "default": 16 },
+        "clock_hover_size": { "type": "integer", "default": 20 },
+        "date_hover_size": { "type": "integer", "default": 13 },
+        "media_title_size": { "type": "integer", "default": 12 },
+        "media_artist_size": { "type": "integer", "default": 11 },
+        "connectivity_text_size": { "type": "integer", "default": 11 },
+        "connectivity_icon_size": { "type": "integer", "default": 14 },
+        "notification_title_size": { "type": "integer", "default": 13 },
+        "notification_body_size": { "type": "integer", "default": 11 },
+        "pinned_metrics_size": { "type": "integer", "default": 11 },
+        "pinned_metrics_icon_size": { "type": "integer", "default": 13 }
+      }
     },
     "island": {
       "type": "object",

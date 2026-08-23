@@ -23,14 +23,27 @@ killall dunst 2>/dev/null || true
 killall mako 2>/dev/null || true
 rm -f "${SOCK_PATH}"
 
-# 2. Ensure Go daemon binary is built
-if [ ! -f "${CORE_BIN}" ]; then
-  echo -e "\033[1;34m[ogsShell]\033[0m Go backend derleniyor: ${CORE_BIN}"
-  mkdir -p "${REPO_ROOT}/bin"
-  (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
+# Prepare canonical XDG config directory
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/ogsShell"
+mkdir -p "${CONFIG_DIR}"
+if [ ! -f "${CONFIG_DIR}/config.json" ]; then
+  cp "${SHELL_DIR}/config.json" "${CONFIG_DIR}/config.json" 2>/dev/null || true
 fi
 
-# 3. Start Go Backend Daemon in background
+# 2. Ensure awww wallpaper daemon is running
+if command -v awww-daemon >/dev/null 2>&1; then
+  if ! pgrep -x awww-daemon >/dev/null 2>&1; then
+    echo -e "\033[1;34m[ogsShell]\033[0m awww-daemon başlatılıyor..."
+    awww-daemon >/dev/null 2>&1 &
+    sleep 0.1
+  fi
+fi
+
+# 3. Ensure Go daemon binary is built and up-to-date
+mkdir -p "${REPO_ROOT}/bin"
+(cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
+
+# 4. Start Go Backend Daemon in background
 echo -e "\033[1;34m[ogsShell]\033[0m Go backend başlatılıyor (PID kaydedildi)..."
 "${CORE_BIN}" > "${LOG_FILE}" 2>&1 &
 CORE_PID=$!
@@ -51,7 +64,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# 4. Wait for Unix Domain Socket to become ready (max 3 seconds)
+# 5. Wait for Unix Domain Socket to become ready (max 3 seconds)
 echo -e "\033[1;34m[ogsShell]\033[0m IPC soketinin hazır olması bekleniyor (${SOCK_PATH})..."
 READY=0
 for i in {1..30}; do
@@ -68,6 +81,6 @@ else
   echo -e "\033[1;31m[ogsShell] UYARI:\033[0m IPC Soketi 3 saniye içinde açılamadı. Hatalar için '${LOG_FILE}' dosyasını kontrol edin."
 fi
 
-# 5. Launch Quickshell Frontend (runs in foreground)
+# 6. Launch Quickshell Frontend (runs in foreground)
 echo -e "\033[1;34m[ogsShell]\033[0m Quickshell Dynamic Island başlatılıyor..."
 quickshell -p "${SHELL_DIR}"
