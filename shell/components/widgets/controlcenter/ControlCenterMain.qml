@@ -605,9 +605,11 @@ Item {
 
       // Slider MouseArea placed on the track area
       MouseArea {
+        id: soundSliderMouse
         anchors.fill: parent
         anchors.leftMargin: 38 // Do not overlap speaker mute button
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        preventStealing: true
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
 
@@ -617,15 +619,18 @@ Item {
           root.setVolume(pct)
         }
 
-        onClicked: mouse => {
-          if (mouse.button === Qt.RightButton) {
-            root.openView("AUDIO_MIXER")
-          } else {
-            updateLevel(mouse)
-          }
+        onPressed: mouse => {
+          if (mouse.button === Qt.LeftButton) updateLevel(mouse)
         }
         onPositionChanged: mouse => {
           if (pressed && (mouse.buttons & Qt.LeftButton)) updateLevel(mouse)
+        }
+        onClicked: mouse => {
+          if (mouse.button === Qt.RightButton) {
+            root.openView("AUDIO_MIXER")
+          } else if (mouse.button === Qt.LeftButton) {
+            updateLevel(mouse)
+          }
         }
         onWheel: wheel => {
           let delta = wheel.angleDelta.y > 0 ? 5 : -5

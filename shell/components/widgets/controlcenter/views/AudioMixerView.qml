@@ -99,64 +99,87 @@ Item {
 
   Process { id: controlCmdProc }
 
+  property var pendingStreamVols: ({})
+  property var pendingSinkVols: ({})
+  property bool isDragging: false
+
+  Timer {
+    id: streamVolThrottleTimer
+    interval: 35
+    repeat: false
+    onTriggered: root.dispatchPendingStreamVolumes()
+  }
+
+  Timer {
+    id: sinkVolThrottleTimer
+    interval: 35
+    repeat: false
+    onTriggered: root.dispatchPendingSinkVolumes()
+  }
+
   function refreshAudio() {
+    if (root.isDragging) return
     root.isLoading = true
     fetchStreamsProc.running = true
     fetchSinksProc.running = true
   }
 
-  function setStreamVolume(streamId, targetVol) {
+  function queueStreamVolume(streamId, targetVol) {
     let vol = Math.max(0, Math.min(100, Math.round(targetVol)))
-    // Optimistic UI update
-    let updated = []
-    for (let i = 0; i < root.appStreams.length; i++) {
-      let s = root.appStreams[i]
-      if (s.id === streamId) s.volume = vol
-      updated.push(s)
+    root.pendingStreamVols[streamId] = vol
+    if (!streamVolThrottleTimer.running) {
+      streamVolThrottleTimer.restart()
     }
-    root.appStreams = updated
+  }
 
-    controlCmdProc.command = ["pactl", "set-sink-input-volume", "" + streamId, "" + vol + "%"]
-    controlCmdProc.running = true
+  function flushStreamVolume(streamId) {
+    streamVolThrottleTimer.stop()
+    root.dispatchPendingStreamVolumes()
+  }
+
+  function dispatchPendingStreamVolumes() {
+    let keys = Object.keys(root.pendingStreamVols)
+    if (keys.length === 0) return
+    for (let i = 0; i < keys.length; i++) {
+      let id = keys[i]
+      let vol = root.pendingStreamVols[id]
+      controlCmdProc.command = ["pactl", "set-sink-input-volume", "" + id, "" + vol + "%"]
+      controlCmdProc.running = true
+    }
+    root.pendingStreamVols = {}
   }
 
   function toggleStreamMute(streamId) {
-    // Optimistic UI update
-    let updated = []
-    for (let i = 0; i < root.appStreams.length; i++) {
-      let s = root.appStreams[i]
-      if (s.id === streamId) s.mute = !s.mute
-      updated.push(s)
-    }
-    root.appStreams = updated
-
     controlCmdProc.command = ["pactl", "set-sink-input-mute", "" + streamId, "toggle"]
     controlCmdProc.running = true
   }
 
-  function setSinkVolume(sinkId, targetVol) {
+  function queueSinkVolume(sinkId, targetVol) {
     let vol = Math.max(0, Math.min(100, Math.round(targetVol)))
-    let updated = []
-    for (let i = 0; i < root.outputSinks.length; i++) {
-      let s = root.outputSinks[i]
-      if (s.id === sinkId) s.volume = vol
-      updated.push(s)
+    root.pendingSinkVols[sinkId] = vol
+    if (!sinkVolThrottleTimer.running) {
+      sinkVolThrottleTimer.restart()
     }
-    root.outputSinks = updated
+  }
 
-    controlCmdProc.command = ["pactl", "set-sink-volume", "" + sinkId, "" + vol + "%"]
-    controlCmdProc.running = true
+  function flushSinkVolume(sinkId) {
+    sinkVolThrottleTimer.stop()
+    root.dispatchPendingSinkVolumes()
+  }
+
+  function dispatchPendingSinkVolumes() {
+    let keys = Object.keys(root.pendingSinkVols)
+    if (keys.length === 0) return
+    for (let i = 0; i < keys.length; i++) {
+      let id = keys[i]
+      let vol = root.pendingSinkVols[id]
+      controlCmdProc.command = ["pactl", "set-sink-volume", "" + id, "" + vol + "%"]
+      controlCmdProc.running = true
+    }
+    root.pendingSinkVols = {}
   }
 
   function toggleSinkMute(sinkId) {
-    let updated = []
-    for (let i = 0; i < root.outputSinks.length; i++) {
-      let s = root.outputSinks[i]
-      if (s.id === sinkId) s.mute = !s.mute
-      updated.push(s)
-    }
-    root.outputSinks = updated
-
     controlCmdProc.command = ["pactl", "set-sink-mute", "" + sinkId, "toggle"]
     controlCmdProc.running = true
   }
@@ -483,12 +506,30 @@ Item {
           spacing: 6
 
           delegate: Rectangle {
+            id: streamDelegateItem
             width: streamsList.width
             height: 64
             radius: 10
             color: Style.surfaceVariant
             border.color: Style.border
             border.width: 1
+
+            property int localVol: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
+            property bool localMute: (modelData && modelData.mute !== undefined) ? modelData.mute : false
+
+            Binding {
+              target: streamDelegateItem
+              property: "localVol"
+              value: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
+              when: !streamSliderMouse.pressed
+            }
+
+            Binding {
+              target: streamDelegateItem
+              property: "localMute"
+              value: (modelData && modelData.mute !== undefined) ? modelData.mute : false
+              when: !streamSliderMouse.pressed
+            }
 
             ColumnLayout {
               anchors.fill: parent
@@ -543,15 +584,15 @@ Item {
                   width: 24
                   height: 24
                   radius: 12
-                  color: modelData.mute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (streamMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: modelData.mute ? Style.accentRed : Style.border
+                  color: streamDelegateItem.localMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (streamMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
+                  border.color: streamDelegateItem.localMute ? Style.accentRed : Style.border
                   border.width: 1
 
                   Text {
                     anchors.centerIn: parent
-                    text: modelData.mute ? "󰖁" : (modelData.volume > 50 ? "󰕾" : (modelData.volume > 0 ? "󰖀" : "󰕿"))
+                    text: streamDelegateItem.localMute ? "󰖁" : (streamDelegateItem.localVol > 50 ? "󰕾" : (streamDelegateItem.localVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: modelData.mute ? Style.accentRed : Style.textPrimary
+                    color: streamDelegateItem.localMute ? Style.accentRed : Style.textPrimary
                   }
 
                   MouseArea {
@@ -559,7 +600,10 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.toggleStreamMute(modelData.id)
+                    onClicked: {
+                      streamDelegateItem.localMute = !streamDelegateItem.localMute
+                      root.toggleStreamMute(modelData.id)
+                    }
                   }
                 }
               }
@@ -577,12 +621,15 @@ Item {
                 // Active Fill Bar
                 Rectangle {
                   height: parent.height
-                  width: modelData.mute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (modelData.volume / 100.0)))
+                  width: streamDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (streamDelegateItem.localVol / 100.0)))
                   radius: 6
                   color: Style.accent
                   opacity: 0.85
 
-                  Behavior on width { NumberAnimation { duration: 100 } }
+                  Behavior on width {
+                    enabled: !streamSliderMouse.pressed
+                    NumberAnimation { duration: 100 }
+                  }
                 }
 
                 // Percentage Text
@@ -590,27 +637,57 @@ Item {
                   anchors.right: parent.right
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.mute ? "Sessiz" : `%${modelData.volume}`
+                  text: streamDelegateItem.localMute ? "Sessiz" : `%${streamDelegateItem.localVol}`
                   font.pixelSize: 9
                   font.weight: Font.Bold
-                  color: modelData.mute ? Style.accentRed : Style.textPrimary
+                  color: streamDelegateItem.localMute ? Style.accentRed : Style.textPrimary
                 }
 
                 // Slider Mouse Handler
                 MouseArea {
+                  id: streamSliderMouse
                   anchors.fill: parent
+                  preventStealing: true
+                  hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
+                  acceptedButtons: Qt.LeftButton
+
                   function updateStreamVol(mouse) {
-                    let pct = Math.max(0, Math.min(100, (mouse.x / width) * 100.0))
-                    root.setStreamVolume(modelData.id, pct)
+                    let pct = Math.max(0, Math.min(100, Math.round((mouse.x / width) * 100.0)))
+                    streamDelegateItem.localVol = pct
+                    root.queueStreamVolume(modelData.id, pct)
                   }
-                  onClicked: mouse => updateStreamVol(mouse)
+
+                  onPressed: mouse => {
+                    if (mouse.button === Qt.LeftButton) {
+                      root.isDragging = true
+                      updateStreamVol(mouse)
+                    }
+                  }
                   onPositionChanged: mouse => {
-                    if (pressed) updateStreamVol(mouse)
+                    if (pressed && (mouse.buttons & Qt.LeftButton)) {
+                      updateStreamVol(mouse)
+                    }
+                  }
+                  onReleased: mouse => {
+                    if (mouse.button === Qt.LeftButton) {
+                      root.isDragging = false
+                      root.flushStreamVolume(modelData.id)
+                    }
+                  }
+                  onCanceled: {
+                    root.isDragging = false
+                    root.flushStreamVolume(modelData.id)
+                  }
+                  onClicked: mouse => {
+                    if (mouse.button === Qt.LeftButton) updateStreamVol(mouse)
                   }
                   onWheel: wheel => {
                     let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    root.setStreamVolume(modelData.id, modelData.volume + delta)
+                    let pct = Math.max(0, Math.min(100, streamDelegateItem.localVol + delta))
+                    streamDelegateItem.localVol = pct
+                    root.queueStreamVolume(modelData.id, pct)
+                    root.flushStreamVolume(modelData.id)
                   }
                 }
               }
@@ -634,12 +711,30 @@ Item {
           spacing: 6
 
           delegate: Rectangle {
+            id: sinkDelegateItem
             width: sinksList.width
             height: 64
             radius: 10
             color: Style.surfaceVariant
             border.color: Style.border
             border.width: 1
+
+            property int localVol: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
+            property bool localMute: (modelData && modelData.mute !== undefined) ? modelData.mute : false
+
+            Binding {
+              target: sinkDelegateItem
+              property: "localVol"
+              value: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
+              when: !sinkSliderMouse.pressed
+            }
+
+            Binding {
+              target: sinkDelegateItem
+              property: "localMute"
+              value: (modelData && modelData.mute !== undefined) ? modelData.mute : false
+              when: !sinkSliderMouse.pressed
+            }
 
             ColumnLayout {
               anchors.fill: parent
@@ -721,15 +816,15 @@ Item {
                   width: 24
                   height: 24
                   radius: 12
-                  color: modelData.mute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (sinkMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: modelData.mute ? Style.accentRed : Style.border
+                  color: sinkDelegateItem.localMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (sinkMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
+                  border.color: sinkDelegateItem.localMute ? Style.accentRed : Style.border
                   border.width: 1
 
                   Text {
                     anchors.centerIn: parent
-                    text: modelData.mute ? "󰖁" : (modelData.volume > 50 ? "󰕾" : (modelData.volume > 0 ? "󰖀" : "󰕿"))
+                    text: sinkDelegateItem.localMute ? "󰖁" : (sinkDelegateItem.localVol > 50 ? "󰕾" : (sinkDelegateItem.localVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: modelData.mute ? Style.accentRed : Style.textPrimary
+                    color: sinkDelegateItem.localMute ? Style.accentRed : Style.textPrimary
                   }
 
                   MouseArea {
@@ -737,7 +832,10 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.toggleSinkMute(modelData.id)
+                    onClicked: {
+                      sinkDelegateItem.localMute = !sinkDelegateItem.localMute
+                      root.toggleSinkMute(modelData.id)
+                    }
                   }
                 }
               }
@@ -754,38 +852,71 @@ Item {
 
                 Rectangle {
                   height: parent.height
-                  width: modelData.mute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (modelData.volume / 100.0)))
+                  width: sinkDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (sinkDelegateItem.localVol / 100.0)))
                   radius: 6
                   color: Style.accent
                   opacity: 0.85
 
-                  Behavior on width { NumberAnimation { duration: 100 } }
+                  Behavior on width {
+                    enabled: !sinkSliderMouse.pressed
+                    NumberAnimation { duration: 100 }
+                  }
                 }
 
                 Text {
                   anchors.right: parent.right
                   anchors.rightMargin: 6
                   anchors.verticalCenter: parent.verticalCenter
-                  text: modelData.mute ? "Sessiz" : `%${modelData.volume}`
+                  text: sinkDelegateItem.localMute ? "Sessiz" : `%${sinkDelegateItem.localVol}`
                   font.pixelSize: 9
                   font.weight: Font.Bold
-                  color: modelData.mute ? Style.accentRed : Style.textPrimary
+                  color: sinkDelegateItem.localMute ? Style.accentRed : Style.textPrimary
                 }
 
                 MouseArea {
+                  id: sinkSliderMouse
                   anchors.fill: parent
+                  preventStealing: true
+                  hoverEnabled: true
                   cursorShape: Qt.PointingHandCursor
+                  acceptedButtons: Qt.LeftButton
+
                   function updateSinkVol(mouse) {
-                    let pct = Math.max(0, Math.min(100, (mouse.x / width) * 100.0))
-                    root.setSinkVolume(modelData.id, pct)
+                    let pct = Math.max(0, Math.min(100, Math.round((mouse.x / width) * 100.0)))
+                    sinkDelegateItem.localVol = pct
+                    root.queueSinkVolume(modelData.id, pct)
                   }
-                  onClicked: mouse => updateSinkVol(mouse)
+
+                  onPressed: mouse => {
+                    if (mouse.button === Qt.LeftButton) {
+                      root.isDragging = true
+                      updateSinkVol(mouse)
+                    }
+                  }
                   onPositionChanged: mouse => {
-                    if (pressed) updateSinkVol(mouse)
+                    if (pressed && (mouse.buttons & Qt.LeftButton)) {
+                      updateSinkVol(mouse)
+                    }
+                  }
+                  onReleased: mouse => {
+                    if (mouse.button === Qt.LeftButton) {
+                      root.isDragging = false
+                      root.flushSinkVolume(modelData.id)
+                    }
+                  }
+                  onCanceled: {
+                    root.isDragging = false
+                    root.flushSinkVolume(modelData.id)
+                  }
+                  onClicked: mouse => {
+                    if (mouse.button === Qt.LeftButton) updateSinkVol(mouse)
                   }
                   onWheel: wheel => {
                     let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    root.setSinkVolume(modelData.id, modelData.volume + delta)
+                    let pct = Math.max(0, Math.min(100, sinkDelegateItem.localVol + delta))
+                    sinkDelegateItem.localVol = pct
+                    root.queueSinkVolume(modelData.id, pct)
+                    root.flushSinkVolume(modelData.id)
                   }
                 }
               }
