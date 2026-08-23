@@ -8,7 +8,7 @@ tags:
   - go/daemon
   - quickshell/hud
 created: 2026-08-11
-updated: 2026-08-18
+updated: 2026-08-22
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -28,6 +28,8 @@ related_notes:
   - "[[Plan-Fix-Vesktop-Theme-Sync]]"
   - "[[Plan-Fix-Zed-Theme-Inotify-Inode-Watch]]"
   - "[[Plan-Fix-Vesktop-Inotify-Inode-Watch]]"
+  - "[[Plan-Kitty-Theme-Preserve-Dynamic-Font-Size]]"
+  - "[[Plan-Startup-Wallpaper-And-Theme-Initialization]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service
@@ -70,7 +72,7 @@ graph TD
 4. **Debounced Coalescing Dispatcher (50ms):** When themes are switched rapidly, intermediate requests are coalesced so only the latest selected theme executes external app commands, preventing process floods and command lag.
 5. **Concrete File-Based Adapters (`adapters/`):**
    - **Hyprland:** Live window border recoloring via `hyprctl keyword general:col.active_border` and `~/.config/hypr/colors.conf`.
-   - **Kitty:** Copies `shared/app_configs/kitty/<id>.conf` to `~/.config/kitty/current-theme.conf` and signals live reload via `touch/mtime` and POSIX signals.
+   - **Kitty:** Copies `shared/app_configs/kitty/<id>.conf` to `~/.config/kitty/current-theme.conf` and executes live remote control color reload (`kitten @ set-colors --all --configured`) over Unix domain sockets to preserve runtime font scaling (`Ctrl+Shift++/-`), with fallback to `SIGUSR1`. Detay: `[[Plan-Kitty-Theme-Preserve-Dynamic-Font-Size]]`.
    - **Zed:** Pre-deploys all 6 themes to `~/.config/zed/themes/`, copies active theme in-place to `ogsshell.json`, and patches `settings.json` in-place preserving file inode so Zed's inotify watcher never unlinks across infinite theme changes. Detay: `[[Plan-Fix-Zed-Theme-Inotify-Inode-Watch]]`.
    - **Vesktop (Discord/Vencord):** Dual-syncs `shared/app_configs/vesktop/<id>.css` in-place (`WriteFileInPlace` / `CopyFileInPlace`) to both `themes/ogsshell.theme.css` and `settings/quickCss.css` across standard, Vencord, and Flatpak directories, keeping Node.js `fs.watch` inode permanently connected for unlimited consecutive live hot-reloads without client restarts. Detay: `[[Plan-Fix-Vesktop-Inotify-Inode-Watch]]`.
    - **Neovim (LazyVim):** Copies `shared/app_configs/nvim/<id>.lua` to `~/.config/nvim/lua/plugins/theme.lua` and reloads active Neovim sessions live via Unix domain sockets.

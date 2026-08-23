@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 )
 
 type WallpaperState struct {
@@ -31,7 +32,11 @@ func NewWallpaperAdapter(customBaseDir ...string) *WallpaperAdapter {
 		baseDir = customBaseDir[0]
 	}
 
-	configDir := filepath.Join(homeDir, ".config", "ogsshell")
+	configHome := os.Getenv("XDG_CONFIG_HOME")
+	if configHome == "" {
+		configHome = filepath.Join(homeDir, ".config")
+	}
+	configDir := filepath.Join(configHome, "ogsShell")
 	_ = os.MkdirAll(configDir, 0755)
 	configPath := filepath.Join(configDir, "wallpaper_state.json")
 
@@ -77,12 +82,20 @@ func (a *WallpaperAdapter) saveState() {
 	}
 }
 
-// EnsureAwwwDaemon starts awww-daemon if not already running.
+// EnsureAwwwDaemon starts awww-daemon if not already running and waits for readiness.
 func (a *WallpaperAdapter) EnsureAwwwDaemon() {
 	if err := exec.Command("awww", "query").Run(); err != nil {
 		// Start daemon in background
 		cmd := exec.Command("awww-daemon")
-		_ = cmd.Start()
+		if err := cmd.Start(); err == nil {
+			// Wait for daemon socket to become ready (up to 1.5s)
+			for i := 0; i < 30; i++ {
+				time.Sleep(50 * time.Millisecond)
+				if err := exec.Command("awww", "query").Run(); err == nil {
+					break
+				}
+			}
+		}
 	}
 }
 

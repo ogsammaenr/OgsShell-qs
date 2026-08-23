@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"context"
 	"ogsShell/core/services/theme"
 	"os"
 	"os/exec"
@@ -41,6 +42,40 @@ func (a *KittyAdapter) IsInstalled() bool {
 	return err == nil
 }
 
+// FindKittySockets discovers active Unix domain control sockets for running Kitty instances.
+func FindKittySockets() []string {
+	var sockets []string
+	seen := make(map[string]bool)
+
+	patterns := []string{
+		"/tmp/kitty*",
+		"/tmp/mykitty*",
+	}
+
+	if runtimeDir := os.Getenv("XDG_RUNTIME_DIR"); runtimeDir != "" {
+		patterns = append(patterns, filepath.Join(runtimeDir, "kitty*"))
+	}
+
+	for _, pattern := range patterns {
+		matches, err := filepath.Glob(pattern)
+		if err != nil {
+			continue
+		}
+		for _, m := range matches {
+			if seen[m] {
+				continue
+			}
+			fi, err := os.Stat(m)
+			if err == nil && (fi.Mode()&os.ModeSocket != 0) {
+				seen[m] = true
+				sockets = append(sockets, m)
+			}
+		}
+	}
+
+	return sockets
+}
+
 func (a *KittyAdapter) Apply(palette *theme.ThemePalette) error {
 	destPath := a.getThemePath()
 	srcFile, err := GetSharedAppConfigFile(a.sharedDir, "kitty", palette.ID, "conf")
@@ -52,17 +87,28 @@ func (a *KittyAdapter) Apply(palette *theme.ThemePalette) error {
 		return err
 	}
 
-	// 1. Touch main kitty.conf so kitten __watch_conf__ triggers instant config reload (<1ms)
-	mainConfig := filepath.Join(filepath.Dir(destPath), "kitty.conf")
-	if _, err := os.Stat(mainConfig); err == nil {
-		now := time.Now()
-		_ = os.Chtimes(mainConfig, now, now)
-		_ = exec.Command("touch", mainConfig).Run()
+	// 1. Send remote control command to all active Kitty sockets to preserve runtime font size
+	sockets := FindKittySockets()
+	socketApplied := false
+
+	bin := "kitten"
+	if _, err := exec.LookPath("kitten"); err != nil {
+		bin = "kitty"
 	}
 
-	// 2. POSIX signal reload across all kitty instances
-	_ = exec.Command("pkill", "-USR1", "-x", "kitty").Run()
-	_ = exec.Command("pkill", "-SIGUSR1", "-x", "kitty").Run()
+	for _, sock := range sockets {
+		ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+		cmd := exec.CommandContext(ctx, bin, "@", "--to", "unix:"+sock, "set-colors", "--all", "--configured", srcFile)
+		if err := cmd.Run(); err == nil {
+			socketApplied = true
+		}
+		cancel()
+	}
+
+	// 2. Fallback: If no sockets were found or succeeded, send SIGUSR1 (without touching kitty.conf)
+	if !socketApplied {
+		_ = exec.Command("pkill", "-SIGUSR1", "-x", "kitty").Run()
+	}
 
 	return nil
 }

@@ -234,10 +234,19 @@ func (m *DefaultThemeManager) ToggleAdapter(adapterID string, enabled bool) erro
 func (m *DefaultThemeManager) Start(ctx context.Context) {
 	m.mu.Lock()
 	m.ctx, m.cancel = context.WithCancel(ctx)
+	active := m.activeTheme
 	m.mu.Unlock()
 
 	m.log.Info("Tema yöneticisi başlatıldı", "active_theme", m.config.ActiveThemeID, "adapters_count", len(m.adapters), "shared_dir", m.sharedDir)
 	go m.runAdapterDispatcher(m.ctx)
+
+	// Automatically dispatch active theme and wallpaper to all adapters on startup
+	if active != nil {
+		select {
+		case m.applyChan <- active:
+		default:
+		}
+	}
 }
 
 // Close gracefully stops background operations.
