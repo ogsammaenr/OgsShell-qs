@@ -54,17 +54,17 @@ QtObject {
 
   // Typography configuration preset (reactive font sizes across Island & HUD)
   property var typography: ({
-    "clock_idle_size": 16,
-    "clock_hover_size": 20,
-    "date_hover_size": 13,
-    "media_title_size": 12,
-    "media_artist_size": 11,
-    "connectivity_text_size": 11,
-    "connectivity_icon_size": 14,
-    "notification_title_size": 13,
-    "notification_body_size": 11,
-    "pinned_metrics_size": 11,
-    "pinned_metrics_icon_size": 13
+    "clock_idle_size": 18,
+    "clock_hover_size": 22,
+    "date_hover_size": 14,
+    "media_title_size": 13,
+    "media_artist_size": 12,
+    "connectivity_text_size": 12,
+    "connectivity_icon_size": 15,
+    "notification_title_size": 14,
+    "notification_body_size": 12,
+    "pinned_metrics_size": 12,
+    "pinned_metrics_icon_size": 14
   })
 
   // Animation configuration preset
