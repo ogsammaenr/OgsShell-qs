@@ -78,3 +78,40 @@ type ActiveWifiInfo struct {
 	BitrateKbps uint32       `json:"bitrate_kbps"`
 	Security    SecurityType `json:"security"`
 }
+
+// NetworkDetails provides comprehensive Layer 3 / Layer 4 network configuration for a Wi-Fi profile.
+type NetworkDetails struct {
+	UUID          string       `json:"uuid"`
+	Name          string       `json:"name"`
+	SSID          string       `json:"ssid"`
+	Device        string       `json:"device"`
+	IPAddress     string       `json:"ip_address"`
+	Prefix        int          `json:"prefix"`
+	Gateway       string       `json:"gateway"`
+	DNS           []string     `json:"dns"`
+	IgnoreAutoDNS bool         `json:"ignore_auto_dns"`
+	IPv6Method    string       `json:"ipv6_method"`
+	IPv6Disabled  bool         `json:"ipv6_disabled"`
+	Security      SecurityType `json:"security"`
+	IsConnected   bool         `json:"is_connected"`
+	Signal        uint8        `json:"signal"`
+}
+
+// SetConnectionDNSRequest defines parameters for updating DNS configuration on a Wi-Fi profile.
+type SetConnectionDNSRequest struct {
+	SSIDOrUUID    string   `json:"ssid_or_uuid"`
+	DNS           []string `json:"dns"`
+	IgnoreAutoDNS bool     `json:"ignore_auto_dns"`
+}
+
+// SetConnectionIPv6Request defines parameters for enabling or disabling IPv6 on a profile.
+type SetConnectionIPv6Request struct {
+	SSIDOrUUID string `json:"ssid_or_uuid"`
+	Disabled   bool   `json:"disabled"`
+}
+
+// CleanupDuplicatesResponse summarizes the result of removing duplicate connection profiles.
+type CleanupDuplicatesResponse struct {
+	DeletedCount int      `json:"deleted_count"`
+	DeletedUUIDs []string `json:"deleted_uuids"`
+}

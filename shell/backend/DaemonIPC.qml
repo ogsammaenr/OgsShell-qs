@@ -12,8 +12,10 @@ Item {
   property var gpu: ({ "gpu_temp": 0, "gpu_percent": 0 })
   property var net: ({ "rx_bytes_sec": 0, "tx_bytes_sec": 0, "interface": "", "is_connected": false })
 
-  // Wi-Fi & Bluetooth
+  // Wi-Fi, Network & Bluetooth
   property var wifi: ({ "connected": false, "ssid": "", "signal": 0 })
+  property var networkDetails: null
+  property var savedWifiProfiles: []
   property var bluetooth: ({ "adapter_powered": false, "discovering": false, "devices": [] })
 
   // Alarms
@@ -68,12 +70,44 @@ Item {
   signal wallpapersUpdated(var payload)
   signal launcherResultsUpdated(var payload)
   signal appLaunched(var payload)
+  signal networkDetailsUpdated(var payload)
+  signal cleanupDuplicatesCompleted(var payload)
   signal launcherToggled()
   signal launcherOpened()
   signal launcherClosed()
   signal appToggleRequested(var payload)
   signal appOpenRequested(var payload)
   signal appCloseRequested(var payload)
+
+  // Network & DNS Helpers
+  function requestNetworkDetails(ssidOrUUID) {
+    sendAction("get_network_details", { "ssid_or_uuid": ssidOrUUID || "" });
+  }
+
+  function setConnectionDNS(ssidOrUUID, dnsArray, ignoreAuto) {
+    sendAction("set_connection_dns", {
+      "ssid_or_uuid": ssidOrUUID || "",
+      "dns": dnsArray || [],
+      "ignore_auto_dns": !!ignoreAuto
+    });
+  }
+
+  function setConnectionIPv6(ssidOrUUID, disabled) {
+    sendAction("set_connection_ipv6", {
+      "ssid_or_uuid": ssidOrUUID || "",
+      "disabled": !!disabled
+    });
+  }
+
+  function cleanupDuplicateProfiles(ssid) {
+    sendAction("cleanup_duplicate_profiles", {
+      "ssid": ssid || ""
+    });
+  }
+
+  function requestSavedWifiProfiles() {
+    sendAction("get_saved_wifi_profiles", {});
+  }
 
   // Send JSON RPC Action to daemon
   function sendAction(name, args) {
@@ -378,6 +412,10 @@ Item {
     requestAppsList(50);
     sendAction("get_active_wifi", {});
     sendAction("scan_wifi", {});
+    sendAction("get_active_wifi", {});
+    sendAction("scan_wifi", {});
+    sendAction("get_network_details", {});
+    sendAction("get_saved_wifi_profiles", {});
     sendAction("get_bluetooth_state", {});
   }
 
@@ -454,6 +492,13 @@ Item {
               "access_points": existingAps,
               "scan_results": existingAps
             };
+          } else if (msg.type === "network_details") {
+            root.networkDetails = msg.payload;
+            root.networkDetailsUpdated(msg.payload);
+          } else if (msg.type === "saved_wifi_profiles") {
+            root.savedWifiProfiles = msg.payload || [];
+          } else if (msg.type === "cleanup_duplicates_result") {
+            root.cleanupDuplicatesCompleted(msg.payload);
           } else if (msg.type === "bluetooth_update") {
             root.bluetooth = msg.payload || ({ "adapter_powered": false, "devices": [] });
           } else if (msg.type === "alarms_update") {
@@ -572,6 +617,12 @@ Item {
             root.appToggleRequested({ "app": "audio_mixer" });
           } else if (msg.type === "open_audio_mixer" || msg.type === "open_mixer") {
             root.appOpenRequested({ "app": "audio_mixer" });
+          } else if (msg.type === "toggle_settings") {
+            SettingsService.toggle(msg.payload ? msg.payload.category : "");
+          } else if (msg.type === "open_settings") {
+            SettingsService.open(msg.payload ? msg.payload.category : "");
+          } else if (msg.type === "close_settings") {
+            SettingsService.close();
           }
         } catch (e) {
           console.warn("[DaemonIPC] JSON parse hatası: ", e, "Gelen ham veri:", data);

@@ -4,6 +4,8 @@ import (
 	"context"
 	"ogsShell/core/services/wifi"
 	"testing"
+
+	"github.com/godbus/dbus/v5"
 )
 
 // TestBuilder_BuildConnectionDict tests NetworkManager settings dictionary generation.
@@ -198,7 +200,38 @@ func TestMockClient_FullLifecycle(t *testing.T) {
 		t.Error("expected error after profile deletion, got nil")
 	}
 
-	// 11. Radio toggle
+	// 11. Test Network Details, DNS, and IPv6 methods
+	netDetails, err := client.GetNetworkDetails(ctx, "OgsHome_5G")
+	if err != nil {
+		t.Fatalf("expected network details for OgsHome_5G, got: %v", err)
+	}
+	if len(netDetails.DNS) == 0 {
+		t.Error("expected DNS servers in network details")
+	}
+
+	err = client.SetConnectionDNS(ctx, wifi.SetConnectionDNSRequest{
+		SSIDOrUUID:    "OgsHome_5G",
+		DNS:           []string{"1.1.1.1", "1.0.0.1"},
+		IgnoreAutoDNS: true,
+	})
+	if err != nil {
+		t.Fatalf("failed to set connection DNS: %v", err)
+	}
+
+	err = client.SetConnectionIPv6(ctx, wifi.SetConnectionIPv6Request{
+		SSIDOrUUID: "OgsHome_5G",
+		Disabled:   true,
+	})
+	if err != nil {
+		t.Fatalf("failed to set connection IPv6: %v", err)
+	}
+
+	cleanupRes, err := client.CleanupDuplicateProfiles(ctx)
+	if err != nil || cleanupRes == nil {
+		t.Fatalf("failed to cleanup duplicate profiles: %v", err)
+	}
+
+	// 12. Radio toggle
 	_ = client.SetWifiEnabled(ctx, false)
 	en, _ := client.IsWifiEnabled(ctx)
 	if en {
@@ -234,5 +267,46 @@ func TestDBusClient_LiveHardwareIntegration(t *testing.T) {
 
 	for _, p := range savedProfiles {
 		t.Logf("Profile: %-25s | UUID: %s | AutoConnect: %v", p.SSID, p.UUID, p.AutoConnect)
+	}
+
+	// Test SetConnectionDNS on SUPERONLINE_WiFi_0744 (the exact user test case!)
+	err = client.SetConnectionDNS(ctx, wifi.SetConnectionDNSRequest{
+		SSIDOrUUID:    "SUPERONLINE_WiFi_0744",
+		DNS:           []string{"94.140.14.14", "94.140.15.15"},
+		IgnoreAutoDNS: true,
+	})
+	if err != nil {
+		t.Fatalf("SetConnectionDNS failed for SUPERONLINE_WiFi_0744: %v", err)
+	}
+	t.Log("SetConnectionDNS succeeded with zero errors!")
+}
+
+// TestSanitizeSettingsForUpdate tests D-Bus tuple and legacy array cleanup to prevent NM Update errors.
+func TestSanitizeSettingsForUpdate(t *testing.T) {
+	settings := map[string]map[string]dbus.Variant{
+		"ipv6": {
+			"method":    dbus.MakeVariant("auto"),
+			"addresses": dbus.MakeVariant([]interface{}{}),
+			"routes":    dbus.MakeVariant([]interface{}{}),
+		},
+		"ipv4": {
+			"method":    dbus.MakeVariant("auto"),
+			"addresses": dbus.MakeVariant([]interface{}{}),
+			"routes":    dbus.MakeVariant([]interface{}{}),
+		},
+	}
+
+	cleaned := wifi.SanitizeSettingsForUpdate(settings)
+	if _, exists := cleaned["ipv6"]["addresses"]; exists {
+		t.Error("expected ipv6.addresses to be deleted for auto method")
+	}
+	if _, exists := cleaned["ipv6"]["routes"]; exists {
+		t.Error("expected ipv6.routes to be deleted for auto method")
+	}
+	if _, exists := cleaned["ipv4"]["addresses"]; exists {
+		t.Error("expected ipv4.addresses to be deleted for auto method")
+	}
+	if _, exists := cleaned["ipv4"]["routes"]; exists {
+		t.Error("expected ipv4.routes to be deleted for auto method")
 	}
 }

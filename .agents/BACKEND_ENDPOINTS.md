@@ -44,6 +44,10 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Wi-Fi** | `delete_wifi_profile` / `forget_wifi` | `{"ssid_or_uuid": "..."}` | `saved_wifi_profiles` | Kayıtlı Wi-Fi profilini siler / unutur |
 | **Wi-Fi** | `set_wifi_enabled` | `{"enabled": true/false}` | `wifi_update` | Wi-Fi donanımını açar / kapatır |
 | **Wi-Fi** | `get_active_wifi` | `{}` | `active_wifi_info` | Aktif bağlantının detaylı telemetrisini döner |
+| **Wi-Fi & Ağ** | `get_network_details` | `{"ssid_or_uuid": "..."}` | `network_details` | Detaylı IP, Ağ Geçidi, DNS ve IPv6 yapılandırmasını döner |
+| **Wi-Fi & Ağ** | `set_connection_dns` | `{"ssid_or_uuid": "...", "dns": ["1.1.1.1", ...], "ignore_auto_dns": true}` | `network_details` | Profile kalıcı DNS yazar ve anında uygular |
+| **Wi-Fi & Ağ** | `set_connection_ipv6`| `{"ssid_or_uuid": "...", "disabled": true/false}` | `network_details` | Bağlantıda IPv6'yı açar/kapatır |
+| **Wi-Fi & Ağ** | `cleanup_duplicate_profiles` | `{"ssid": "..."}` *(opsiyonel)* | `cleanup_duplicates_result` + `saved_wifi_profiles` | Aynı SSID'ye ait eski kopya NetworkManager profillerini temizler |
 | **Bluetooth** | `toggle_bluetooth` | `{"enabled": true/false}` *(opsiyonel)* | `bluetooth_update` | Bluetooth gücünü açar, kapatır veya tersine çevirir |
 | **Bluetooth** | `connect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | MAC adresi verilen cihaza bağlanır |
 | **Bluetooth** | `disconnect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | Cihaz bağlantısını sonlandırır |
@@ -127,6 +131,8 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `saved_wifi_profiles` | `get_saved_wifi_profiles` / silme işlemi | `[]WifiProfile` | NetworkManager kayıtlı Wi-Fi bağlantı profilleri |
 | `wifi_secrets` | `get_wifi_secrets` RPC komutuna yanıt | `WifiSecrets` | Wi-Fi profiline ait WPA parolası ve anahtar yönetimi |
 | `active_wifi_info` | `get_active_wifi` RPC komutuna yanıt | `ActiveWifiInfo` | Aktif bağlı ağın IP, Gateway, DNS, Sinyal, Hız detayları |
+| `network_details` | `get_network_details` / `set_connection_dns` / `set_connection_ipv6` | `NetworkDetails` | Ağa ait detaylı IP, Gateway, DNS sunucuları ve IPv6 ayarları |
+| `cleanup_duplicates_result` | `cleanup_duplicate_profiles` | `CleanupDuplicatesResponse` | Silinen kopya profil sayısı ve UUID listesi |
 | `bluetooth_update` | D-Bus sinyal odaklı (500ms debounce) | `BluetoothState` | Adaptör durumu, tarama durumu ve cihaz listesi |
 | `alarms_update` | Alarm CRUD veya durum değişimlerinde | `[]Alarm` | Kayıtlı tüm alarmların güncel listesi |
 | `alarm_triggered` | Alarm çalma vakti geldiğinde | `AlarmTriggeredPayload` | Çalan alarmın ID, etiket ve saat bilgisi |

@@ -1,0 +1,3 @@
+singleton Style 1.0 theme/Style.qml
+singleton Config 1.0 backend/Config.qml
+DaemonIPC 1.0 backend/DaemonIPC.qml

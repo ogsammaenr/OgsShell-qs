@@ -60,6 +60,10 @@ Item {
   Process { id: toggleMuteProc }
   Process { id: setBrightProc }
   Process { id: gameModeProc }
+  Process {
+    id: openSettingsProc
+    command: ["/home/excalibur/WorkSpace/projects/OgsShell-qs/scripts/open_settings_app.sh"]
+  }
 
   function syncTelemetry() {
     volGetProc.running = true
@@ -680,7 +684,7 @@ Item {
 
       // Minimalist Telemetry Pill (Click to pin beside Dynamic Island)
       Rectangle {
-        width: parent.width - 76 - 40 - 16
+        width: parent.width - 76 - 40 - 36 - 24
         height: 32
         radius: 8
         color: Config.showPinnedSystemMetrics ? Style.surfaceActive : (telemetryMouse.containsMouse ? Style.surfaceHover : Style.surface)
@@ -755,6 +759,32 @@ Item {
         }
       }
 
+      // Settings Button
+      Rectangle {
+        height: 32
+        width: 36
+        radius: 8
+        color: setMouse.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: setMouse.containsMouse ? Style.accentCyan : Style.border
+        border.width: 1
+
+        Text {
+          anchors.centerIn: parent
+          text: "󰒓"
+          font.pixelSize: 14
+          color: setMouse.containsMouse ? Style.accentCyan : Style.textPrimary
+        }
+
+        MouseArea {
+          id: setMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            openSettingsProc.running = true
+          }
+        }
+      }
 
       // Power Button
       Rectangle {

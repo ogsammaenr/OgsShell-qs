@@ -6,6 +6,7 @@ import Quickshell.Services.Notifications
 import "components/island"
 import "components/widgets"
 import "components/widgets/controlcenter"
+import "components/settings"
 
 Scope {
   id: rootScope

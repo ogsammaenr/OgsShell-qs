@@ -346,6 +346,66 @@ func (c *DBusWifiClient) SaveProfile(ctx context.Context, config WifiProfileConf
 	}, nil
 }
 
+// SanitizeSettingsForUpdate cleans up legacy tuple arrays (like addresses, routes) that cause D-Bus type unmarshaling mismatches on Update.
+func SanitizeSettingsForUpdate(settings map[string]map[string]dbus.Variant) map[string]map[string]dbus.Variant {
+	if settings == nil {
+		return nil
+	}
+
+	// 1. Sanitize IPv6
+	if ipv6, ok := settings["ipv6"]; ok {
+		method := ""
+		if m, ok := ipv6["method"].Value().(string); ok {
+			method = m
+		}
+		// For auto, disabled, ignore, or link-local, strip legacy/empty addresses & routes to avoid 'a(ayuay)' mismatch
+		if method == "auto" || method == "disabled" || method == "ignore" || method == "link-local" || method == "" {
+			delete(ipv6, "addresses")
+			delete(ipv6, "routes")
+			delete(ipv6, "address-data")
+			delete(ipv6, "route-data")
+		} else {
+			if addrVal, exists := ipv6["addresses"]; exists {
+				if arr, ok := addrVal.Value().([]interface{}); ok && len(arr) == 0 {
+					delete(ipv6, "addresses")
+				}
+			}
+			if routeVal, exists := ipv6["routes"]; exists {
+				if arr, ok := routeVal.Value().([]interface{}); ok && len(arr) == 0 {
+					delete(ipv6, "routes")
+				}
+			}
+		}
+	}
+
+	// 2. Sanitize IPv4
+	if ipv4, ok := settings["ipv4"]; ok {
+		method := ""
+		if m, ok := ipv4["method"].Value().(string); ok {
+			method = m
+		}
+		if method == "auto" || method == "disabled" || method == "" {
+			delete(ipv4, "addresses")
+			delete(ipv4, "routes")
+			delete(ipv4, "address-data")
+			delete(ipv4, "route-data")
+		} else {
+			if addrVal, exists := ipv4["addresses"]; exists {
+				if arr, ok := addrVal.Value().([]interface{}); ok && len(arr) == 0 {
+					delete(ipv4, "addresses")
+				}
+			}
+			if routeVal, exists := ipv4["routes"]; exists {
+				if arr, ok := routeVal.Value().([]interface{}); ok && len(arr) == 0 {
+					delete(ipv4, "routes")
+				}
+			}
+		}
+	}
+
+	return settings
+}
+
 // UpdateProfileSecrets updates the WPA password for an existing profile and sets psk-flags = 0 to prevent kded prompts.
 func (c *DBusWifiClient) UpdateProfileSecrets(ctx context.Context, ssidOrUUID, password string) error {
 	connObj, settings, err := c.findConnectionObject(ssidOrUUID)
@@ -363,6 +423,7 @@ func (c *DBusWifiClient) UpdateProfileSecrets(ctx context.Context, ssidOrUUID, p
 	settings["802-11-wireless-security"] = secMap
 	settings["connection"]["security"] = dbus.MakeVariant("802-11-wireless-security")
 
+	settings = SanitizeSettingsForUpdate(settings)
 	err = connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Update", 0, settings).Err
 	if err != nil {
 		return fmt.Errorf("failed to update secrets for %s: %w", ssidOrUUID, err)
@@ -401,9 +462,13 @@ func (c *DBusWifiClient) Connect(ctx context.Context, req ConnectRequest) error 
 		c.agent.SetPassword(req.SSID, req.Password)
 	}
 
-	// 2. Check if a saved profile already exists for this SSID / UUID
-	if connObj, _, err := c.findConnectionObject(resolvedSSID); err == nil {
-		// Existing profile found!
+	// 2. Check if a saved profile already exists for this SSID / UUID (checking both resolved and raw SSID)
+	connObj, _, err := c.findConnectionObject(resolvedSSID)
+	if err != nil && resolvedSSID != req.SSID {
+		connObj, _, err = c.findConnectionObject(req.SSID)
+	}
+	if err == nil && connObj != nil {
+		// Existing profile found! Reuse existing profile to preserve custom DNS and settings
 		if req.Password != "" {
 			_ = c.UpdateProfileSecrets(ctx, resolvedSSID, req.Password)
 		}
@@ -425,7 +490,7 @@ func (c *DBusWifiClient) Connect(ctx context.Context, req ConnectRequest) error 
 	connectionDict := BuildConnectionDict(config)
 
 	var connectionPath, activeConnPath dbus.ObjectPath
-	err := nmObj.Call(
+	err = nmObj.Call(
 		"org.freedesktop.NetworkManager.AddAndActivateConnection", 0,
 		connectionDict, c.wifiPath, apPath,
 	).Store(&connectionPath, &activeConnPath)
@@ -439,6 +504,372 @@ func (c *DBusWifiClient) Connect(ctx context.Context, req ConnectRequest) error 
 func (c *DBusWifiClient) Disconnect(ctx context.Context) error {
 	devObj := c.conn.Object(nmBusName, c.wifiPath)
 	return devObj.Call("org.freedesktop.NetworkManager.Device.Disconnect", 0).Err
+}
+
+// GetNetworkDetails retrieves detailed IP/DNS/IPv6 configuration for a connection or the active network.
+func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID string) (*NetworkDetails, error) {
+	activeInfo, _ := c.GetActiveConnection(ctx)
+
+	if ssidOrUUID == "" {
+		if activeInfo == nil {
+			return nil, fmt.Errorf("no active connection and no SSID/UUID provided")
+		}
+		ssidOrUUID = activeInfo.SSID
+	}
+
+	connObj, settings, err := c.findConnectionObject(ssidOrUUID)
+	if err != nil {
+		if activeInfo != nil && (activeInfo.SSID == ssidOrUUID || ssidOrUUID == "") {
+			return &NetworkDetails{
+				SSID:        activeInfo.SSID,
+				Device:      activeInfo.Device,
+				IPAddress:   activeInfo.IPAddress,
+				Gateway:     activeInfo.Gateway,
+				DNS:         activeInfo.DNS,
+				Security:    activeInfo.Security,
+				IsConnected: true,
+				Signal:      activeInfo.Signal,
+			}, nil
+		}
+		return nil, err
+	}
+
+	uuid := ""
+	id := ""
+	ssid := ""
+	if connMeta, ok := settings["connection"]; ok {
+		if u, ok := connMeta["uuid"].Value().(string); ok {
+			uuid = u
+		}
+		if name, ok := connMeta["id"].Value().(string); ok {
+			id = name
+		}
+	}
+	if wireless, ok := settings["802-11-wireless"]; ok {
+		if ssidBytes, ok := wireless["ssid"].Value().([]byte); ok {
+			ssid = string(ssidBytes)
+		}
+	}
+	if ssid == "" {
+		ssid = id
+	}
+
+	var dnsList []string
+	ignoreAutoDNS := false
+	ipAddr := ""
+	gateway := ""
+	prefix := 24
+
+	if ipv4Meta, ok := settings["ipv4"]; ok {
+		if ig, ok := ipv4Meta["ignore-auto-dns"].Value().(bool); ok {
+			ignoreAutoDNS = ig
+		}
+		if dnsVal, ok := ipv4Meta["dns"]; ok {
+			if dnsUint32, ok := dnsVal.Value().([]uint32); ok {
+				for _, u := range dnsUint32 {
+					dnsList = append(dnsList, Uint32ToIP(u))
+				}
+			}
+		}
+		if gw, ok := ipv4Meta["gateway"].Value().(string); ok {
+			gateway = gw
+		}
+	}
+
+	ipv6Method := "auto"
+	if ipv6Meta, ok := settings["ipv6"]; ok {
+		if m, ok := ipv6Meta["method"].Value().(string); ok {
+			ipv6Method = m
+		}
+	}
+	ipv6Disabled := ipv6Method == "disabled" || ipv6Method == "ignore"
+
+	secType := SecurityOpen
+	if _, ok := settings["802-11-wireless-security"]; ok {
+		secType = SecurityWPA2PSK
+	}
+
+	isConnected := false
+	signal := uint8(0)
+	if activeInfo != nil && (activeInfo.SSID == ssid || (uuid != "" && activeInfo.SSID == id) || activeInfo.SSID == id) {
+		isConnected = true
+		signal = activeInfo.Signal
+		if activeInfo.IPAddress != "" {
+			ipAddr = activeInfo.IPAddress
+		}
+		if activeInfo.Gateway != "" {
+			gateway = activeInfo.Gateway
+		}
+		if len(dnsList) == 0 && len(activeInfo.DNS) > 0 {
+			dnsList = activeInfo.DNS
+		}
+	}
+
+	// Query active IP4Config from device if connected
+	if isConnected {
+		devObj := c.conn.Object(nmBusName, c.wifiPath)
+		if ip4PathVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Ip4Config"); err == nil {
+			if ip4Path, ok := ip4PathVal.Value().(dbus.ObjectPath); ok && ip4Path != "/" && ip4Path != "" {
+				ip4Obj := c.conn.Object(nmBusName, ip4Path)
+				if addrDataVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.AddressData"); err == nil {
+					if addrData, ok := addrDataVal.Value().([]map[string]dbus.Variant); ok && len(addrData) > 0 {
+						if a, ok := addrData[0]["address"].Value().(string); ok {
+							ipAddr = a
+						}
+						if p, ok := addrData[0]["prefix"].Value().(uint32); ok {
+							prefix = int(p)
+						}
+					}
+				}
+				if gwVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Gateway"); err == nil {
+					if g, ok := gwVal.Value().(string); ok && g != "" {
+						gateway = g
+					}
+				}
+				if len(dnsList) == 0 {
+					if nsVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Nameservers"); err == nil {
+						if nsList, ok := nsVal.Value().([]uint32); ok {
+							for _, ns := range nsList {
+								dnsList = append(dnsList, Uint32ToIP(ns))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	_ = connObj
+	return &NetworkDetails{
+		UUID:          uuid,
+		Name:          id,
+		SSID:          ssid,
+		Device:        c.iface,
+		IPAddress:     ipAddr,
+		Prefix:        prefix,
+		Gateway:       gateway,
+		DNS:           dnsList,
+		IgnoreAutoDNS: ignoreAutoDNS,
+		IPv6Method:    ipv6Method,
+		IPv6Disabled:  ipv6Disabled,
+		Security:      secType,
+		IsConnected:   isConnected,
+		Signal:        signal,
+	}, nil
+}
+
+// SetConnectionDNS configures custom DNS and automatic DNS ignore flag on a connection profile.
+func (c *DBusWifiClient) SetConnectionDNS(ctx context.Context, req SetConnectionDNSRequest) error {
+	connObj, settings, err := c.findConnectionObject(req.SSIDOrUUID)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := settings["ipv4"]; !ok {
+		settings["ipv4"] = make(map[string]dbus.Variant)
+		settings["ipv4"]["method"] = dbus.MakeVariant("auto")
+	}
+
+	var dnsUint32 []uint32
+	for _, ipStr := range req.DNS {
+		cleanIP := strings.TrimSpace(ipStr)
+		if cleanIP == "" {
+			continue
+		}
+		if u, err := IPToUint32(cleanIP); err == nil {
+			dnsUint32 = append(dnsUint32, u)
+		}
+	}
+
+	if len(dnsUint32) > 0 {
+		settings["ipv4"]["dns"] = dbus.MakeVariant(dnsUint32)
+		settings["ipv4"]["ignore-auto-dns"] = dbus.MakeVariant(req.IgnoreAutoDNS)
+	} else {
+		delete(settings["ipv4"], "dns")
+		settings["ipv4"]["ignore-auto-dns"] = dbus.MakeVariant(false)
+	}
+
+	settings = SanitizeSettingsForUpdate(settings)
+	err = connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Update", 0, settings).Err
+	if err != nil {
+		return fmt.Errorf("failed to update DNS for %s: %w", req.SSIDOrUUID, err)
+	}
+
+	// If currently active, reactivate connection to apply DNS changes immediately
+	if activeInfo, _ := c.GetActiveConnection(ctx); activeInfo != nil {
+		ssid := ""
+		if wireless, ok := settings["802-11-wireless"]; ok {
+			if b, ok := wireless["ssid"].Value().([]byte); ok {
+				ssid = string(b)
+			}
+		}
+		id := ""
+		if meta, ok := settings["connection"]; ok {
+			if s, ok := meta["id"].Value().(string); ok {
+				id = s
+			}
+		}
+		if activeInfo.SSID == ssid || activeInfo.SSID == id || req.SSIDOrUUID == ssid || req.SSIDOrUUID == id {
+			apPath, _ := c.findAccessPointPath(activeInfo.SSID)
+			nmObj := c.conn.Object(nmBusName, nmPath)
+			var activeConnPath dbus.ObjectPath
+			_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), c.wifiPath, apPath).Store(&activeConnPath)
+		}
+	}
+
+	return nil
+}
+
+// SetConnectionIPv6 sets IPv6 method (disabled or auto) on a connection profile.
+func (c *DBusWifiClient) SetConnectionIPv6(ctx context.Context, req SetConnectionIPv6Request) error {
+	connObj, settings, err := c.findConnectionObject(req.SSIDOrUUID)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := settings["ipv6"]; !ok {
+		settings["ipv6"] = make(map[string]dbus.Variant)
+	}
+
+	if req.Disabled {
+		settings["ipv6"]["method"] = dbus.MakeVariant("disabled")
+	} else {
+		settings["ipv6"]["method"] = dbus.MakeVariant("auto")
+	}
+
+	settings = SanitizeSettingsForUpdate(settings)
+	err = connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Update", 0, settings).Err
+	if err != nil {
+		return fmt.Errorf("failed to update IPv6 method for %s: %w", req.SSIDOrUUID, err)
+	}
+
+	// If currently active, reactivate to apply immediately
+	if activeInfo, _ := c.GetActiveConnection(ctx); activeInfo != nil {
+		id := ""
+		if meta, ok := settings["connection"]; ok {
+			if s, ok := meta["id"].Value().(string); ok {
+				id = s
+			}
+		}
+		if activeInfo.SSID == id || req.SSIDOrUUID == id {
+			apPath, _ := c.findAccessPointPath(activeInfo.SSID)
+			nmObj := c.conn.Object(nmBusName, nmPath)
+			var activeConnPath dbus.ObjectPath
+			_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), c.wifiPath, apPath).Store(&activeConnPath)
+		}
+	}
+
+	return nil
+}
+
+// CleanupDuplicateProfiles removes redundant duplicate NetworkManager connection profiles for the same SSID.
+func (c *DBusWifiClient) CleanupDuplicateProfiles(ctx context.Context, targetSSID ...string) (*CleanupDuplicatesResponse, error) {
+	settingsObj := c.conn.Object(nmBusName, nmSettingsPath)
+
+	var connPaths []dbus.ObjectPath
+	if err := settingsObj.Call("org.freedesktop.NetworkManager.Settings.ListConnections", 0).Store(&connPaths); err != nil {
+		return nil, fmt.Errorf("failed to list connections: %w", err)
+	}
+
+	type profileEntry struct {
+		path         dbus.ObjectPath
+		uuid         string
+		id           string
+		ssid         string
+		hasCustomDNS bool
+		timestamp    uint64
+		isConnected  bool
+	}
+
+	activeInfo, _ := c.GetActiveConnection(ctx)
+	ssidGroups := make(map[string][]profileEntry)
+
+	filterSSID := ""
+	if len(targetSSID) > 0 && targetSSID[0] != "" {
+		filterSSID = targetSSID[0]
+	}
+
+	for _, path := range connPaths {
+		connObj := c.conn.Object(nmBusName, path)
+		var settings map[string]map[string]dbus.Variant
+		if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.GetSettings", 0).Store(&settings); err == nil {
+			if wireless, ok := settings["802-11-wireless"]; ok {
+				ssidBytes, _ := wireless["ssid"].Value().([]byte)
+				ssid := string(ssidBytes)
+				if ssid == "" {
+					continue
+				}
+				if filterSSID != "" && !strings.EqualFold(ssid, filterSSID) {
+					continue
+				}
+
+				connMeta := settings["connection"]
+				uuid, _ := connMeta["uuid"].Value().(string)
+				id, _ := connMeta["id"].Value().(string)
+				ts, _ := connMeta["timestamp"].Value().(uint64)
+
+				hasCustomDNS := false
+				if ipv4Meta, ok := settings["ipv4"]; ok {
+					if ig, ok := ipv4Meta["ignore-auto-dns"].Value().(bool); ok && ig {
+						hasCustomDNS = true
+					}
+					if dnsVal, ok := ipv4Meta["dns"]; ok {
+						if dnsList, ok := dnsVal.Value().([]uint32); ok && len(dnsList) > 0 {
+							hasCustomDNS = true
+						}
+					}
+				}
+
+				isConn := activeInfo != nil && (activeInfo.SSID == ssid || activeInfo.SSID == id)
+
+				ssidGroups[ssid] = append(ssidGroups[ssid], profileEntry{
+					path:         path,
+					uuid:         uuid,
+					id:           id,
+					ssid:         ssid,
+					hasCustomDNS: hasCustomDNS,
+					timestamp:    ts,
+					isConnected:  isConn,
+				})
+			}
+		}
+	}
+
+	var deletedUUIDs []string
+
+	for _, profiles := range ssidGroups {
+		if len(profiles) <= 1 {
+			continue
+		}
+
+		// Pick the best profile to keep:
+		bestIdx := 0
+		for i := 1; i < len(profiles); i++ {
+			if profiles[i].isConnected && !profiles[bestIdx].isConnected {
+				bestIdx = i
+			} else if !profiles[bestIdx].isConnected && profiles[i].hasCustomDNS && !profiles[bestIdx].hasCustomDNS {
+				bestIdx = i
+			} else if !profiles[bestIdx].isConnected && profiles[i].timestamp > profiles[bestIdx].timestamp {
+				bestIdx = i
+			}
+		}
+
+		// Delete all redundant profiles
+		for i, p := range profiles {
+			if i == bestIdx {
+				continue
+			}
+			delObj := c.conn.Object(nmBusName, p.path)
+			if err := delObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Err; err == nil {
+				deletedUUIDs = append(deletedUUIDs, p.uuid)
+			}
+		}
+	}
+
+	return &CleanupDuplicatesResponse{
+		DeletedCount: len(deletedUUIDs),
+		DeletedUUIDs: deletedUUIDs,
+	}, nil
 }
 
 // SetWifiEnabled enables or disables the wireless radio.

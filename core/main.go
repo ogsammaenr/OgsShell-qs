@@ -44,6 +44,25 @@ type SetWifiEnabledPayload struct {
 	Enabled bool `json:"enabled"`
 }
 
+type GetNetworkDetailsPayload struct {
+	SSIDOrUUID string `json:"ssid_or_uuid"`
+}
+
+type SetConnectionDNSPayload struct {
+	SSIDOrUUID    string   `json:"ssid_or_uuid"`
+	DNS           []string `json:"dns"`
+	IgnoreAutoDNS bool     `json:"ignore_auto_dns"`
+}
+
+type SetConnectionIPv6Payload struct {
+	SSIDOrUUID string `json:"ssid_or_uuid"`
+	Disabled   bool   `json:"disabled"`
+}
+
+type CleanupDuplicatesPayload struct {
+	SSID string `json:"ssid,omitempty"`
+}
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
@@ -612,6 +631,88 @@ func main() {
 				Payload: payloadBytes,
 			})
 
+		case "get_network_details":
+			var p GetNetworkDetailsPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			details, err := wifiMgr.GetNetworkDetails(ctx, p.SSIDOrUUID)
+			if err != nil {
+				return fmt.Errorf("ağ detayları okunamadı: %w", err)
+			}
+			payloadBytes, _ := json.Marshal(details)
+			return server.Broadcast(ipc.Event{
+				Type:    "network_details",
+				Payload: payloadBytes,
+			})
+
+		case "set_connection_dns":
+			var p SetConnectionDNSPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("set_connection_dns args çözülemedi: %w", err)
+			}
+			log.Info("DNS sunucuları güncelleniyor", "target", p.SSIDOrUUID, "dns", p.DNS, "ignore_auto_dns", p.IgnoreAutoDNS)
+			if err := wifiMgr.SetConnectionDNS(ctx, wifi.SetConnectionDNSRequest{
+				SSIDOrUUID:    p.SSIDOrUUID,
+				DNS:           p.DNS,
+				IgnoreAutoDNS: p.IgnoreAutoDNS,
+			}); err != nil {
+				return fmt.Errorf("DNS güncellenemedi: %w", err)
+			}
+			if details, err := wifiMgr.GetNetworkDetails(ctx, p.SSIDOrUUID); err == nil {
+				pBytes, _ := json.Marshal(details)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "network_details",
+					Payload: pBytes,
+				})
+			}
+			return nil
+
+		case "set_connection_ipv6":
+			var p SetConnectionIPv6Payload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("set_connection_ipv6 args çözülemedi: %w", err)
+			}
+			log.Info("IPv6 durumu güncelleniyor", "target", p.SSIDOrUUID, "disabled", p.Disabled)
+			if err := wifiMgr.SetConnectionIPv6(ctx, wifi.SetConnectionIPv6Request{
+				SSIDOrUUID: p.SSIDOrUUID,
+				Disabled:   p.Disabled,
+			}); err != nil {
+				return fmt.Errorf("IPv6 güncellenemedi: %w", err)
+			}
+			if details, err := wifiMgr.GetNetworkDetails(ctx, p.SSIDOrUUID); err == nil {
+				pBytes, _ := json.Marshal(details)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "network_details",
+					Payload: pBytes,
+				})
+			}
+			return nil
+
+		case "cleanup_duplicate_profiles":
+			var p CleanupDuplicatesPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			log.Info("Kopya Wi-Fi profilleri temizleniyor", "filter_ssid", p.SSID)
+			res, err := wifiMgr.CleanupDuplicateProfiles(ctx, p.SSID)
+			if err != nil {
+				return fmt.Errorf("kopya profiller temizlenemedi: %w", err)
+			}
+			payloadBytes, _ := json.Marshal(res)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "cleanup_duplicates_result",
+				Payload: payloadBytes,
+			})
+			if profiles, err := wifiMgr.GetSavedProfiles(ctx); err == nil {
+				pBytes, _ := json.Marshal(profiles)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "saved_wifi_profiles",
+					Payload: pBytes,
+				})
+			}
+			return nil
+
 		case "add_notification":
 			if notifMgr == nil {
 				return fmt.Errorf("bildirim servisi devrede değil")
@@ -1166,6 +1267,7 @@ func main() {
 			})
 
 		case "toggle_control_center", "open_control_center", "close_control_center",
+			"toggle_settings", "open_settings", "close_settings",
 			"toggle_themes", "open_themes",
 			"toggle_notifications", "open_notifications",
 			"toggle_power_menu", "open_power_menu",

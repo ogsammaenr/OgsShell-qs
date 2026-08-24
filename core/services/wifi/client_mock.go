@@ -239,3 +239,71 @@ func (m *MockWifiClient) GetActiveConnection(ctx context.Context) (*ActiveWifiIn
 		Security:    SecurityWPA2PSK,
 	}, nil
 }
+
+func (m *MockWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID string) (*NetworkDetails, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	target := ssidOrUUID
+	if target == "" {
+		target = m.activeSSID
+	}
+	if target == "" {
+		return nil, fmt.Errorf("no active connection")
+	}
+
+	profile, ok := m.profiles[target]
+	uuid := target
+	ssid := target
+	if ok {
+		uuid = profile.UUID
+		ssid = profile.SSID
+	}
+
+	return &NetworkDetails{
+		UUID:          uuid,
+		Name:          ssid,
+		SSID:          ssid,
+		Device:        "wlan0",
+		IPAddress:     "192.168.1.105",
+		Prefix:        24,
+		Gateway:       "192.168.1.1",
+		DNS:           []string{"1.1.1.1", "1.0.0.1"},
+		IgnoreAutoDNS: true,
+		IPv6Method:    "auto",
+		IPv6Disabled:  false,
+		Security:      SecurityWPA2PSK,
+		IsConnected:   m.activeSSID == ssid,
+		Signal:        92,
+	}, nil
+}
+
+func (m *MockWifiClient) SetConnectionDNS(ctx context.Context, req SetConnectionDNSRequest) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if req.SSIDOrUUID == "" {
+		return fmt.Errorf("missing SSID or UUID")
+	}
+	return nil
+}
+
+func (m *MockWifiClient) SetConnectionIPv6(ctx context.Context, req SetConnectionIPv6Request) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if req.SSIDOrUUID == "" {
+		return fmt.Errorf("missing SSID or UUID")
+	}
+	return nil
+}
+
+func (m *MockWifiClient) CleanupDuplicateProfiles(ctx context.Context, targetSSID ...string) (*CleanupDuplicatesResponse, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	return &CleanupDuplicatesResponse{
+		DeletedCount: 0,
+		DeletedUUIDs: []string{},
+	}, nil
+}

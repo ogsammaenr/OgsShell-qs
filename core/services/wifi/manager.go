@@ -39,4 +39,16 @@ type WifiManager interface {
 
 	// GetActiveConnection retrieves telemetry for the currently connected wireless network.
 	GetActiveConnection(ctx context.Context) (*ActiveWifiInfo, error)
+
+	// GetNetworkDetails retrieves detailed IP/DNS/IPv6 configuration for a connection or the active network.
+	GetNetworkDetails(ctx context.Context, ssidOrUUID string) (*NetworkDetails, error)
+
+	// SetConnectionDNS configures custom DNS and automatic DNS ignore flag on a connection profile.
+	SetConnectionDNS(ctx context.Context, req SetConnectionDNSRequest) error
+
+	// SetConnectionIPv6 sets IPv6 method (disabled or auto) on a connection profile.
+	SetConnectionIPv6(ctx context.Context, req SetConnectionIPv6Request) error
+
+	// CleanupDuplicateProfiles removes redundant duplicate NetworkManager connection profiles for the same SSID.
+	CleanupDuplicateProfiles(ctx context.Context, targetSSID ...string) (*CleanupDuplicatesResponse, error)
 }
