@@ -48,7 +48,7 @@ func (a *ZedAdapter) ensureThemeTemplates() {
 	themesDir := a.getThemesDir()
 	_ = os.MkdirAll(themesDir, 0755)
 
-	themeIDs := []string{"catppuccin", "everforest", "gruvbox", "monochrome", "nord", "tokyonight"}
+	themeIDs := []string{"catppuccin", "everforest", "gruvbox", "monochrome", "nord", "tokyonight", "rosepine"}
 	for _, id := range themeIDs {
 		if srcFile, err := GetSharedAppConfigFile(a.sharedDir, "zed", id, "json"); err == nil {
 			destFile := filepath.Join(themesDir, fmt.Sprintf("%s.json", id))

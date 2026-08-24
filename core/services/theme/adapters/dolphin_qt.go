@@ -53,6 +53,8 @@ func (a *DolphinQtAdapter) getKdeSchemeName(themeID string) string {
 		return "OgsNord"
 	case "tokyonight":
 		return "OgsTokyoNight"
+	case "rosepine":
+		return "OgsRosePine"
 	default:
 		return fmt.Sprintf("Ogs%s", themeID)
 	}

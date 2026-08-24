@@ -1,0 +1,21 @@
+<scheme name="OgsRosePine" version="142" parent_scheme="Darcula">
+  <metaInfo>
+    <property name="ide">idea</property>
+    <property name="originalScheme">OgsRosePine</property>
+  </metaInfo>
+  <colors>
+    <option name="CONSOLE_BACKGROUND_KEY" value="191724" />
+    <option name="GUTTER_BACKGROUND" value="191724" />
+    <option name="PRIMARY_BACKGROUND" value="191724" />
+    <option name="SELECTION_BACKGROUND" value="403d52" />
+    <option name="SELECTION_FOREGROUND" value="e0def4" />
+  </colors>
+  <attributes>
+    <option name="TEXT">
+      <value>
+        <option name="FOREGROUND" value="e0def4" />
+        <option name="BACKGROUND" value="191724" />
+      </value>
+    </option>
+  </attributes>
+</scheme>

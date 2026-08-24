@@ -78,6 +78,7 @@ func (a *IntelliJAdapter) getSchemeName(themeID string) string {
 		"monochrome": "OgsMonochrome",
 		"nord":       "OgsNord",
 		"tokyonight": "OgsTokyoNight",
+		"rosepine":   "OgsRosePine",
 	}
 
 	if name, ok := schemeNames[strings.ToLower(themeID)]; ok {
