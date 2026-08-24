@@ -114,6 +114,8 @@ func (a *WallpaperAdapter) GetThemeFolderName(themeID string) string {
 		return "Nord"
 	case "tokyonight":
 		return "TokyoNight"
+	case "rosepine":
+		return "RosePine"
 	default:
 		return strings.Title(themeID)
 	}

@@ -46,5 +46,13 @@
     "bg": "#121212",
     "fg": "#f0f0f0",
     "card_bg": "#1e1e1e"
+  },
+  {
+    "id": "rosepine",
+    "name": "Rosé Pine",
+    "accent": "#ebbcba",
+    "bg": "#191724",
+    "fg": "#e0def4",
+    "card_bg": "#1f1d2e"
   }
 ]

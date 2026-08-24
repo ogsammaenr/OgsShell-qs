@@ -23,6 +23,9 @@ QtObject {
       "id": "everforest",
       "name": "Everforest Dark",
       "fg": "#d3c6aa",
+      "bgBase": "#1e2326",
+      "bgSidebar": "#171b1e",
+      "bgCard": "#272e33",
       "accent": "#a7c080",
       "accentSecondary": "#dbbc7f",
       "accentCyan": "#83c092",
@@ -34,6 +37,9 @@ QtObject {
       "id": "catppuccin",
       "name": "Catppuccin Macchiato",
       "fg": "#cad3f5",
+      "bgBase": "#24273a",
+      "bgSidebar": "#1e2030",
+      "bgCard": "#2d3149",
       "accent": "#c6a0f6",
       "accentSecondary": "#f5bde6",
       "accentCyan": "#8aadf4",
@@ -45,6 +51,9 @@ QtObject {
       "id": "tokyonight",
       "name": "Tokyo Night",
       "fg": "#c0caf5",
+      "bgBase": "#1a1b26",
+      "bgSidebar": "#16161e",
+      "bgCard": "#24283b",
       "accent": "#7aa2f7",
       "accentSecondary": "#bb9af7",
       "accentCyan": "#7dcfff",
@@ -56,6 +65,9 @@ QtObject {
       "id": "nord",
       "name": "Nord",
       "fg": "#eceff4",
+      "bgBase": "#2e3440",
+      "bgSidebar": "#242933",
+      "bgCard": "#3b4252",
       "accent": "#88c0d0",
       "accentSecondary": "#81a1c1",
       "accentCyan": "#8fbcbb",
@@ -67,6 +79,9 @@ QtObject {
       "id": "gruvbox",
       "name": "Gruvbox Dark",
       "fg": "#ebdbb2",
+      "bgBase": "#282828",
+      "bgSidebar": "#1d2021",
+      "bgCard": "#32302f",
       "accent": "#fe8019",
       "accentSecondary": "#fabd2f",
       "accentCyan": "#8ec07c",
@@ -78,12 +93,29 @@ QtObject {
       "id": "monochrome",
       "name": "Monochrome Minimal",
       "fg": "#f0f0f0",
+      "bgBase": "#141416",
+      "bgSidebar": "#0d0d0f",
+      "bgCard": "#1e1e22",
       "accent": "#e0e0e0",
       "accentSecondary": "#888888",
       "accentCyan": "#ffffff",
       "accentGreen": "#d0d0d0",
       "accentOrange": "#b0b0b0",
       "accentRed": "#ff6b6b"
+    },
+    "rosepine": {
+      "id": "rosepine",
+      "name": "Rosé Pine",
+      "fg": "#e0def4",
+      "bgBase": "#191724",
+      "bgSidebar": "#14121e",
+      "bgCard": "#1f1d2e",
+      "accent": "#ebbcba",
+      "accentSecondary": "#c4a7e7",
+      "accentCyan": "#9ccfd8",
+      "accentGreen": "#31748f",
+      "accentOrange": "#f6c177",
+      "accentRed": "#eb6f92"
     }
   })
 
@@ -97,6 +129,9 @@ QtObject {
         "id": activeThemeId,
         "name": activeThemeName,
         "fg": customColors.fg || "#ffffff",
+        "bgBase": customColors.bg || "#141416",
+        "bgSidebar": "#0d0d0f",
+        "bgCard": "#1e1e22",
         "accent": customColors.accent || "#0a84ff",
         "accentSecondary": customColors.accent_secondary || customColors.accent || "#64d2ff",
         "accentCyan": customColors.cyan || customColors.accent || "#64d2ff",
@@ -115,7 +150,15 @@ QtObject {
   readonly property color bgSecondary: "#000000"
 
   // =========================================================================
-  // 2. Translucent Frosted Glass Tiers (Adapts dynamically to active theme tint)
+  // 2. Standalone Application Window Surfaces (Opaque, rich, theme-harmonized)
+  // =========================================================================
+  property color appBackground: activePalette.bgBase ? activePalette.bgBase : "#161618"
+  property color appSidebar: activePalette.bgSidebar ? activePalette.bgSidebar : "#101012"
+  property color appCard: activePalette.bgCard ? activePalette.bgCard : "#222226"
+  property color appBorder: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.10)
+
+  // =========================================================================
+  // 3. Translucent Frosted Glass Tiers (Adapts dynamically to active theme tint)
   // =========================================================================
   property color surface: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.06)
   property color surfaceVariant: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.10)
@@ -139,6 +182,9 @@ QtObject {
   property color accentCyan: activePalette.accentCyan ? activePalette.accentCyan : "#64d2ff"
   property color accentGreen: activePalette.accentGreen ? activePalette.accentGreen : "#30d158"
   property color accentOrange: activePalette.accentOrange ? activePalette.accentOrange : "#ff9f0a"
+  property color accentYellow: "#e5c890"
+  property color accentBlue: activePalette.accentSecondary ? activePalette.accentSecondary : "#0a84ff"
+  property color accentMagenta: "#ca9ee6"
   property color accentRed: activePalette.accentRed ? activePalette.accentRed : "#ff453a"
   property color accentHover: Qt.lighter(accent, 1.15)
 

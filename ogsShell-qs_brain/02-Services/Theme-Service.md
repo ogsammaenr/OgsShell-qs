@@ -8,7 +8,7 @@ tags:
   - go/daemon
   - quickshell/hud
 created: 2026-08-11
-updated: 2026-08-22
+updated: 2026-08-24
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -30,6 +30,7 @@ related_notes:
   - "[[Plan-Fix-Vesktop-Inotify-Inode-Watch]]"
   - "[[Plan-Kitty-Theme-Preserve-Dynamic-Font-Size]]"
   - "[[Plan-Startup-Wallpaper-And-Theme-Initialization]]"
+  - "[[Plan-Rose-Pine-Theme-Integration]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service

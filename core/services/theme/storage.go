@@ -105,6 +105,22 @@ var DefaultSharedThemes = []ThemePalette{
 			"cyan":             "#ffffff",
 		},
 	},
+	{
+		ID:     "rosepine",
+		Name:   "Rosé Pine",
+		Author: "mvllow",
+		Colors: map[string]string{
+			"bg":               "#191724",
+			"surface":          "#1f1d2e",
+			"surface_variant":  "#26233a",
+			"card_bg":          "#1f1d2e",
+			"fg":               "#e0def4",
+			"accent":           "#ebbcba",
+			"accent_secondary": "#c4a7e7",
+			"border":           "#ebbcba",
+			"cyan":             "#9ccfd8",
+		},
+	},
 }
 
 // GetSharedDir locates the shared directory.

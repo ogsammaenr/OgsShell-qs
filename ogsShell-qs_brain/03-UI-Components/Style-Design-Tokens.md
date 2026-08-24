@@ -8,7 +8,7 @@ tags:
   - ui/typography
   - animation/spring
 created: 2026-08-09
-updated: 2026-08-16
+updated: 2026-08-24
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -19,6 +19,7 @@ related_notes:
   - "[[Control-Center-Widget]]"
   - "[[Clock-Manager]]"
   - "[[Plan-Typography-Scale-And-Readability-Optimization]]"
+  - "[[Plan-Rose-Pine-Theme-Integration]]"
 ---
 
 # Style Design Tokens Specification
@@ -81,6 +82,7 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 4. **Nord (`nord`):** `#88c0d0` (Frost Cyan), `#eceff4` (FG), `#8fbcbb` (Ice)
 5. **Gruvbox Dark (`gruvbox`):** `#fe8019` (Orange Accent), `#ebdbb2` (FG), `#8ec07c` (Aqua)
 6. **Monochrome Minimal (`monochrome`):** `#e0e0e0` (Silver White), `#f0f0f0` (FG), `#ffffff` (White)
+7. **Rosé Pine (`rosepine`):** `#ebbcba` (Rose Accent), `#e0def4` (FG), `#9ccfd8` (Foam Cyan), `#c4a7e7` (Iris)
 
 ---
 
@@ -91,3 +93,4 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 * Tema Servisi: `[[Theme-Service]]`
 * IPC İstemcisi: `[[Daemon-IPC-Client]]`
 * Tipografi Planı: `[[Plan-Typography-Scale-And-Readability-Optimization]]`
+* Rosé Pine Entegrasyonu: `[[Plan-Rose-Pine-Theme-Integration]]`

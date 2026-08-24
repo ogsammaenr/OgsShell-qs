@@ -7,12 +7,14 @@ tags:
   - json/config
   - app-configs
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-08-24
 status: active
 related_notes:
   - "[[System-Architecture]]"
   - "[[Style-Design-Tokens]]"
   - "[[Dynamic-Island-Component]]"
+  - "[[Theme-Service]]"
+  - "[[Plan-Rose-Pine-Theme-Integration]]"
 ---
 
 # Configuration & Multi-App Themes Specification
@@ -24,7 +26,7 @@ related_notes:
 
 ## 1. Global Themes Registry (`shared/themes/themes.json`)
 
-The themes registry contains structured color definitions across six primary dark-mode palettes:
+The themes registry contains structured color definitions across primary dark-mode palettes (including Nord, Catppuccin, Everforest, Tokyo Night, Gruvbox, Monochrome Minimal, and Rosé Pine):
 
 ```json
 [
@@ -75,6 +77,14 @@ The themes registry contains structured color definitions across six primary dar
     "bg": "#121212",
     "fg": "#f0f0f0",
     "card_bg": "#1e1e1e"
+  },
+  {
+    "id": "rosepine",
+    "name": "Rosé Pine",
+    "accent": "#ebbcba",
+    "bg": "#191724",
+    "fg": "#e0def4",
+    "card_bg": "#1f1d2e"
   }
 ]
 ```

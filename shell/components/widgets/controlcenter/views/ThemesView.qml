@@ -62,6 +62,12 @@ Item {
       "name": "Monochrome Minimal",
       "author": "ogsShell",
       "colors": { "bg": "#121212", "surface": "#1e1e1e", "card_bg": "#1e1e1e", "fg": "#f0f0f0", "accent": "#e0e0e0", "border": "#e0e0e0", "cyan": "#ffffff" }
+    },
+    {
+      "id": "rosepine",
+      "name": "Rosé Pine",
+      "author": "mvllow",
+      "colors": { "bg": "#191724", "surface": "#1f1d2e", "card_bg": "#1f1d2e", "fg": "#e0def4", "accent": "#ebbcba", "border": "#ebbcba", "cyan": "#9ccfd8" }
     }
   ]
 
