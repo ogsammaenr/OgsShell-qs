@@ -166,5 +166,39 @@ func TestAndroidStudioAdapterAllThemesSharedConfigs(t *testing.T) {
 			t.Errorf("intellij %s does not contain scheme name %s", id, schemeName)
 		}
 	}
+
+	// 3. Test ogsshell-themes.jar presence
+	jarAS, err := GetSharedAppConfigFile(repoShared, "android_studio", "ogsshell-themes", "jar")
+	if err != nil {
+		t.Fatalf("failed to find ogsshell-themes.jar in android_studio: %v", err)
+	}
+	if info, err := os.Stat(jarAS); err != nil || info.Size() == 0 {
+		t.Fatalf("invalid ogsshell-themes.jar in android_studio: %v", err)
+	}
+
+	jarIJ, err := GetSharedAppConfigFile(repoShared, "intellij", "ogsshell-themes", "jar")
+	if err != nil {
+		t.Fatalf("failed to find ogsshell-themes.jar in intellij: %v", err)
+	}
+	if info, err := os.Stat(jarIJ); err != nil || info.Size() == 0 {
+		t.Fatalf("invalid ogsshell-themes.jar in intellij: %v", err)
+	}
 }
+
+func TestLiveAndroidStudioApply(t *testing.T) {
+	repoShared := filepath.Join("..", "..", "..", "..", "shared")
+	adapter := &AndroidStudioAdapter{
+		sharedDir: repoShared,
+	}
+
+	palette := &theme.ThemePalette{
+		ID:   "nord",
+		Name: "Nord",
+	}
+
+	if err := adapter.Apply(palette); err != nil {
+		t.Fatalf("Live Android Studio apply failed: %v", err)
+	}
+}
+
 
