@@ -97,7 +97,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.isLiveActivity ? ClockManager.liveActivityTitle : ClockManager.currentDisplayTime
         color: root.isLiveActivity ? ClockManager.liveActivityColor : Style.textPrimary
-        font.pixelSize: root.hoverMode ? (Config.typography.clock_hover_size || 20) : (Config.typography.clock_idle_size || 16)
+        font.pixelSize: root.hoverMode ? Config.clockHoverSize : Config.clockIdleSize
         font.weight: root.hoverMode ? Font.Bold : Font.DemiBold
         font.letterSpacing: root.hoverMode ? 0.5 : 0.3
 
@@ -122,7 +122,7 @@ Item {
     anchors.topMargin: root.hoverMode ? 3 : 5
     text: root.isLiveActivity ? ClockManager.liveActivitySubtitle : ClockManager.currentDisplayDate
     color: dateHover.hovered ? Style.textPrimary : Style.textMuted
-    font.pixelSize: Config.typography.date_hover_size || 13
+    font.pixelSize: Config.dateHoverSize
     font.weight: Font.Medium
     font.letterSpacing: 0.3
     opacity: root.hoverMode ? 1.0 : 0.0

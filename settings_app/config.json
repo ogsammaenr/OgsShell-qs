@@ -1,8 +1,10 @@
 {
   "form_factor": "notch",
   "theme": "catppuccin",
+  "show_pinned_system_metrics": true,
+  "focus_mode": false,
   "typography": {
-    "clock_idle_size": 20,
+    "clock_idle_size": 18,
     "clock_hover_size": 22,
     "date_hover_size": 14,
     "media_title_size": 13,
@@ -15,7 +17,7 @@
     "pinned_metrics_icon_size": 14
   },
   "island": {
-    "top_margin": 8,
+    "top_margin": 3,
     "idle_width": 180,
     "idle_height": 36,
     "hover_width": 480,
@@ -30,12 +32,12 @@
   "notch": {
     "top_margin": 0,
     "idle_width": 190,
-    "idle_height": 32,
-    "hover_width": 490,
-    "hover_height": 56,
+    "idle_height": 34,
+    "hover_width": 500,
+    "hover_height": 74,
     "transient_width": 350,
     "transient_height": 58,
-    "expanded_width": 490,
+    "expanded_width": 500,
     "expanded_height": 315,
     "bottom_radius": 20,
     "bottom_radius_expanded": 26

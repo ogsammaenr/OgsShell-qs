@@ -90,7 +90,7 @@ Item {
         Text {
           text: root.wifiIcon
           color: root.wifiConnected ? Style.accent : Style.textMuted
-          font.pixelSize: Config.typography.connectivity_icon_size || 14
+          font.pixelSize: Config.connectivityIconSize
           anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -98,7 +98,7 @@ Item {
           id: ssidText
           text: root.wifiConnected ? root.wifiSsid : "Kapalı"
           color: root.wifiConnected ? Style.textPrimary : Style.textMuted
-          font.pixelSize: Config.typography.connectivity_text_size || 11
+          font.pixelSize: Config.connectivityTextSize
           font.weight: Font.DemiBold
           elide: Text.ElideRight
           maximumLineCount: 1
@@ -123,7 +123,7 @@ Item {
         Text {
           text: root.btIcon
           color: root.btConnected ? Style.accent : (root.btPowered ? Style.textPrimary : Style.textMuted)
-          font.pixelSize: Config.typography.connectivity_icon_size || 14
+          font.pixelSize: Config.connectivityIconSize
           anchors.verticalCenter: parent.verticalCenter
         }
 

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import "../../.."
 
@@ -60,9 +61,10 @@ Item {
   Process { id: toggleMuteProc }
   Process { id: setBrightProc }
   Process { id: gameModeProc }
-  Process {
-    id: openSettingsProc
-    command: ["/home/excalibur/WorkSpace/projects/OgsShell-qs/scripts/open_settings_app.sh"]
+
+  function openSettingsApp() {
+    console.log("[ControlCenter] Settings button triggered! Calling SettingsService.open()...")
+    SettingsService.open()
   }
 
   function syncTelemetry() {
@@ -100,6 +102,14 @@ Item {
       gameModeProc.command = ["hyprctl", "--batch", "keyword animations:enabled 1; keyword decoration:blur:enabled 1; keyword decoration:drop_shadow 1"]
     }
     gameModeProc.running = true
+  }
+
+  function formatSpeed(bytes) {
+    if (!bytes || bytes <= 0) return "0 B/s"
+    if (bytes < 1024) return `${Math.round(bytes)} B/s`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes >= 100 * 1024 ? 0 : 1)} KB/s`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB/s`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB/s`
   }
 
   Component.onCompleted: syncTelemetry()
@@ -696,7 +706,7 @@ Item {
 
         Row {
           anchors.centerIn: parent
-          spacing: 7
+          spacing: 5
 
           Text {
             text: {
@@ -745,6 +755,26 @@ Item {
             font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
+
+          Rectangle {
+            width: 3
+            height: 3
+            radius: 1.5
+            color: Config.showPinnedSystemMetrics ? Style.accentOrange : Style.textMuted
+            anchors.verticalCenter: parent.verticalCenter
+          }
+
+          Text {
+            text: {
+              let rx = (ipc && ipc.net && ipc.net.rx_bytes_sec !== undefined) ? ipc.net.rx_bytes_sec : 0
+              let tx = (ipc && ipc.net && ipc.net.tx_bytes_sec !== undefined) ? ipc.net.tx_bytes_sec : 0
+              return `NET ${root.formatSpeed(rx + tx)}`
+            }
+            font.pixelSize: 10
+            color: Config.showPinnedSystemMetrics ? Style.accentSecondary : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
+            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
+            anchors.verticalCenter: parent.verticalCenter
+          }
         }
 
 
@@ -781,7 +811,7 @@ Item {
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
           onClicked: {
-            openSettingsProc.running = true
+            root.openSettingsApp()
           }
         }
       }

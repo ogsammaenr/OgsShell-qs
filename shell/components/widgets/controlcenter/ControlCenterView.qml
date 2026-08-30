@@ -24,8 +24,8 @@ Item {
   }
 
   // Geometry hints for DynamicIsland container
-  readonly property int preferredIslandWidth: (currentView === "MAIN") ? 440 : ((currentView === "AUDIO_MIXER") ? 460 : 450)
-  readonly property int preferredIslandHeight: (currentView === "MAIN") ? 310 : ((currentView === "AUDIO_MIXER") ? 350 : 320)
+  readonly property int preferredIslandWidth: (currentView === "MAIN") ? 490 : ((currentView === "AUDIO_MIXER") ? 490 : 480)
+  readonly property int preferredIslandHeight: (currentView === "MAIN") ? 315 : ((currentView === "AUDIO_MIXER") ? 350 : 320)
 
   // ==========================================
   // Sub-Views Container (Lazy Loaded via Loaders)

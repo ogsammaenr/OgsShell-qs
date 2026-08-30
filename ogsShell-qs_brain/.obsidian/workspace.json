@@ -230,6 +230,7 @@
   },
   "active": "5dac5067c06cf735",
   "lastOpenFiles": [
+    "05-Agent-Thoughts/Plan-Live-Config-Hot-Reload-Architecture.md",
     "05-Agent-Thoughts/Plan-Fix-Launcher-List-View.md",
     "05-Agent-Thoughts/Plan-Apple-Spotlight-Minimalist-Launcher-Redesign.md",
     "05-Agent-Thoughts/Plan-Per-Monitor-Launcher-Focus.md",
@@ -255,7 +256,6 @@
     "03-UI-Components/Connectivity-Status-Widget.md",
     "01-Architecture/IPC-Socket-Schema.md",
     "01-Architecture/System-Architecture.md",
-    "05-Agent-Thoughts/Plan-Expanded-State-5s-Focus-Timeout.md",
     "04-Agent-Rules",
     "03-UI-Components",
     "02-Services",

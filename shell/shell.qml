@@ -6,7 +6,6 @@ import Quickshell.Services.Notifications
 import "components/island"
 import "components/widgets"
 import "components/widgets/controlcenter"
-import "components/settings"
 
 Scope {
   id: rootScope
@@ -155,7 +154,7 @@ Scope {
 
         exclusionMode: Config.focusMode ? ExclusionMode.Ignore : ExclusionMode.Auto
 
-        implicitHeight: Config.isNotch ? (Config.notch.idle_height + 5) : (Config.island.top_margin + Config.island.idle_height + 5)
+        implicitHeight: Config.isNotch ? (Config.notchIdleHeight + 5) : (Config.islandTopMargin + Config.islandIdleHeight + 5)
 
         // Zero click-blocking: completely empty input mask so all clicks pass through to windows below
         mask: Region {}
@@ -229,12 +228,12 @@ Scope {
           width: Math.max(island.width + 40, 320)
           height: {
             if (!screenScope.isRevealed) {
-              return screenScope.shouldAutoHide ? 12 : (Config.isNotch ? Config.notch.idle_height : (Config.island.top_margin + Config.island.idle_height))
+              return screenScope.shouldAutoHide ? 12 : (Config.isNotch ? Config.notchIdleHeight : (Config.islandTopMargin + Config.islandIdleHeight))
             }
             if (island.stateMode === "EXPANDED") {
               return Math.max(island.implicitHeight + 30, 360)
             }
-            return Config.isNotch ? (Config.notch.hover_height + 6) : (Config.island.top_margin + Config.island.hover_height + 6)
+            return Config.isNotch ? (Config.notchHoverHeight + 6) : (Config.islandTopMargin + Config.islandHoverHeight + 6)
           }
           color: "transparent"
         }
@@ -261,7 +260,7 @@ Scope {
           ipc: ipcService
           isScreenFocused: screenScope.isFocusedMonitor
           anchors.horizontalCenter: parent.horizontalCenter
-          y: screenScope.isRevealed ? (Config.isNotch ? 0 : Config.activeGeometry.top_margin) : (-island.implicitHeight - 12)
+          y: screenScope.isRevealed ? (Config.isNotch ? 0 : Config.islandTopMargin) : (-island.implicitHeight - 12)
           opacity: screenScope.isRevealed ? 1.0 : 0.0
           scale: screenScope.isRevealed ? 1.0 : 0.92
 
@@ -305,7 +304,7 @@ Scope {
           anchors.left: island.right
           anchors.leftMargin: 12
           visible: opacity > 0.0 && screenScope.isRevealed
-          y: island.y + (Config.isNotch ? Math.round((Config.notch.idle_height - height) / 2) : Math.round((Config.island.top_margin + (Config.island.idle_height - height) / 2)))
+          y: island.y + (Config.isNotch ? Math.round((Config.notchIdleHeight - height) / 2) : Math.round((Config.islandTopMargin + (Config.islandIdleHeight - height) / 2)))
         }
 
         // Reveal Latch Timer: Prevents early dismiss while island is animating down

@@ -8,20 +8,24 @@ tags:
   - dynamic-island/ui
   - system-controls
 created: 2026-08-14
-updated: 2026-08-16
+updated: 2026-08-28
 status: active
 related_notes:
+  - "[[Pinned-Metrics-Widget]]"
   - "[[Connectivity-Status-Widget]]"
   - "[[Dynamic-Island-Component]]"
   - "[[Daemon-IPC-Client]]"
   - "[[Theme-Service]]"
   - "[[System-Architecture]]"
   - "[[Power-Overlay-Component]]"
+  - "[[Settings-Application-Component]]"
   - "[[Plan-Unified-Control-Center-Suite]]"
   - "[[Plan-Theme-Selector-Gallery-Redesign]]"
   - "[[Plan-Dynamic-Island-System-Metrics-Pinning]]"
   - "[[Plan-Fullscreen-Power-And-Session-Overlay]]"
   - "[[Plan-Notification-Detail-Inspection-View]]"
+  - "[[Plan-Add-Network-Usage-To-System-Metrics]]"
+  - "[[Plan-Fix-Settings-App-Launcher-From-Control-Center]]"
 ---
 
 # Control Center UI Component Suite
@@ -68,7 +72,7 @@ graph TD
      * **Ses Seviyesi (Volume):** Thick, interactive rounded capsule slider with speaker glyph (`󰕾` / `󰖁`) and mute toggle.
    * **Row 4 - Status Footer:**
      * **Klavye Düzeni:** Clickable `[ 󰌌 TR ]` pill. Hem Go backend `switch_keyboard_layout` hem de `hyprctl switchxkblayout` fallback'i ile anında TR/US/DE/FR düzenleri arasında geçiş yapar.
-     * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0` (Go `sys_metrics` stream'inden reaktif okur).
+     * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0 • NET 1.2 MB/s` (Go `sys_metrics` stream'inden reaktif okur ve `[[Pinned-Metrics-Widget]]` ile senkronize çalışır).
      * **Güç Butonu (`󰐥`):** Tıklandığında adayı kapatıp tam ekran koyu cam blurlu `[[Power-Overlay-Component]]` menüsünü açar.
 
 2. **Sub-Application Views (`views/`):**

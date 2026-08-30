@@ -252,23 +252,30 @@ Item {
               visible: SettingsService.activeCategory === "network"
             }
 
+            // Page 2: Dynamic Island & Notch Configuration Page
+            IslandPage {
+              anchors.fill: parent
+              ipc: root.ipc
+              visible: SettingsService.activeCategory === "island"
+            }
+
             // Placeholder for other pages
             Item {
               anchors.fill: parent
-              visible: SettingsService.activeCategory !== "network"
+              visible: SettingsService.activeCategory !== "network" && SettingsService.activeCategory !== "island"
 
               ColumnLayout {
                 anchors.centerIn: parent
                 spacing: 12
 
                 Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
+                  Layout.alignment: Qt.AlignHCenter
                   text: "🛠️"
                   font.pixelSize: 36
                 }
 
                 Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
+                  Layout.alignment: Qt.AlignHCenter
                   text: "Bu modül yakında eklenecek"
                   font.pixelSize: 14
                   font.weight: Font.Bold
@@ -276,7 +283,7 @@ Item {
                 }
 
                 Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
+                  Layout.alignment: Qt.AlignHCenter
                   text: "Bu kategori için görsel ayarlar çok yakında kullanıma sunulacaktır."
                   font.pixelSize: 12
                   color: Style.textMuted

@@ -14,6 +14,9 @@ FloatingWindow {
   title: "ogsShell Ayarlar"
   implicitWidth: 880
   implicitHeight: 580
+  width: 880
+  height: 580
+  visible: true
   color: "transparent"
 
   property string activeCategory: "network"
@@ -229,10 +232,17 @@ FloatingWindow {
               visible: rootWindow.activeCategory === "network"
             }
 
+            // Page 2: Dynamic Island & Notch Configuration Page
+            IslandPage {
+              anchors.fill: parent
+              ipc: ipcService
+              visible: rootWindow.activeCategory === "island"
+            }
+
             // Placeholder for other upcoming pages
             Item {
               anchors.fill: parent
-              visible: rootWindow.activeCategory !== "network"
+              visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island"
 
               ColumnLayout {
                 anchors.centerIn: parent

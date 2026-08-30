@@ -7,7 +7,7 @@ tags:
   - quickshell/qml
   - theming/schema
 created: 2026-08-09
-updated: 2026-08-23
+updated: 2026-08-28
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -16,6 +16,8 @@ related_notes:
   - "[[Style-Design-Tokens]]"
   - "[[Dynamic-Island-Component]]"
   - "[[Plan-Reactive-Config-Geometry-And-Synchronization]]"
+  - "[[Plan-Live-Config-Hot-Reload-Architecture]]"
+  - "[[Plan-Instant-Live-Config-Hot-Reload-And-Reactive-Sync]]"
 ---
 
 # Configuration System & JSON Schema Specification
@@ -27,12 +29,13 @@ related_notes:
 
 ## 1. Configuration File Locations & Dual Reactive Synchronization
 
-The configuration system continuously watches both locations:
+The configuration system continuously watches both locations using a real-time event-driven `inotifywait` process and fresh disk reader:
 1. **User Custom Config (Canonical):** `$XDG_CONFIG_HOME/ogsShell/config.json` (or `~/.config/ogsShell/config.json`)
 2. **Project Workspace Config:** `shell/config.json`
 
-* **Automatic Two-Way Sync:** Whenever `shell/config.json` or `~/.config/ogsShell/config.json` is modified, `Config.qml` immediately parses the updated payload, updates the reactive `configRevision` generation counter, and synchronizes the active config to `$XDG_CONFIG_HOME/ogsShell/config.json`.
-* **Hot Reloading:** Window spacers (`reservedSpacerWindow`), input masks (`activeInputEnvelope`), and Dynamic Notch vector Bézier paths instantly resize upon saving without requiring a manual shell restart.
+* **Instant Low-Latency Hot Reloading (<5ms):** `Config.qml` uses `inotifywait` (`close_write`, `moved_to`, `modify`) over the parent directories and a zero-cache `cat` reader process. When `shell/config.json` is modified or saved via atomic editor renames, `Config.qml` reads the new payload immediately, increments `configRevision`, and triggers real-time visual updates.
+* **Automatic Two-Way Sync:** Whenever `shell/config.json` is modified, `Config.qml` parses the updated payload and synchronizes the active config to `$XDG_CONFIG_HOME/ogsShell/config.json` and `shared/app_configs/shell/config.json`.
+* **Live UI Morphing:** Window spacers (`reservedSpacerWindow`), input masks (`activeInputEnvelope`), typography scale, color tokens (`Style.qml`), and Dynamic Notch vector Bézier paths instantly resize upon saving without requiring a manual shell restart.
 
 ---
 

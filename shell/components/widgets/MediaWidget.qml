@@ -154,7 +154,7 @@ Item {
           width: parent.width
           text: root.title
           color: root.hasMedia ? Style.textPrimary : Style.textMuted
-          font.pixelSize: Config.typography.media_title_size || 12
+          font.pixelSize: Config.mediaTitleSize
           font.weight: Font.DemiBold
           elide: Text.ElideRight
         }
@@ -163,7 +163,7 @@ Item {
           width: parent.width
           text: root.artist
           color: Style.textMuted
-          font.pixelSize: Config.typography.media_artist_size || 11
+          font.pixelSize: Config.mediaArtistSize
           font.weight: Font.Normal
           elide: Text.ElideRight
         }

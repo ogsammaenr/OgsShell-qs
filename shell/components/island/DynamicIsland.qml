@@ -282,13 +282,13 @@ Item {
 
   // Dynamic geometry derived from active form-factor (Island vs Notch)
   implicitWidth: {
-    let geo = Config.activeGeometry
+    let _rev = Config.configRevision
     switch (stateMode) {
-      case "HOVER":     return geo.hover_width
-      case "TRANSIENT": return geo.transient_width
+      case "HOVER":     return Config.isNotch ? Config.notchHoverWidth : Config.islandHoverWidth
+      case "TRANSIENT": return Config.isNotch ? Config.notchTransientWidth : Config.islandTransientWidth
       case "EXPANDED":
         if (expandedActiveTab === "CONTROL_CENTER") {
-          return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandWidth) ? controlCenterLoader.item.preferredIslandWidth : 440
+          return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandWidth) ? controlCenterLoader.item.preferredIslandWidth : (Config.isNotch ? Config.notchExpandedWidth : Config.islandExpandedWidth)
         }
         if (expandedActiveTab === "LAUNCHER") {
           return 520
@@ -296,19 +296,19 @@ Item {
         if (expandedActiveTab === "MEDIA") {
           return 390
         }
-        return geo.expanded_width
-      default:          return geo.idle_width
+        return Config.isNotch ? Config.notchExpandedWidth : Config.islandExpandedWidth
+      default:          return Config.isNotch ? Config.notchIdleWidth : Config.islandIdleWidth
     }
   }
 
   implicitHeight: {
-    let geo = Config.activeGeometry
+    let _rev = Config.configRevision
     switch (stateMode) {
-      case "HOVER":     return geo.hover_height
-      case "TRANSIENT": return geo.transient_height
+      case "HOVER":     return Config.isNotch ? Config.notchHoverHeight : Config.islandHoverHeight
+      case "TRANSIENT": return Config.isNotch ? Config.notchTransientHeight : Config.islandTransientHeight
       case "EXPANDED":
         if (expandedActiveTab === "CONTROL_CENTER") {
-          return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandHeight) ? controlCenterLoader.item.preferredIslandHeight : 310
+          return (controlCenterLoader.item && controlCenterLoader.item.preferredIslandHeight) ? controlCenterLoader.item.preferredIslandHeight : (Config.isNotch ? Config.notchExpandedHeight : Config.islandExpandedHeight)
         }
         if (expandedActiveTab === "LAUNCHER") {
           return 440
@@ -316,8 +316,8 @@ Item {
         if (expandedActiveTab === "MEDIA") {
           return 170
         }
-        return geo.expanded_height
-      default:          return geo.idle_height
+        return Config.isNotch ? Config.notchExpandedHeight : Config.islandExpandedHeight
+      default:          return Config.isNotch ? Config.notchIdleHeight : Config.islandIdleHeight
     }
   }
 
@@ -326,11 +326,12 @@ Item {
 
   // Active parameters
   readonly property real activeRadius: {
+    let _rev = Config.configRevision
     if (Config.isNotch) {
-      let rawR = root.stateMode === "EXPANDED" ? Config.notch.bottom_radius_expanded : Config.notch.bottom_radius
+      let rawR = root.stateMode === "EXPANDED" ? Config.notchBottomRadiusExpanded : Config.notchBottomRadius
       return Math.min(rawR, root.height * 0.48)
     } else {
-      return root.stateMode === "EXPANDED" ? Config.island.radius_expanded : (root.stateMode === "TRANSIENT" ? (Config.island.radius_full + 4) : Config.island.radius_full)
+      return root.stateMode === "EXPANDED" ? Config.islandRadiusExpanded : (root.stateMode === "TRANSIENT" ? (Config.islandRadiusFull + 4) : Config.islandRadiusFull)
     }
   }
 
@@ -667,7 +668,7 @@ Item {
             width: parent.width
             text: root.transientSummary
             color: Style.textPrimary
-            font.pixelSize: Config.typography.notification_title_size || 13
+            font.pixelSize: Config.notificationTitleSize
             font.weight: Font.DemiBold
             elide: Text.ElideRight
           }
@@ -676,7 +677,7 @@ Item {
             width: parent.width
             text: root.transientBody.length > 0 ? root.transientBody : root.transientAppName
             color: Style.textMuted
-            font.pixelSize: Config.typography.notification_body_size || 11
+            font.pixelSize: Config.notificationBodySize
             elide: Text.ElideRight
           }
         }
