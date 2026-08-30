@@ -181,10 +181,11 @@ func (a *IntelliJAdapter) Apply(palette *theme.ThemePalette) error {
     <laf themeId="%s" />
     <lafs-to-previous-schemes>
       <laf-to-scheme laf="%s" scheme="%s" />
+      <laf-to-scheme laf="Islands Dark" scheme="%s" />
     </lafs-to-previous-schemes>
   </component>
 </application>
-`, lafThemeID, lafThemeID, schemeName)
+`, lafThemeID, lafThemeID, schemeName, schemeName)
 
 	for _, dir := range configDirs {
 		// 1. Copy .icls color scheme file to colors/
