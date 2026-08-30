@@ -59,7 +59,7 @@ func (a *TmuxAdapter) Apply(palette *theme.ThemePalette) error {
 		// Source the theme file directly into active tmux server
 		_ = exec.Command("tmux", "source-file", srcFile).Run()
 
-		// Re-source main tmux config if it exists
+		// Re-source main tmux config if it exists (Master source of truth)
 		mainConfigs := []string{
 			filepath.Join(homeDir, ".tmux.conf"),
 			filepath.Join(homeDir, ".config", "tmux", "tmux.conf"),
@@ -67,18 +67,6 @@ func (a *TmuxAdapter) Apply(palette *theme.ThemePalette) error {
 		for _, cfg := range mainConfigs {
 			if _, err := os.Stat(cfg); err == nil {
 				_ = exec.Command("tmux", "source-file", cfg).Run()
-				break
-			}
-		}
-
-		// Re-trigger minimal-tmux-status plugin if present
-		minimalPlugins := []string{
-			filepath.Join(homeDir, ".tmux", "plugins", "minimal-tmux-status", "minimal.tmux"),
-			filepath.Join(homeDir, ".config", "tmux", "plugins", "minimal-tmux-status", "minimal.tmux"),
-		}
-		for _, plug := range minimalPlugins {
-			if _, err := os.Stat(plug); err == nil {
-				_ = exec.Command("tmux", "run-shell", plug).Run()
 				break
 			}
 		}
