@@ -207,12 +207,13 @@ Scope {
 
         anchors {
           top: true
+          left: true
+          right: true
         }
 
         exclusionMode: ExclusionMode.Ignore
 
         // Fixed high-performance GPU canvas (prevents Wayland surface resize roundtrip latency)
-        implicitWidth: 1200
         implicitHeight: 560
 
         // Zero click-blocking: Precision Wayland input mask conforms strictly to island bounds

@@ -22,6 +22,7 @@ related_notes:
   - "[[Style-Design-Tokens]]"
   - "[[Configuration-System-Spec]]"
   - "[[Plan-Add-Network-Usage-To-System-Metrics]]"
+  - "[[Plan-Fix-Pinned-Metrics-Hover-Clipping-And-Canvas-Width]]"
 ---
 
 # Pinned Metrics Widget Component
