@@ -164,13 +164,16 @@ func (a *AndroidStudioAdapter) Apply(palette *theme.ThemePalette) error {
 		}
 	}
 
-	// 1. Deploy ogsshell-themes.jar to all plugin directories
+	// 1. Deploy ogsshell-themes.jar to all plugin directories (direct jar & directory format)
 	jarSrc, err := GetSharedAppConfigFile(a.sharedDir, "android_studio", "ogsshell-themes", "jar")
 	if err == nil {
 		for _, pDir := range a.getAndroidStudioPluginDirs() {
 			_ = os.MkdirAll(pDir, 0755)
-			destJar := filepath.Join(pDir, "ogsshell-themes.jar")
-			_ = CopyFile(jarSrc, destJar)
+			_ = CopyFile(jarSrc, filepath.Join(pDir, "ogsshell-themes.jar"))
+
+			libDir := filepath.Join(pDir, "ogsshell-themes", "lib")
+			_ = os.MkdirAll(libDir, 0755)
+			_ = CopyFile(jarSrc, filepath.Join(libDir, "ogsshell-themes.jar"))
 		}
 	}
 

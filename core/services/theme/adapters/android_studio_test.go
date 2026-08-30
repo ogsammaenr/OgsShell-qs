@@ -192,8 +192,8 @@ func TestLiveAndroidStudioApply(t *testing.T) {
 	}
 
 	palette := &theme.ThemePalette{
-		ID:   "nord",
-		Name: "Nord",
+		ID:   "gruvbox",
+		Name: "Gruvbox Dark",
 	}
 
 	if err := adapter.Apply(palette); err != nil {

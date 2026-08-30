@@ -146,13 +146,16 @@ func (a *IntelliJAdapter) Apply(palette *theme.ThemePalette) error {
 		return err
 	}
 
-	// 1. Deploy ogsshell-themes.jar to all JetBrains plugin directories
+	// 1. Deploy ogsshell-themes.jar to all JetBrains plugin directories (direct jar & directory format)
 	jarSrc, err := GetSharedAppConfigFile(a.sharedDir, "intellij", "ogsshell-themes", "jar")
 	if err == nil {
 		for _, pDir := range a.getJetBrainsPluginDirs() {
 			_ = os.MkdirAll(pDir, 0755)
-			destJar := filepath.Join(pDir, "ogsshell-themes.jar")
-			_ = CopyFile(jarSrc, destJar)
+			_ = CopyFile(jarSrc, filepath.Join(pDir, "ogsshell-themes.jar"))
+
+			libDir := filepath.Join(pDir, "ogsshell-themes", "lib")
+			_ = os.MkdirAll(libDir, 0755)
+			_ = CopyFile(jarSrc, filepath.Join(libDir, "ogsshell-themes.jar"))
 		}
 	}
 
