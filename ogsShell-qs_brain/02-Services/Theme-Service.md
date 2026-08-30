@@ -8,7 +8,7 @@ tags:
   - go/daemon
   - quickshell/hud
 created: 2026-08-11
-updated: 2026-08-24
+updated: 2026-08-30
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -25,17 +25,21 @@ related_notes:
   - "[[Plan-Fix-Tmux-Theme-Adapter]]"
   - "[[Plan-Fix-Terminal-And-Tmux-Theme-Sync]]"
   - "[[Plan-IntelliJ-Theme-Adapter]]"
+  - "[[Plan-Android-Studio-Nord-Theme-Adapter]]"
+  - "[[Plan-Android-Studio-All-Themes-Implementation]]"
   - "[[Plan-Fix-Vesktop-Theme-Sync]]"
   - "[[Plan-Fix-Zed-Theme-Inotify-Inode-Watch]]"
   - "[[Plan-Fix-Vesktop-Inotify-Inode-Watch]]"
   - "[[Plan-Kitty-Theme-Preserve-Dynamic-Font-Size]]"
   - "[[Plan-Startup-Wallpaper-And-Theme-Initialization]]"
   - "[[Plan-Rose-Pine-Theme-Integration]]"
+  - "[[Plan-Tmux-Prefix-Window-Color-Highlight]]"
+  - "[[Plan-Tmux-Dual-Capsule-Status-Bar]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service
 
-Go daemon subsystem responsible for centralizing system-wide color theming across the desktop shell (Quickshell, Hyprland) and productivity/coding applications (Kitty, Zed, Vesktop, Neovim, Dolphin/Qt, Btop, GTK, Tmux, IntelliJ IDEA).
+Go daemon subsystem responsible for centralizing system-wide color theming across the desktop shell (Quickshell, Hyprland) and productivity/coding applications (Kitty, Zed, Vesktop, Neovim, Dolphin/Qt, Btop, GTK, Tmux, IntelliJ IDEA, Android Studio).
 
 ## Core Architecture
 
@@ -62,6 +66,7 @@ graph TD
     Worker -->|Copy File| Btop[Btop: shared/app_configs/btop/]
     Worker -->|Copy File & Source| Tmux[Tmux: shared/app_configs/tmux/]
     Worker -->|Copy File & XML Patch| IDEA[IntelliJ: shared/app_configs/intellij/]
+    Worker -->|Copy File & XML Patch| AS[Android Studio: shared/app_configs/android_studio/]
     Worker -->|Live Border Recolor| Hypr[Hyprland: hyprctl col.active_border & colors.conf]
 ```
 
@@ -82,6 +87,7 @@ graph TD
    - **GTK:** Copies `shared/app_configs/gtk/<id>.css` & `.ini` to `~/.config/gtk-3.0/` and `~/.config/gtk-4.0/`.
    - **Tmux:** Copies `shared/app_configs/tmux/<id>.conf` to both `~/.tmux/current-theme.conf` and `~/.config/tmux/theme.conf`, executes live `tmux source-file`, reloads `minimal.tmux` status plugin, and triggers `tmux refresh-client -S`. Detay: `[[Plan-Fix-Tmux-Theme-Adapter]]`.
    - **IntelliJ IDEA / JetBrains:** Copies `shared/app_configs/intellij/<id>.icls` to `~/.config/JetBrains/<IDE>/colors/<SchemeName>.icls` and updates `options/colors.scheme.xml`. Detay: `[[Plan-IntelliJ-Theme-Adapter]]`.
+   - **Android Studio:** Copies `shared/app_configs/android_studio/<id>.icls` (fallback to `intellij/<id>.icls`) to `~/.config/Google/AndroidStudio*/colors/<SchemeName>.icls` (as well as Flatpak and Snap directories) and updates `options/colors.scheme.xml`. Detay: `[[Plan-Android-Studio-Nord-Theme-Adapter]]`.
 6. **Concurrent Error & Timeout Isolation:** Adapters execute concurrently with dedicated timeouts; failure or latency in one app adapter does not impact others or the Go daemon.
 
 ---

@@ -7,7 +7,7 @@ tags:
   - json/config
   - app-configs
 created: 2026-08-09
-updated: 2026-08-24
+updated: 2026-08-30
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -15,6 +15,7 @@ related_notes:
   - "[[Dynamic-Island-Component]]"
   - "[[Theme-Service]]"
   - "[[Plan-Rose-Pine-Theme-Integration]]"
+  - "[[Plan-Android-Studio-Nord-Theme-Adapter]]"
 ---
 
 # Configuration & Multi-App Themes Specification
@@ -107,6 +108,7 @@ The themes are mapped across terminal emulators, file managers, code editors, an
 | **Zen Browser** | `shared/app_configs/zen/` | UserChrome CSS |
 | **Vesktop** | `shared/app_configs/vesktop/` | Discord custom CSS |
 | **IntelliJ** | `shared/app_configs/intellij/` | XML color schemes |
+| **Android Studio** | `shared/app_configs/android_studio/` | XML color schemes (`.icls`) |
 
 ---
 
