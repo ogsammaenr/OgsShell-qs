@@ -8,7 +8,7 @@ tags:
   - dynamic-island/ui
   - system-controls
 created: 2026-08-14
-updated: 2026-08-28
+updated: 2026-09-03
 status: active
 related_notes:
   - "[[Pinned-Metrics-Widget]]"
@@ -26,6 +26,8 @@ related_notes:
   - "[[Plan-Notification-Detail-Inspection-View]]"
   - "[[Plan-Add-Network-Usage-To-System-Metrics]]"
   - "[[Plan-Fix-Settings-App-Launcher-From-Control-Center]]"
+  - "[[Plan-Realtime-Reactive-Control-Center-Volume-Sync]]"
+  - "[[Plan-Fix-Bluetooth-Pairing-Trust-And-UI-Interaction]]"
 ---
 
 # Control Center UI Component Suite
@@ -69,7 +71,10 @@ graph TD
      * Right Column: 2x2 squircle quick action grid (**GameMode**, **Bildirimler**, **Tema**, **Pano**).
    * **Row 2 & 3 - Apple Capsule Sliders:**
      * **Ekran Parlaklığı (Brightness):** Thick, interactive rounded capsule slider with embedded glyph (`󰃟`) and percentage.
-     * **Ses Seviyesi (Volume):** Thick, interactive rounded capsule slider with speaker glyph (`󰕾` / `󰖁`) and mute toggle.
+     * **Ses Seviyesi (Volume) & Canlı Reaktif PipeWire Entegrasyonu:**
+       - `Quickshell.Services.Pipewire` (`PwObjectTracker`) ile varsayılan ses çıkış cihazını (`Pipewire.defaultAudioSink`) anlık izler.
+       - Harici klavye kısayollarından, ses düğmelerinden veya başka uygulamalardan (`pactl`, `pamixer`, `wpctl`, `pavucontrol`) ses değiştirildiğinde veya sessize alındığında (`muted`), kontrol merkezi açıkken ses kapsülü ve yüzde göstergesi **0 milisaniye gecikme ile anlık ve reaktif** olarak güncellenir.
+       - Sürükleme veya tıklamada doğrudan PipeWire nesnesi güncellenir, PipeWire bulunmayan ortamlarda ise otomatik `pamixer` fallback'ine geçilir.
    * **Row 4 - Status Footer:**
      * **Klavye Düzeni:** Clickable `[ 󰌌 TR ]` pill. Hem Go backend `switch_keyboard_layout` hem de `hyprctl switchxkblayout` fallback'i ile anında TR/US/DE/FR düzenleri arasında geçiş yapar.
      * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0 • NET 1.2 MB/s` (Go `sys_metrics` stream'inden reaktif okur ve `[[Pinned-Metrics-Widget]]` ile senkronize çalışır).

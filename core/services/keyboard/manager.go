@@ -35,6 +35,7 @@ type KeyboardManager interface {
 	Start(ctx context.Context)
 	Close() error
 	SetUpdateCallback(cb func(state *KeyboardState))
+	SetCapsLockCallback(cb func(capsLock bool))
 }
 
 // DefaultKeyboardManager is the production implementation.
@@ -45,6 +46,7 @@ type DefaultKeyboardManager struct {
 	mu         sync.RWMutex
 	lastState  *KeyboardState
 	updateCb   func(state *KeyboardState)
+	capsLockCb func(capsLock bool)
 	cancelLoop context.CancelFunc
 	closeOnce  sync.Once
 }
@@ -185,6 +187,7 @@ func ParseHyprlandDevicesJSON(data []byte) (*KeyboardState, error) {
 		CurrentLayoutCode:  currentCode,
 		ConfiguredLayouts:  layouts,
 		ConfiguredVariants: variants,
+		CapsLock:           mainKb.CapsLock,
 	}, nil
 }
 
@@ -295,7 +298,24 @@ func (m *DefaultKeyboardManager) GetAvailableLayouts() []AvailableLayout {
 	return ParseXKBLayouts()
 }
 
-// Start begins listening to Hyprland's .socket2.sock for layout change events.
+// readSysfsCapsLock inspects kernel LED triggers to detect hardware CapsLock state.
+func readSysfsCapsLock() bool {
+	matches, err := filepath.Glob("/sys/class/leds/*capslock*/brightness")
+	if err != nil || len(matches) == 0 {
+		return false
+	}
+	for _, match := range matches {
+		data, err := os.ReadFile(match)
+		if err == nil && len(data) > 0 {
+			if strings.TrimSpace(string(data)) == "1" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// Start begins listening to Hyprland's .socket2.sock for layout change events and sysfs for CapsLock.
 func (m *DefaultKeyboardManager) Start(parentCtx context.Context) {
 	ctx, cancel := context.WithCancel(parentCtx)
 	m.cancelLoop = cancel
@@ -310,6 +330,7 @@ func (m *DefaultKeyboardManager) Start(parentCtx context.Context) {
 
 	m.log.Info("Hyprland klavye olay dinleyicisi başlatılıyor", "socket", socketPath)
 
+	// 1. Hyprland socket2 layout watcher
 	go func() {
 		for {
 			select {
@@ -352,6 +373,31 @@ func (m *DefaultKeyboardManager) Start(parentCtx context.Context) {
 			time.Sleep(1 * time.Second)
 		}
 	}()
+
+	// 2. Ultra-lightweight 150ms CapsLock hardware LED ticker
+	go func() {
+		ticker := time.NewTicker(150 * time.Millisecond)
+		defer ticker.Stop()
+		lastCaps := readSysfsCapsLock()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				currentCaps := readSysfsCapsLock()
+				if currentCaps != lastCaps {
+					lastCaps = currentCaps
+					m.mu.RLock()
+					cb := m.capsLockCb
+					m.mu.RUnlock()
+					if cb != nil {
+						go cb(currentCaps)
+					}
+				}
+			}
+		}
+	}()
 }
 
 // Close terminates active socket connections.
@@ -369,4 +415,10 @@ func (m *DefaultKeyboardManager) SetUpdateCallback(cb func(state *KeyboardState)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.updateCb = cb
+}
+
+func (m *DefaultKeyboardManager) SetCapsLockCallback(cb func(capsLock bool)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.capsLockCb = cb
 }

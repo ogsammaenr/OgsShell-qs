@@ -428,6 +428,29 @@ func (c *DBusBluetoothClient) ConnectDevice(ctx context.Context, mac string) err
 	}
 
 	devObj := c.conn.Object(bluezBusName, devPath)
+
+	// Check if already paired
+	c.mu.RLock()
+	dev, exists := c.devices[devPath]
+	isPaired := false
+	if exists && dev != nil {
+		isPaired = dev.Paired
+	}
+	c.mu.RUnlock()
+
+	// If device is not paired yet, attempt pairing first
+	if !isPaired {
+		c.log.Info("Device is not paired yet, attempting D-Bus Pair...", "mac", mac)
+		if err := devObj.CallWithContext(ctx, deviceIface+".Pair", 0).Err; err != nil {
+			if !strings.Contains(err.Error(), "AlreadyExists") && !strings.Contains(err.Error(), "InProgress") && !strings.Contains(err.Error(), "AlreadyConnected") {
+				c.log.Warn("Pair call returned error (continuing to Connect)", "mac", mac, "err", err)
+			}
+		}
+	}
+
+	// Ensure device is marked as Trusted for reliable subsequent connections
+	_ = devObj.CallWithContext(ctx, propIface+".Set", 0, deviceIface, "Trusted", dbus.MakeVariant(true)).Err
+
 	err := devObj.CallWithContext(ctx, deviceIface+".Connect", 0).Err
 	if err != nil {
 		return fmt.Errorf("failed to connect to device %s: %w", mac, err)

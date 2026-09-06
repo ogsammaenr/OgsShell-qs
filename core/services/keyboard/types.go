@@ -9,6 +9,7 @@ type KeyboardState struct {
 	CurrentLayoutCode  string   `json:"current_layout_code"`  // e.g. "tr", "us"
 	ConfiguredLayouts  []string `json:"configured_layouts"`   // e.g. ["tr", "us"]
 	ConfiguredVariants []string `json:"configured_variants"`  // e.g. ["alt", ""]
+	CapsLock           bool     `json:"caps_lock"`            // Active Caps Lock indicator
 }
 
 // AvailableLayout represents a system layout from the XKB database.

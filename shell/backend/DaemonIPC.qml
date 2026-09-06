@@ -65,6 +65,7 @@ Item {
   signal calendarReminderTriggered(var payload)
   signal notificationReceived(var payload)
   signal clipboardItemCopied(var payload)
+  signal capsLockChanged(var payload)
   signal keyboardLayoutUpdated(var payload)
   signal themeChanged(var payload)
   signal wallpapersUpdated(var payload)
@@ -528,6 +529,8 @@ Item {
             root.clipboardHistory = msg.payload || [];
           } else if (msg.type === "clipboard_item_copied") {
             root.clipboardItemCopied(msg.payload);
+          } else if (msg.type === "caps_lock_changed") {
+            root.capsLockChanged(msg.payload);
           } else if (msg.type === "pinned_clipboard_update") {
             root.pinnedClipboardItems = msg.payload || [];
           } else if (msg.type === "keyboard_layout_update") {

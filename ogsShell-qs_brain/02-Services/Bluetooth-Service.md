@@ -107,13 +107,21 @@ Broadcast whenever adapter properties, device connection states, or scan states 
 * `disconnect_bluetooth`: Disconnects a peripheral by MAC address (`{"mac": "XX:XX:XX:XX:XX:XX"}`).
 * `start_bluetooth_scan`: Initiates adapter discovery for 15 seconds.
 * `stop_bluetooth_scan`: Cancels active adapter discovery.
-* `get_bluetooth_state`: Queries current adapter and device snapshot.
+* `get_bluetooth_state` / `get_bluetooth_devices`: Queries current adapter and device snapshot.
 
 ---
 
-## 4. Related Links
+## 4. Auto-Pairing & Trust Management
+
+* **Auto-Pairing on Initial Connect:** `ConnectDevice` checks if `Paired` is false; if so, it attempts D-Bus `Device1.Pair` prior to connection.
+* **Auto-Trust for Subsequent Reconnects:** `ConnectDevice` sets D-Bus property `Trusted: true` on the device, ensuring future reconnects and system wakeups succeed automatically without authorization prompts.
+
+---
+
+## 5. Related Links
 
 * Daemon Architecture: `[[Go-Daemon-Core]]`
 * IPC Protocol: `[[IPC-Socket-Schema]]`
 * Proposal Note: `[[Plan-Modular-Bluetooth-Service-And-DBus-Monitor]]`
 * Event-Driven Refactor: `[[Plan-Event-Driven-Bluetooth-Signal-Monitor]]`
+* Pairing & UI Fix: `[[Plan-Fix-Bluetooth-Pairing-Trust-And-UI-Interaction]]`

@@ -238,6 +238,15 @@ func main() {
 				Payload: payloadBytes,
 			})
 		})
+		kbMgr.SetCapsLockCallback(func(capsLock bool) {
+			payloadBytes, _ := json.Marshal(map[string]interface{}{
+				"caps_lock": capsLock,
+			})
+			_ = server.Broadcast(ipc.Event{
+				Type:    "caps_lock_changed",
+				Payload: payloadBytes,
+			})
+		})
 		kbMgr.Start(ctx)
 		log.Info("Klavye düzeni yöneticisi başarıyla başlatıldı")
 	}
@@ -524,7 +533,7 @@ func main() {
 			log.Info("Bluetooth tarama durduruluyor")
 			return btMgr.StopDiscovery(ctx)
 
-		case "get_bluetooth_state":
+		case "get_bluetooth_state", "get_bluetooth_devices":
 			state, err := btMgr.GetState(ctx)
 			if err != nil {
 				return err

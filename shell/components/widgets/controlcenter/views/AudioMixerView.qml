@@ -214,6 +214,10 @@ Item {
     refreshAudio()
   }
 
+  onVisibleChanged: {
+    if (visible) refreshAudio()
+  }
+
   // Periodic poll timer while view is open
   Timer {
     id: pollTimer

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Services.Pipewire
 import "../../.."
 
 Item {
@@ -21,7 +22,36 @@ Item {
   readonly property bool isBtPowered: !!(ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered)
   readonly property int notifCount: (ipc && ipc.notifications) ? ipc.notifications.length : 0
 
-  // System processes for Volume & Brightness
+  // Native PipeWire Volume & Mute Tracking
+  PwObjectTracker {
+    objects: [Pipewire.defaultAudioSink]
+  }
+
+  Connections {
+    target: Pipewire.defaultAudioSink ? Pipewire.defaultAudioSink.audio : null
+    function onVolumeChanged() {
+      if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+        root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+      }
+    }
+    function onMutedChanged() {
+      if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+        root.isMuted = Pipewire.defaultAudioSink.audio.muted
+      }
+    }
+  }
+
+  Connections {
+    target: Pipewire
+    function onDefaultAudioSinkChanged() {
+      if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+        root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+        root.isMuted = Pipewire.defaultAudioSink.audio.muted
+      }
+    }
+  }
+
+  // System processes for Volume (Fallback) & Brightness
   Process {
     id: volGetProc
     command: ["pamixer", "--get-volume"]
@@ -68,8 +98,13 @@ Item {
   }
 
   function syncTelemetry() {
-    volGetProc.running = true
-    volMuteProc.running = true
+    if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+      root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+      root.isMuted = Pipewire.defaultAudioSink.audio.muted
+    } else {
+      volGetProc.running = true
+      volMuteProc.running = true
+    }
     brightGetProc.running = true
   }
 
@@ -77,14 +112,23 @@ Item {
     let target = Math.max(0, Math.min(100, Math.round(val)))
     root.volumeLevel = target
     root.isMuted = false
-    setVolProc.command = ["pamixer", "--set-volume", "" + target]
-    setVolProc.running = true
+    if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+      Pipewire.defaultAudioSink.audio.volume = target / 100.0
+      Pipewire.defaultAudioSink.audio.muted = false
+    } else {
+      setVolProc.command = ["pamixer", "--set-volume", "" + target]
+      setVolProc.running = true
+    }
   }
 
   function toggleMute() {
     root.isMuted = !root.isMuted
-    toggleMuteProc.command = ["pamixer", "-t"]
-    toggleMuteProc.running = true
+    if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
+      Pipewire.defaultAudioSink.audio.muted = root.isMuted
+    } else {
+      toggleMuteProc.command = ["pamixer", "-t"]
+      toggleMuteProc.running = true
+    }
   }
 
   function setBrightness(val) {
@@ -113,6 +157,24 @@ Item {
   }
 
   Component.onCompleted: syncTelemetry()
+
+  onVisibleChanged: {
+    if (visible) syncTelemetry()
+  }
+
+  Timer {
+    id: liveSyncTimer
+    interval: 2000
+    repeat: true
+    running: root.visible
+    onTriggered: {
+      brightGetProc.running = true
+      if (!Pipewire.defaultAudioSink || !Pipewire.defaultAudioSink.audio) {
+        volGetProc.running = true
+        volMuteProc.running = true
+      }
+    }
+  }
 
   // ==========================================
   // Layout Root
