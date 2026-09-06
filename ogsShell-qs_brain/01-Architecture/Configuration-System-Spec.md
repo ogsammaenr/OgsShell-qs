@@ -111,7 +111,7 @@ The configuration system continuously watches both locations using a real-time e
       "type": "object",
       "properties": {
         "enabled": { "type": "bool", "default": true },
-        "default_timeout_ms": { "type": "integer", "default": 3500 }
+        "default_timeout_ms": { "type": "integer", "default": 2200 }
       }
     },
     "animation": {
@@ -121,6 +121,40 @@ The configuration system continuously watches both locations using a real-time e
         "duration_transient": { "type": "integer", "default": 280 },
         "duration_expanded": { "type": "integer", "default": 320 },
         "overshoot_factor": { "type": "number", "default": 1.12 }
+      }
+    },
+    "screen_corners": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "bool", "default": true },
+        "radius": { "type": "integer", "default": 14 },
+        "color": { "type": "string", "default": "#000000" },
+        "top_left": { "type": "bool", "default": true },
+        "top_right": { "type": "bool", "default": true },
+        "bottom_left": { "type": "bool", "default": true },
+        "bottom_right": { "type": "bool", "default": true }
+      }
+    },
+    "audio_feedback": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "bool", "default": true },
+        "volume_change_sound": { "type": "bool", "default": true },
+        "throttle_ms": { "type": "integer", "default": 100 },
+        "custom_sound_path": { "type": "string", "default": "" }
+      }
+    },
+    "corner_hud": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "bool", "default": true },
+        "volume_enabled": { "type": "bool", "default": true },
+        "workspace_enabled": { "type": "bool", "default": true },
+        "capslock_enabled": { "type": "bool", "default": true },
+        "mic_enabled": { "type": "bool", "default": true },
+        "clipboard_enabled": { "type": "bool", "default": true },
+        "timeout_ms": { "type": "integer", "default": 1200 },
+        "height": { "type": "integer", "default": 34 }
       }
     }
   }
@@ -136,10 +170,12 @@ graph LR
     FILE["config.json"] --> C_MGR["ConfigManager.qml (Singleton)"]
     C_MGR --> STYLE["Style.qml (Tokens & Theme Map)"]
     C_MGR --> ISLAND["DynamicIsland.qml (Form Factor & Geometries)"]
-    C_MGR --> SHELL["shell.qml (Window Alignment)"]
+    C_MGR --> SHELL["shell.qml (Window Alignment & ScreenCorners)"]
+    C_MGR --> AFS["AudioFeedbackService.qml (Volume Sound Pop)"]
+    C_MGR --> CHUD["CornerIslandHUD.qml (Top-Left HUD)"]
 ```
 
-* **Singleton Access:** Accessed globally in any QML file via `Config.formFactor`, `Config.activeGeometry`, `Config.theme`.
+* **Singleton Access:** Accessed globally in any QML file via `Config.formFactor`, `Config.activeGeometry`, `Config.theme`, `Config.screenCornersEnabled`, `Config.audioFeedbackEnabled`, `Config.cornerHudEnabled`.
 * **Dynamic Property Resolution:**
   ```qml
   readonly property var activeGeometry: formFactor === "notch" ? configData.notch : configData.island
@@ -148,6 +184,15 @@ graph LR
 ---
 
 ## 4. Related Links
+
+* Corner Island HUD: `[[Corner-Island-HUD-Component]]`
+* Plan Corner Island HUD: `[[Plan-Corner-Island-HUD]]`
+* Audio Feedback Service: `[[Audio-Feedback-Service]]`
+* Plan Audio Feedback: `[[Plan-Audio-Volume-Feedback-Sound]]`
+* Screen Corners Component: `[[Screen-Corners-Component]]`
+* Plan Screen Corners: `[[Plan-Screen-Rounded-Corners]]`
+* Root Window Layer: `[[Shell-Root-PanelWindow]]`
+* System Architecture: `[[System-Architecture]]`
 
 * Dynamic Notch Spec: `[[Dynamic-Notch-Design-Specification]]`
 * Themes Spec: `[[Configuration-Themes-Spec]]`

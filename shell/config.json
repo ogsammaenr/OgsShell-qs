@@ -42,12 +42,37 @@
   },
   "notifications": {
     "enabled": true,
-    "default_timeout_ms": 3500
+    "default_timeout_ms": 2200
   },
   "animation": {
     "duration_compact": 250,
     "duration_transient": 280,
     "duration_expanded": 320,
     "overshoot_factor": 1.12
+  },
+  "screen_corners": {
+    "enabled": true,
+    "radius": 14,
+    "color": "#000000",
+    "top_left": true,
+    "top_right": true,
+    "bottom_left": true,
+    "bottom_right": true
+  },
+  "audio_feedback": {
+    "enabled": true,
+    "volume_change_sound": true,
+    "throttle_ms": 100,
+    "custom_sound_path": ""
+  },
+  "corner_hud": {
+    "enabled": true,
+    "volume_enabled": true,
+    "workspace_enabled": true,
+    "capslock_enabled": true,
+    "mic_enabled": true,
+    "clipboard_enabled": true,
+    "timeout_ms": 1200,
+    "height": 34
   }
 }

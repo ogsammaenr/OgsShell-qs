@@ -55,7 +55,7 @@ Item {
 
   property var notifications: ({
     "enabled": true,
-    "default_timeout_ms": 3500
+    "default_timeout_ms": 2200
   })
 
   property var typography: ({
@@ -77,6 +77,34 @@ Item {
     "duration_transient": 280,
     "duration_expanded": 320,
     "overshoot_factor": 1.12
+  })
+
+  property var screenCorners: ({
+    "enabled": true,
+    "radius": 14,
+    "color": "#000000",
+    "top_left": true,
+    "top_right": true,
+    "bottom_left": true,
+    "bottom_right": true
+  })
+
+  property var audioFeedback: ({
+    "enabled": true,
+    "volume_change_sound": true,
+    "throttle_ms": 100,
+    "custom_sound_path": ""
+  })
+
+  property var cornerHud: ({
+    "enabled": true,
+    "volume_enabled": true,
+    "workspace_enabled": true,
+    "capslock_enabled": true,
+    "mic_enabled": true,
+    "clipboard_enabled": true,
+    "timeout_ms": 1200,
+    "height": 34
   })
 
   // =========================================================================
@@ -109,6 +137,12 @@ Item {
   readonly property int notchBottomRadiusExpanded: (notch && notch.bottom_radius_expanded) ? notch.bottom_radius_expanded : 26
 
   // =========================================================================
+  // First-Class Typed Reactive Notifications Accessors
+  // =========================================================================
+  readonly property bool notificationsEnabled: (notifications && notifications.enabled !== undefined) ? notifications.enabled : true
+  readonly property int notificationTimeoutMs: (notifications && notifications.default_timeout_ms !== undefined) ? notifications.default_timeout_ms : 2200
+
+  // =========================================================================
   // First-Class Typed Reactive Typography Accessors
   // =========================================================================
   readonly property int clockIdleSize: (typography && typography.clock_idle_size) ? typography.clock_idle_size : 18
@@ -122,6 +156,37 @@ Item {
   readonly property int notificationBodySize: (typography && typography.notification_body_size) ? typography.notification_body_size : 12
   readonly property int pinnedMetricsSize: (typography && typography.pinned_metrics_size) ? typography.pinned_metrics_size : 12
   readonly property int pinnedMetricsIconSize: (typography && typography.pinned_metrics_icon_size) ? typography.pinned_metrics_icon_size : 14
+
+  // =========================================================================
+  // First-Class Typed Reactive Screen Corners Accessors
+  // =========================================================================
+  readonly property bool screenCornersEnabled: (screenCorners && screenCorners.enabled !== undefined) ? screenCorners.enabled : true
+  readonly property int screenCornersRadius: (screenCorners && screenCorners.radius !== undefined) ? screenCorners.radius : 14
+  readonly property string screenCornersColor: (screenCorners && screenCorners.color) ? screenCorners.color : "#000000"
+  readonly property bool screenCornerTopLeft: (screenCorners && screenCorners.top_left !== undefined) ? screenCorners.top_left : true
+  readonly property bool screenCornerTopRight: (screenCorners && screenCorners.top_right !== undefined) ? screenCorners.top_right : true
+  readonly property bool screenCornerBottomLeft: (screenCorners && screenCorners.bottom_left !== undefined) ? screenCorners.bottom_left : true
+  readonly property bool screenCornerBottomRight: (screenCorners && screenCorners.bottom_right !== undefined) ? screenCorners.bottom_right : true
+
+  // =========================================================================
+  // First-Class Typed Reactive Audio Feedback Accessors
+  // =========================================================================
+  readonly property bool audioFeedbackEnabled: (audioFeedback && audioFeedback.enabled !== undefined) ? audioFeedback.enabled : true
+  readonly property bool audioFeedbackVolumeChangeSound: (audioFeedback && audioFeedback.volume_change_sound !== undefined) ? audioFeedback.volume_change_sound : true
+  readonly property int audioFeedbackThrottleMs: (audioFeedback && audioFeedback.throttle_ms !== undefined) ? audioFeedback.throttle_ms : 100
+  readonly property string audioFeedbackCustomSoundPath: (audioFeedback && audioFeedback.custom_sound_path) ? audioFeedback.custom_sound_path : ""
+
+  // =========================================================================
+  // First-Class Typed Reactive Corner Island HUD Accessors
+  // =========================================================================
+  readonly property bool cornerHudEnabled: (cornerHud && cornerHud.enabled !== undefined) ? cornerHud.enabled : true
+  readonly property bool cornerHudVolume: (cornerHud && cornerHud.volume_enabled !== undefined) ? cornerHud.volume_enabled : true
+  readonly property bool cornerHudWorkspace: (cornerHud && cornerHud.workspace_enabled !== undefined) ? cornerHud.workspace_enabled : true
+  readonly property bool cornerHudCapslock: (cornerHud && cornerHud.capslock_enabled !== undefined) ? cornerHud.capslock_enabled : true
+  readonly property bool cornerHudMic: (cornerHud && cornerHud.mic_enabled !== undefined) ? cornerHud.mic_enabled : true
+  readonly property bool cornerHudClipboard: (cornerHud && cornerHud.clipboard_enabled !== undefined) ? cornerHud.clipboard_enabled : true
+  readonly property int cornerHudTimeoutMs: (cornerHud && cornerHud.timeout_ms !== undefined) ? cornerHud.timeout_ms : 1200
+  readonly property int cornerHudHeight: (cornerHud && cornerHud.height !== undefined) ? cornerHud.height : 34
 
   // Computed active geometry (reactive to formFactor and configRevision)
   readonly property var activeGeometry: {
@@ -223,6 +288,9 @@ Item {
     if (cfg.notifications) root.notifications = Object.assign({}, root.notifications, cfg.notifications)
     if (cfg.typography) root.typography = Object.assign({}, root.typography, cfg.typography)
     if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
+    if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
+    if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
+    if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
 
     let full = {
       "form_factor": root.formFactor,
@@ -233,7 +301,10 @@ Item {
       "island": root.island,
       "notch": root.notch,
       "notifications": root.notifications,
-      "animation": root.animation
+      "animation": root.animation,
+      "screen_corners": root.screenCorners,
+      "audio_feedback": root.audioFeedback,
+      "corner_hud": root.cornerHud
     }
 
     let jsonStr = JSON.stringify(full, null, 2)
@@ -377,6 +448,9 @@ Item {
       if (cfg.notifications) root.notifications = Object.assign({}, root.notifications, cfg.notifications)
       if (cfg.typography) root.typography = Object.assign({}, root.typography, cfg.typography)
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
+      if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
+      if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
+      if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
 
       root.configRevision++
       root.configUpdated(cfg)

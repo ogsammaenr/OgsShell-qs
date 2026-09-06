@@ -65,7 +65,8 @@ Item {
     function onNotificationReceived(payload) {
       if (payload && payload.should_popup) {
         let n = payload.notification || {};
-        root.triggerNotification(n.summary || "Notification", n.body || "", n.app_name || "System", 3500);
+        let t = (n.timeout_ms && n.timeout_ms > 0) ? n.timeout_ms : (Config.notificationTimeoutMs || 2200);
+        root.triggerNotification(n.summary || "Notification", n.body || "", n.app_name || "System", t);
       }
     }
 
@@ -267,7 +268,7 @@ Item {
     transientSummary = summary && summary.length > 0 ? summary : "Notification"
     transientBody = body || ""
     transientAppName = appName || "System"
-    transientTimeout = timeoutMs && timeoutMs > 0 ? timeoutMs : (Config.notifications.default_timeout_ms || 3500)
+    transientTimeout = (timeoutMs && timeoutMs > 0) ? timeoutMs : (Config.notificationTimeoutMs || (Config.notifications && Config.notifications.default_timeout_ms) || 2200)
 
     if (stateMode !== "EXPANDED") {
       if (stateMode !== "TRANSIENT") {

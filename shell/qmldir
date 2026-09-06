@@ -4,4 +4,8 @@ singleton Config 1.0 backend/Config.qml
 singleton ClockManager 1.0 components/widgets/clock/ClockManager.qml
 singleton PowerService 1.0 backend/PowerService.qml
 singleton SettingsService 1.0 backend/SettingsService.qml
+AudioFeedbackService 1.0 backend/AudioFeedbackService.qml
 DaemonIPC 1.0 backend/DaemonIPC.qml
+CornerHUDService 1.0 components/corners/CornerHUDService.qml
+CornerIslandHUD 1.0 components/corners/CornerIslandHUD.qml
+ScreenCorners 1.0 components/corners/ScreenCorners.qml

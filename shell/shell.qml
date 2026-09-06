@@ -6,6 +6,7 @@ import Quickshell.Services.Notifications
 import "components/island"
 import "components/widgets"
 import "components/widgets/controlcenter"
+import "components/corners"
 
 Scope {
   id: rootScope
@@ -13,6 +14,17 @@ Scope {
   // IPC Service instance
   DaemonIPC {
     id: ipcService
+  }
+
+  // Global Audio Feedback Service (Volume Change Sound Pop)
+  AudioFeedbackService {
+    id: audioFeedbackService
+  }
+
+  // Global Corner Island HUD Service (Volume, Workspace, CapsLock, Mic, Clipboard OSD)
+  CornerHUDService {
+    id: cornerHudService
+    ipc: ipcService
   }
 
   // =========================================================================
@@ -334,6 +346,44 @@ Scope {
       }
 
 
+
+      // =========================================================================
+      // Screen Corners Window: Subtle black rounded bezel on 4 display corners
+      // Zero click-blocking (mask: Region {}) passes all clicks to apps underneath
+      // =========================================================================
+      PanelWindow {
+        id: screenCornersWindow
+        screen: screenScope.modelData
+        visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0)
+        color: "transparent"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+        anchors {
+          top: true
+          bottom: true
+          left: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        // Zero click-blocking: completely empty input mask passes all clicks to windows below
+        mask: Region {}
+
+        ScreenCorners {
+          anchors.fill: parent
+          screen: screenScope.modelData
+          hyprMonitor: screenScope.hyprMonitor
+          radius: Config.screenCornersRadius
+          cornerColor: Config.screenCornersColor
+          topLeft: Config.screenCornerTopLeft
+          topRight: Config.screenCornerTopRight
+          bottomLeft: Config.screenCornerBottomLeft
+          bottomRight: Config.screenCornerBottomRight
+          hudService: cornerHudService
+        }
+      }
 
       // =========================================================================
       // Power Overlay Window: Fullscreen Dark Glass Session Modal

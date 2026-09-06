@@ -53,7 +53,7 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Bluetooth** | `disconnect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | Cihaz bağlantısını sonlandırır |
 | **Bluetooth** | `start_bluetooth_scan` | `{}` | `bluetooth_update` | 15 saniyelik cihaz keşif taraması başlatır |
 | **Bluetooth** | `stop_bluetooth_scan` | `{}` | `bluetooth_update` | Aktif taramayı durdurur |
-| **Bluetooth** | `get_bluetooth_state` | `{}` | `bluetooth_update` | Mevcut adaptör ve cihaz listesini sorgular |
+| **Bluetooth** | `get_bluetooth_state` / `get_bluetooth_devices` | `{}` | `bluetooth_update` | Mevcut adaptör ve cihaz listesini sorgular |
 | **Alarm** | `add_alarm` | `{"time": "HH:MM", "days": [...], "label": "..."}` | `alarms_update` | Yeni alarm kaydeder ve zamanlayıcı kurar |
 | **Alarm** | `delete_alarm` | `{"id": "alarm_..."}` | `alarms_update` | Alarmı siler ve çalıyorsa susturur |
 | **Alarm** | `toggle_alarm` | `{"id": "alarm_...", "enabled": true/false}` | `alarms_update` | Alarmın aktiflik durumunu değiştirir |
