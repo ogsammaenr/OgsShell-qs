@@ -29,6 +29,7 @@ func RebuildIconCache() {
 		"/usr/share/pixmaps",
 		"/usr/share/icons",
 		"/var/lib/flatpak/exports/share/icons",
+		"/opt",
 	}
 
 	newMap := make(map[string]string, 4096)
@@ -74,6 +75,41 @@ func RebuildIconCache() {
 	iconCacheMu.Unlock()
 }
 
+var knownIconAliases = map[string][]string{
+	"zed":                             {"zed", "dev.zed.zed", "zeditor", "dev.zed.Zed"},
+	"dev.zed.zed":                     {"zed", "dev.zed.zed", "zeditor", "dev.zed.Zed"},
+	"zeditor":                         {"zed", "dev.zed.zed", "zeditor", "dev.zed.Zed"},
+	"jetbrains-idea":                  {"intellij-idea-ultimate-edition", "intellij-idea-community-edition", "idea", "jetbrains-idea", "intellij", "com.jetbrains.IntelliJ-IDEA-Ultimate"},
+	"intellij-idea-ultimate-edition":  {"intellij-idea-ultimate-edition", "idea", "jetbrains-idea", "intellij"},
+	"intellij-idea-community-edition": {"intellij-idea-community-edition", "idea", "jetbrains-idea", "intellij"},
+	"idea":                            {"intellij-idea-ultimate-edition", "intellij-idea-community-edition", "idea", "jetbrains-idea", "intellij"},
+	"intellij":                        {"intellij-idea-ultimate-edition", "intellij-idea-community-edition", "idea", "jetbrains-idea", "intellij"},
+	"jetbrains-studio":                {"android-studio", "google-android-studio", "jetbrains-studio", "studio"},
+	"android-studio":                  {"android-studio", "google-android-studio", "jetbrains-studio", "studio"},
+	"studio":                          {"android-studio", "google-android-studio", "jetbrains-studio", "studio"},
+	"jetbrains-pycharm":               {"pycharm", "pycharm-community", "pycharm-professional", "jetbrains-pycharm"},
+	"pycharm":                         {"pycharm", "pycharm-community", "pycharm-professional", "jetbrains-pycharm"},
+	"jetbrains-webstorm":              {"webstorm", "jetbrains-webstorm"},
+	"webstorm":                        {"webstorm", "jetbrains-webstorm"},
+	"jetbrains-clion":                 {"clion", "jetbrains-clion"},
+	"clion":                           {"clion", "jetbrains-clion"},
+	"jetbrains-goland":                {"goland", "jetbrains-goland"},
+	"goland":                          {"goland", "jetbrains-goland"},
+	"jetbrains-rider":                 {"rider", "jetbrains-rider"},
+	"rider":                           {"rider", "jetbrains-rider"},
+	"jetbrains-rustrover":             {"rustrover", "jetbrains-rustrover"},
+	"rustrover":                       {"rustrover", "jetbrains-rustrover"},
+	"jetbrains-datagrip":              {"datagrip", "jetbrains-datagrip"},
+	"datagrip":                        {"datagrip", "jetbrains-datagrip"},
+	"code":                            {"visual-studio-code", "com.visualstudio.code.oss", "code", "vscode", "com.visualstudio.code", "code-oss"},
+	"vscode":                          {"visual-studio-code", "com.visualstudio.code.oss", "code", "vscode", "com.visualstudio.code", "code-oss"},
+	"visual-studio-code":              {"visual-studio-code", "com.visualstudio.code.oss", "code", "vscode", "com.visualstudio.code", "code-oss"},
+	"zen":                             {"zen-browser", "zen", "zen-alpha", "zen-beta", "app.zen_browser.zen"},
+	"zen-browser":                     {"zen-browser", "zen", "zen-alpha", "zen-beta", "app.zen_browser.zen"},
+	"vesktop":                         {"vesktop", "discord", "com.discordapp.Discord", "discord-canary", "discord-ptb"},
+	"discord":                         {"vesktop", "discord", "com.discordapp.Discord", "discord-canary", "discord-ptb"},
+}
+
 // ResolveIcon returns the absolute path to a matching icon file on disk, or empty string if not found.
 func ResolveIcon(rawIcon, execBinary, desktopID string) string {
 	InitSystemIconCache()
@@ -98,17 +134,33 @@ func ResolveIcon(rawIcon, execBinary, desktopID string) string {
 	iconCacheMu.RLock()
 	defer iconCacheMu.RUnlock()
 
-	// 3. Exact lookup in system icon cache
-	if cleanRaw != "" {
-		if path, found := systemIcons[cleanRaw]; found {
+	// Helper to probe a key and its aliases
+	lookupKey := func(key string) string {
+		if key == "" {
+			return ""
+		}
+		if path, found := systemIcons[key]; found {
 			return path
 		}
+		if aliases, hasAliases := knownIconAliases[key]; hasAliases {
+			for _, alias := range aliases {
+				if path, found := systemIcons[strings.ToLower(alias)]; found {
+					return path
+				}
+			}
+		}
+		return ""
+	}
+
+	// 3. Exact & alias lookup in system icon cache
+	if path := lookupKey(cleanRaw); path != "" {
+		return path
 	}
 
 	// 4. Try execBinary lookup
 	if execBinary != "" {
 		execClean := strings.ToLower(strings.TrimSpace(execBinary))
-		if path, found := systemIcons[execClean]; found {
+		if path := lookupKey(execClean); path != "" {
 			return path
 		}
 	}
@@ -116,14 +168,14 @@ func ResolveIcon(rawIcon, execBinary, desktopID string) string {
 	// 5. Try desktop ID lookup (e.g. "org.kde.konsole" -> "konsole" or "org.kde.konsole")
 	if desktopID != "" {
 		baseID := strings.ToLower(strings.TrimSuffix(desktopID, ".desktop"))
-		if path, found := systemIcons[baseID]; found {
+		if path := lookupKey(baseID); path != "" {
 			return path
 		}
 		// If reverse-domain (e.g. "org.kde.dolphin"), try last component ("dolphin")
 		parts := strings.Split(baseID, ".")
 		if len(parts) > 1 {
 			lastPart := parts[len(parts)-1]
-			if path, found := systemIcons[lastPart]; found {
+			if path := lookupKey(lastPart); path != "" {
 				return path
 			}
 		}

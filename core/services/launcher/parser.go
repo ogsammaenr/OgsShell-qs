@@ -183,7 +183,11 @@ func ParseDesktopFile(filePath string) (*entry.AppEntry, error) {
 
 // resolveAppIcon normalizes the icon name or resolves to an absolute path if found on disk.
 func resolveAppIcon(rawIcon, execBinary, desktopID string) string {
-	return ResolveIcon(rawIcon, execBinary, desktopID)
+	resolved := ResolveIcon(rawIcon, execBinary, desktopID)
+	if resolved != "" {
+		return resolved
+	}
+	return rawIcon
 }
 
 // cleanExecCommand cleans XDG parameter field codes (%f, %F, %u, %U, etc.) and unquotes if needed.
