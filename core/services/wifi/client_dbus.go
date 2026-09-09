@@ -128,8 +128,12 @@ func (c *DBusWifiClient) ScanNetworks(ctx context.Context) ([]AccessPoint, error
 
 	savedProfiles, _ := c.GetSavedProfiles(ctx)
 	savedMap := make(map[string]bool)
+	hasPasswordMap := make(map[string]bool)
 	for _, p := range savedProfiles {
 		savedMap[p.SSID] = true
+		if p.HasPassword {
+			hasPasswordMap[p.SSID] = true
+		}
 	}
 
 	var activeApPath dbus.ObjectPath
@@ -170,15 +174,16 @@ func (c *DBusWifiClient) ScanNetworks(ctx context.Context) ([]AccessPoint, error
 				ssid := string(ssidBytes)
 				if ssid != "" {
 					ap := AccessPoint{
-						SSID:      ssid,
-						BSSID:     bssid,
-						Signal:    strength,
-						Frequency: freq,
-						Band:      FrequencyToBand(freq),
-						Channel:   FrequencyToChannel(freq),
-						Security:  ParseSecurityFlags(flags, wpaFlags, rsnFlags),
-						IsSaved:   savedMap[ssid],
-						IsActive:  path == activeApPath,
+						SSID:        ssid,
+						BSSID:       bssid,
+						Signal:      strength,
+						Frequency:   freq,
+						Band:        FrequencyToBand(freq),
+						Channel:     FrequencyToChannel(freq),
+						Security:    ParseSecurityFlags(flags, wpaFlags, rsnFlags),
+						IsSaved:     savedMap[ssid],
+						HasPassword: hasPasswordMap[ssid],
+						IsActive:    path == activeApPath,
 					}
 
 					// Deduplicate by SSID, keep active or strongest signal
@@ -234,9 +239,21 @@ func (c *DBusWifiClient) GetSavedProfiles(ctx context.Context) ([]WifiProfile, e
 
 				secType := SecurityOpen
 				hasPassword := false
-				if _, hasSec := settings["802-11-wireless-security"]; hasSec {
+				if secMeta, hasSec := settings["802-11-wireless-security"]; hasSec {
 					secType = SecurityWPA2PSK
-					hasPassword = true
+					pskFlags := uint32(0)
+					if flagsVal, okFlags := secMeta["psk-flags"]; okFlags {
+						if f, ok := flagsVal.Value().(uint32); ok {
+							pskFlags = f
+						}
+					}
+					// If psk-flags == 0, password is saved on system disk.
+					// If psk-flags == 1 (agent-owned), check if agent has cached it.
+					if pskFlags == 0 {
+						hasPassword = true
+					} else if c.agent != nil && c.agent.HasPassword(ssid, uuid) {
+						hasPassword = true
+					}
 				}
 
 				profiles = append(profiles, WifiProfile{

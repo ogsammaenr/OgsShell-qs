@@ -15,15 +15,16 @@ const (
 
 // AccessPoint represents a discovered wireless access point
 type AccessPoint struct {
-	SSID      string       `json:"ssid"`
-	BSSID     string       `json:"bssid"`
-	Signal    uint8        `json:"signal"`
-	Frequency uint32       `json:"frequency"` // MHz (e.g. 2412, 5180)
-	Band      string       `json:"band"`      // "2.4GHz", "5GHz", "6GHz"
-	Security  SecurityType `json:"security"`
-	IsSaved   bool         `json:"is_saved"`
-	IsActive  bool         `json:"is_active"`
-	Channel   int          `json:"channel"`
+	SSID        string       `json:"ssid"`
+	BSSID       string       `json:"bssid"`
+	Signal      uint8        `json:"signal"`
+	Frequency   uint32       `json:"frequency"` // MHz (e.g. 2412, 5180)
+	Band        string       `json:"band"`      // "2.4GHz", "5GHz", "6GHz"
+	Security    SecurityType `json:"security"`
+	IsSaved     bool         `json:"is_saved"`
+	HasPassword bool         `json:"has_password"`
+	IsActive    bool         `json:"is_active"`
+	Channel     int          `json:"channel"`
 }
 
 // WifiProfile represents a saved NetworkManager connection configuration

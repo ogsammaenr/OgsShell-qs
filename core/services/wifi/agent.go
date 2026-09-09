@@ -58,6 +58,22 @@ func (a *SecretAgent) SetPassword(ssidOrUUID, password string) {
 	a.passwords[ssidOrUUID] = password
 }
 
+// HasPassword checks if a password is cached in memory for the given SSID or UUID.
+func (a *SecretAgent) HasPassword(ssid, uuid string) bool {
+	if a == nil {
+		return false
+	}
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if uuid != "" && a.passwords[uuid] != "" {
+		return true
+	}
+	if ssid != "" && a.passwords[ssid] != "" {
+		return true
+	}
+	return false
+}
+
 // GetSecrets is called by NetworkManager when credentials are required for a connection.
 func (a *SecretAgent) GetSecrets(
 	connection map[string]map[string]dbus.Variant,
@@ -100,7 +116,9 @@ func (a *SecretAgent) GetSecrets(
 	}
 
 	if pwd == "" {
-		return nil, dbus.NewError("org.freedesktop.NetworkManager.SecretAgent.NoSecrets", []interface{}{"No password available"})
+		// Return UserCanceled rather than NoSecrets to instruct NetworkManager to abort
+		// rather than falling back to secondary desktop agents (e.g. kded6 / kwallet / plasma-nm popup).
+		return nil, dbus.NewError("org.freedesktop.NetworkManager.SecretAgent.UserCanceled", []interface{}{"No password available in ogsShell secret cache"})
 	}
 
 	result := map[string]map[string]dbus.Variant{

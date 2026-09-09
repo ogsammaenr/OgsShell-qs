@@ -20,6 +20,11 @@ Flickable {
   property string customDns2: "1.0.0.1"
   property string cleanupStatusMessage: ""
 
+  // WiFi Password input states
+  property string selectedSsid: ""
+  property string wifiPasswordInput: ""
+  property bool showPasswordModal: false
+
   // Active DNS Preset detection
   readonly property string currentDnsPreset: {
     if (!netDetails) return "dhcp"
@@ -377,8 +382,15 @@ Flickable {
         SettingsButton {
           text: "Ağları Yenile"
           iconText: "󰑐"
+          loading: !!(ipc && ipc.isScanningWifi)
           onClicked: {
-            if (ipc) ipc.sendAction("scan_wifi", {})
+            if (ipc) {
+              if (typeof ipc.scanWifi === "function") {
+                ipc.scanWifi()
+              } else {
+                ipc.sendAction("scan_wifi", {})
+              }
+            }
           }
         }
       }
@@ -448,8 +460,14 @@ Flickable {
               cursorShape: Qt.PointingHandCursor
               onClicked: {
                 if (isActive) return
-                if (ipc) {
-                  ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
+                root.selectedSsid = modelData.ssid || ""
+                if (modelData.security === "OPEN" || (modelData.is_saved && modelData.has_password !== false)) {
+                  if (ipc) {
+                    ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
+                  }
+                } else {
+                  root.wifiPasswordInput = ""
+                  root.showPasswordModal = true
                 }
               }
             }
@@ -464,6 +482,98 @@ Flickable {
               text: "Ağlar taranıyor veya bulunamadı..."
               color: Style.textMuted
               font.pixelSize: 12
+            }
+          }
+        }
+
+        // Inline Password Input Sheet
+        Rectangle {
+          Layout.fillWidth: true
+          Layout.preferredHeight: 42
+          radius: 8
+          color: Style.surfaceActive
+          border.color: Style.accentCyan
+          border.width: 1
+          visible: root.showPasswordModal
+
+          RowLayout {
+            anchors.fill: parent
+            anchors.margins: 6
+            spacing: 6
+
+            TextInput {
+              id: pagePassInput
+              Layout.fillWidth: true
+              verticalAlignment: TextInput.AlignVCenter
+              color: Style.textPrimary
+              font.pixelSize: 12
+              echoMode: TextInput.Password
+              text: root.wifiPasswordInput
+              onTextChanged: root.wifiPasswordInput = text
+              focus: root.showPasswordModal
+              onAccepted: {
+                if (ipc && root.selectedSsid) {
+                  ipc.sendAction("connect_wifi", { "ssid": root.selectedSsid, "password": root.wifiPasswordInput })
+                }
+                root.showPasswordModal = false
+              }
+
+              Text {
+                anchors.fill: parent
+                verticalAlignment: Text.AlignVCenter
+                text: `${root.selectedSsid} ağ parolası...`
+                color: Style.textMuted
+                font.pixelSize: 12
+                visible: !pagePassInput.text && !pagePassInput.activeFocus
+              }
+            }
+
+            // Connect Button
+            Rectangle {
+              Layout.preferredWidth: 68
+              Layout.preferredHeight: 28
+              radius: 6
+              color: Style.accent
+
+              Text {
+                anchors.centerIn: parent
+                text: "Bağlan"
+                font.pixelSize: 11
+                font.weight: Font.Bold
+                color: "#ffffff"
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                  if (ipc && root.selectedSsid) {
+                    ipc.sendAction("connect_wifi", { "ssid": root.selectedSsid, "password": root.wifiPasswordInput })
+                  }
+                  root.showPasswordModal = false
+                }
+              }
+            }
+
+            // Cancel Button
+            Rectangle {
+              Layout.preferredWidth: 28
+              Layout.preferredHeight: 28
+              radius: 6
+              color: Style.surfaceVariant
+
+              Text {
+                anchors.centerIn: parent
+                text: "✕"
+                font.pixelSize: 11
+                color: Style.textMuted
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.showPasswordModal = false
+              }
             }
           }
         }

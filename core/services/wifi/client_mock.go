@@ -24,10 +24,10 @@ func NewMockWifiClient() *MockWifiClient {
 		profiles: make(map[string]WifiProfile),
 		secrets:  make(map[string]WifiSecrets),
 		accessPoints: []AccessPoint{
-			{SSID: "OgsHome_5G", BSSID: "00:11:22:33:44:55", Signal: 92, Frequency: 5180, Band: "5GHz", Security: SecurityWPA2PSK, IsSaved: true, IsActive: true, Channel: 36},
-			{SSID: "OgsHome_2.4G", BSSID: "00:11:22:33:44:56", Signal: 85, Frequency: 2412, Band: "2.4GHz", Security: SecurityWPA2PSK, IsSaved: true, IsActive: false, Channel: 1},
-			{SSID: "CoffeeShop_Free", BSSID: "AA:BB:CC:DD:EE:FF", Signal: 64, Frequency: 2437, Band: "2.4GHz", Security: SecurityOpen, IsSaved: false, IsActive: false, Channel: 6},
-			{SSID: "SecureCorp_Guest", BSSID: "12:34:56:78:90:AB", Signal: 48, Frequency: 5240, Band: "5GHz", Security: SecurityWPA3SAE, IsSaved: false, IsActive: false, Channel: 48},
+			{SSID: "OgsHome_5G", BSSID: "00:11:22:33:44:55", Signal: 92, Frequency: 5180, Band: "5GHz", Security: SecurityWPA2PSK, IsSaved: true, HasPassword: true, IsActive: true, Channel: 36},
+			{SSID: "OgsHome_2.4G", BSSID: "00:11:22:33:44:56", Signal: 85, Frequency: 2412, Band: "2.4GHz", Security: SecurityWPA2PSK, IsSaved: true, HasPassword: true, IsActive: false, Channel: 1},
+			{SSID: "CoffeeShop_Free", BSSID: "AA:BB:CC:DD:EE:FF", Signal: 64, Frequency: 2437, Band: "2.4GHz", Security: SecurityOpen, IsSaved: false, HasPassword: false, IsActive: false, Channel: 6},
+			{SSID: "SecureCorp_Guest", BSSID: "12:34:56:78:90:AB", Signal: 48, Frequency: 5240, Band: "5GHz", Security: SecurityWPA3SAE, IsSaved: false, HasPassword: false, IsActive: false, Channel: 48},
 		},
 		activeSSID: "OgsHome_5G",
 	}
