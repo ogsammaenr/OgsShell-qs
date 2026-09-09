@@ -12,19 +12,29 @@ Item {
   signal clicked()
 
   // ==========================================
-  // Wi-Fi Telemetry & State
+  // Network (Ethernet & Wi-Fi) Telemetry & State
   // ==========================================
+  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && ipc.net.interface && !ipc.net.interface.startsWith("wlan") && !ipc.net.interface.startsWith("lo"))
   readonly property var wifi: ipc ? ipc.wifi : null
   readonly property bool wifiConnected: !!(wifi && wifi.connected)
+  readonly property bool isNetworkConnected: isEthernetConnected || wifiConnected
   readonly property string wifiSsid: (wifi && wifi.ssid && wifi.ssid.length > 0) ? wifi.ssid : (wifiConnected ? "Bağlı" : "Bağlantı Yok")
   readonly property int wifiSignal: wifi && wifi.signal ? wifi.signal : 0
 
-  readonly property string wifiIcon: {
+  readonly property string networkIcon: {
+    if (isEthernetConnected) return "󰈀"
     if (!wifiConnected) return "󰤮"
     if (wifiSignal >= 75) return "󰤨"
     if (wifiSignal >= 50) return "󰤥"
     if (wifiSignal >= 25) return "󰤢"
     return "󰤟"
+  }
+
+  readonly property string networkLabel: {
+    if (isEthernetConnected) {
+      return (ipc && ipc.net && ipc.net.interface) ? ipc.net.interface : "Kablolu"
+    }
+    return wifiConnected ? wifiSsid : "Kapalı"
   }
 
   // ==========================================
@@ -82,22 +92,22 @@ Item {
       anchors.centerIn: parent
       spacing: 7
 
-      // Wi-Fi Status Item
+      // Network (Ethernet / Wi-Fi) Status Item
       Row {
         Layout.alignment: Qt.AlignVCenter
         spacing: 4
 
         Text {
-          text: root.wifiIcon
-          color: root.wifiConnected ? Style.accent : Style.textMuted
+          text: root.networkIcon
+          color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accent) : Style.textMuted
           font.pixelSize: Config.connectivityIconSize
           anchors.verticalCenter: parent.verticalCenter
         }
 
         Text {
           id: ssidText
-          text: root.wifiConnected ? root.wifiSsid : "Kapalı"
-          color: root.wifiConnected ? Style.textPrimary : Style.textMuted
+          text: root.networkLabel
+          color: root.isNetworkConnected ? Style.textPrimary : Style.textMuted
           font.pixelSize: Config.connectivityTextSize
           font.weight: Font.DemiBold
           elide: Text.ElideRight

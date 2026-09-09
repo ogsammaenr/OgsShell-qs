@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import "../.."
 import "../widgets"
 import "../widgets/clock"
@@ -365,6 +366,30 @@ Item {
   // SURFACE 1: Unified Vector Shape (Used for "notch" mode)
   // Borderless, pure black OLED silhouette with 8x MSAA anti-aliasing
   // =========================================================================
+  RectangularGlow {
+    id: notchShadowGlow
+    anchors.fill: parent
+    anchors.topMargin: (Config.shadowsEnabled && Config.shadowNotch) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
+    anchors.bottomMargin: (Config.shadowsEnabled && Config.shadowNotch) ? -(root.stateMode === "EXPANDED" ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
+    glowRadius: (Config.shadowsEnabled && Config.shadowNotch) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedBlurRadius : Config.shadowBlurRadius) : 0
+    spread: Config.shadowSpread
+    color: Qt.rgba(0, 0, 0, (Config.shadowsEnabled && Config.shadowNotch) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedOpacity : Config.shadowOpacity) : 0)
+    cornerRadius: root.activeRadius + glowRadius
+    visible: (Config.shadowsEnabled && Config.shadowNotch) && Config.isNotch
+    z: -1
+
+    Behavior on glowRadius {
+      NumberAnimation {
+        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : Config.animation.duration_compact
+        easing.type: Easing.OutCubic
+      }
+    }
+
+    Behavior on color {
+      ColorAnimation { duration: 220 }
+    }
+  }
+
   Shape {
     id: notchVectorShape
     anchors.fill: parent
@@ -451,8 +476,32 @@ Item {
 
   // =========================================================================
   // SURFACE 2: Floating Pill Squircle (Used for "island" mode)
-  // Borderless, pure black OLED squircle
+  // Borderless, pure black OLED squircle with Dual Elevation Shadow
   // =========================================================================
+  RectangularGlow {
+    id: islandShadowGlow
+    anchors.fill: islandSquircleShape
+    anchors.topMargin: (Config.shadowsEnabled && Config.shadowIsland) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
+    anchors.bottomMargin: (Config.shadowsEnabled && Config.shadowIsland) ? -(root.stateMode === "EXPANDED" ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
+    glowRadius: (Config.shadowsEnabled && Config.shadowIsland) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedBlurRadius : Config.shadowBlurRadius) : 0
+    spread: Config.shadowSpread
+    color: Qt.rgba(0, 0, 0, (Config.shadowsEnabled && Config.shadowIsland) ? (root.stateMode === "EXPANDED" ? Config.shadowExpandedOpacity : Config.shadowOpacity) : 0)
+    cornerRadius: root.activeRadius + glowRadius
+    visible: (Config.shadowsEnabled && Config.shadowIsland) && !Config.isNotch
+    z: -1
+
+    Behavior on glowRadius {
+      NumberAnimation {
+        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : Config.animation.duration_compact
+        easing.type: Easing.OutCubic
+      }
+    }
+
+    Behavior on color {
+      ColorAnimation { duration: 220 }
+    }
+  }
+
   Rectangle {
     id: islandSquircleShape
     anchors.fill: parent

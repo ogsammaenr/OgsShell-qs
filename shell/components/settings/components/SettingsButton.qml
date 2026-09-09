@@ -7,10 +7,11 @@ Rectangle {
 
   property string text: ""
   property string iconText: ""
+  property bool loading: false
   property bool isAccent: false
   property bool isDanger: false
   property bool isSecondary: true
-  property bool enabled: true
+  property bool enabled: !loading
   signal clicked()
 
   implicitWidth: contentLayout.implicitWidth + 24
@@ -38,10 +39,24 @@ Rectangle {
     spacing: 6
 
     Text {
+      id: btnIcon
       visible: root.iconText !== ""
       text: root.iconText
       font.pixelSize: 13
       color: root.isAccent ? "#11111B" : (root.isDanger ? "#FFFFFF" : Style.textPrimary)
+
+      RotationAnimation on rotation {
+        running: root.loading
+        loops: Animation.Infinite
+        from: 0
+        to: 360
+        duration: 800
+        onRunningChanged: {
+          if (!running) {
+            btnIcon.rotation = 0
+          }
+        }
+      }
     }
 
     Text {

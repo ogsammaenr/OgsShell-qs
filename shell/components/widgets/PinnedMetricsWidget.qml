@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import "../.."
 
 Item {
@@ -44,6 +45,17 @@ Item {
 
   Behavior on scale {
     NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+  }
+
+  // Ambient Elevation Glow
+  RectangularGlow {
+    anchors.fill: parent
+    glowRadius: (Config.shadowsEnabled && Config.shadowPinnedMetrics) ? 12 : 0
+    spread: 0.1
+    color: Qt.rgba(0, 0, 0, (Config.shadowsEnabled && Config.shadowPinnedMetrics) ? 0.45 : 0)
+    cornerRadius: 14 + glowRadius
+    visible: glowRadius > 0 && (Config.shadowsEnabled && Config.shadowPinnedMetrics)
+    z: -1
   }
 
   // 100% Transparent Canvas with Zero Click-Blocking background

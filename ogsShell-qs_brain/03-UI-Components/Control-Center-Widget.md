@@ -28,6 +28,8 @@ related_notes:
   - "[[Plan-Fix-Settings-App-Launcher-From-Control-Center]]"
   - "[[Plan-Realtime-Reactive-Control-Center-Volume-Sync]]"
   - "[[Plan-Fix-Bluetooth-Pairing-Trust-And-UI-Interaction]]"
+  - "[[Plan-Control-Center-Wired-Ethernet-Management]]"
+  - "[[Plan-Wifi-Scan-Refresh-Button-Animation]]"
 ---
 
 # Control Center UI Component Suite
@@ -81,7 +83,17 @@ graph TD
      * **Güç Butonu (`󰐥`):** Tıklandığında adayı kapatıp tam ekran koyu cam blurlu `[[Power-Overlay-Component]]` menüsünü açar.
 
 2. **Sub-Application Views (`views/`):**
-   - **`WifiView.qml`:** Taranan Wi-Fi ağları ve bağlantı yönetimi.
+   - **`WifiView.qml` (Ağ ve Bağlantı Yöneticisi):**
+     - Apple HIG tarzı Segmented Tab Selector (`[ 󰈀 Kablolu ]` ve `[ 󰤨 Wi-Fi ]`).
+     - **Kablolu (Ethernet) Yönetimi:**
+       - `nmcli` entegrasyonu ile sistemdeki tüm fiziksel ethernet adaptörlerini (`enp0s20f0u4`, `eth0`, `enp6s0` vb.) ve kayıtlı profilleri dinamik listeler.
+       - Aktif ethernet bağlantısı kartı: Bağlantı adı, adaptör, IP adresi (`10.70.71.62/24`), Ağ Geçidi ve MAC adresi telemetrisi.
+       - Canlı bağlantı kontrolü: "Bağlan" ve "Bağlantıyı Kes" butonları (`nmcli device connect/disconnect`, `nmcli connection up/down`).
+       - Taşıyıcı ve kablo durumu göstergeleri (Bağlı, Kablo Takılı Değil/Kullanılamıyor, Bağlantıya Hazır).
+     - **Kablosuz (Wi-Fi) Yönetimi:**
+       - Taranan Wi-Fi ağları, sinyal seviyeleri, bant/güvenlik rozetleri ve şifreli ağlar için dahili parola giriş modalı.
+       - Aktif Wi-Fi bağlantısı ve donanım açma/kapatma kontrolleri.
+       - **Canlı Tarama Animasyonu:** `↻` yenileme butonuna tıklandığında buton `RotationAnimation` ile kesintisiz dönerek arka plandaki `scan_wifi` ve arayüz tarama sürecini görselleştirir; Go daemon'dan sonuçlar geldiğinde durup 0° açısına sıfırlanır.
    - **`BluetoothView.qml`:** Bluetooth cihazları ve eşleşme durumu.
    - **`NotificationsView.qml`:**
      - Bildirim kartları geçmişi, DND toggle ve tümünü temizleme aksiyonu.

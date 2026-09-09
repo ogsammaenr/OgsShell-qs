@@ -37,12 +37,21 @@ Scope {
     imageSupported: true
 
     onNotification: notif => {
+      let urgStr = "normal";
+      if (typeof notif.urgency === "number") {
+        if (notif.urgency === 0) urgStr = "low";
+        else if (notif.urgency === 2) urgStr = "critical";
+        else urgStr = "normal";
+      } else if (typeof notif.urgency === "string" && notif.urgency.trim().length > 0) {
+        urgStr = notif.urgency.trim().toLowerCase();
+      }
+
       ipcService.addNotification(
         notif.appName || "System",
         notif.summary || "Notification",
         notif.body || "",
         notif.appIcon || "",
-        notif.urgency || "normal"
+        urgStr
       )
     }
   }
@@ -344,8 +353,6 @@ Scope {
           }
         }
       }
-
-
 
       // =========================================================================
       // Screen Corners Window: Subtle black rounded bezel on 4 display corners

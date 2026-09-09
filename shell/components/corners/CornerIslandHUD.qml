@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Shapes
+import Qt5Compat.GraphicalEffects
 import "../.."
 import "../../theme"
 
@@ -115,8 +116,29 @@ Item {
 
   // =========================================================================
   // 2. EXPANDED State: Seamless Borderless OLED Black Vector Capsule
-  // Features Outward Concave Ear at Top-Right and Bottom-Left
+  // Features Outward Concave Ear at Top-Right and Bottom-Left with Ambient Drop Shadow
   // =========================================================================
+  RectangularGlow {
+    id: cornerHudShadowGlow
+    anchors.top: parent.top
+    anchors.left: parent.left
+    width: root.animWidth
+    height: root.animHeight
+    anchors.topMargin: (Config.shadowsEnabled && Config.shadowCornerHud) ? Config.shadowVerticalOffset : 0
+    anchors.leftMargin: (Config.shadowsEnabled && Config.shadowCornerHud) ? Math.round(Config.shadowVerticalOffset * 0.5) : 0
+    glowRadius: (Config.shadowsEnabled && Config.shadowCornerHud) ? Math.round(Config.shadowBlurRadius * 0.8) : 0
+    spread: Config.shadowSpread
+    color: Qt.rgba(0, 0, 0, (Config.shadowsEnabled && Config.shadowCornerHud && root.isExpanded) ? (Config.shadowOpacity * 0.85) : 0)
+    cornerRadius: root.br + glowRadius
+    opacity: root.isExpanded && root.animWidth > (root.radius + 10) ? 1.0 : 0.0
+    visible: opacity > 0.01 && (Config.shadowsEnabled && Config.shadowCornerHud)
+    z: -1
+
+    Behavior on opacity {
+      NumberAnimation { duration: 220; easing.type: Easing.OutQuad }
+    }
+  }
+
   Shape {
     id: expandedShape
     anchors.top: parent.top

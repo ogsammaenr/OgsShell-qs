@@ -17,8 +17,22 @@ Item {
   property bool gameModeActive: false
 
   // Telemetry properties
-  readonly property bool isWifiConnected: !!(ipc && ipc.wifi && (ipc.wifi.connected || (ipc.net && ipc.net.is_connected)))
+  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && ipc.net.interface && !ipc.net.interface.startsWith("wlan") && !ipc.net.interface.startsWith("lo"))
+  readonly property bool isWifiConnected: !!(ipc && ipc.wifi && (ipc.wifi.connected || (ipc.net && ipc.net.is_connected && !isEthernetConnected)))
+  readonly property bool isNetworkConnected: isEthernetConnected || isWifiConnected
   readonly property string wifiSsidText: (ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı") ? ipc.wifi.ssid : (isWifiConnected ? "Bağlı" : "Kapalı")
+  readonly property string networkTitleText: isEthernetConnected ? "Kablolu Ağ" : "Wi-Fi"
+  readonly property string networkSubtitleText: {
+    if (isEthernetConnected) {
+      return (ipc && ipc.net && ipc.net.interface) ? `Bağlı (${ipc.net.interface})` : "Kablolu Bağlantı Aktif"
+    }
+    return root.wifiSsidText
+  }
+  readonly property string networkIconGlyph: {
+    if (isEthernetConnected) return "󰈀"
+    if (isWifiConnected) return "󰤨"
+    return "󰤮"
+  }
   readonly property bool isBtPowered: !!(ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered)
   readonly property int notifCount: (ipc && ipc.notifications) ? ipc.notifications.length : 0
 
@@ -218,19 +232,19 @@ Item {
               anchors.rightMargin: 10
               spacing: 10
 
-              // Wi-Fi Icon Badge
+              // Network (Wi-Fi / Ethernet) Icon Badge
               Rectangle {
                 width: 32
                 height: 32
                 radius: 16
                 anchors.verticalCenter: parent.verticalCenter
-                color: root.isWifiConnected ? Style.accentCyan : Style.surfaceVariant
+                color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accentCyan) : Style.surfaceVariant
 
                 Text {
                   anchors.centerIn: parent
-                  text: root.isWifiConnected ? "󰤨" : "󰤮"
+                  text: root.networkIconGlyph
                   font.pixelSize: 15
-                  color: root.isWifiConnected ? "#000000" : Style.textMuted
+                  color: root.isNetworkConnected ? "#000000" : Style.textMuted
                 }
               }
 
@@ -241,15 +255,15 @@ Item {
                 spacing: 1
 
                 Text {
-                  text: "Wi-Fi"
+                  text: root.networkTitleText
                   font.pixelSize: 12
                   font.weight: Font.Bold
                   color: Style.textPrimary
                 }
                 Text {
-                  text: root.wifiSsidText
+                  text: root.networkSubtitleText
                   font.pixelSize: 10
-                  color: root.isWifiConnected ? Style.accentCyan : Style.textMuted
+                  color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accentCyan) : Style.textMuted
                   elide: Text.ElideRight
                   width: parent.width
                 }

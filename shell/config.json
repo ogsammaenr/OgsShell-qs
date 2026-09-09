@@ -74,5 +74,20 @@
     "clipboard_enabled": true,
     "timeout_ms": 1200,
     "height": 34
+  },
+  "shadows": {
+    "enabled": true,
+    "island_shadow": true,
+    "notch_shadow": true,
+    "corner_hud_shadow": true,
+    "pinned_metrics_shadow": true,
+    "blur_radius": 24,
+    "spread": 0.12,
+    "opacity": 0.55,
+    "color": "#000000",
+    "vertical_offset": 6,
+    "expanded_blur_radius": 36,
+    "expanded_opacity": 0.65,
+    "expanded_vertical_offset": 10
   }
 }

@@ -12,7 +12,6 @@ updated: 2026-08-17
 status: implemented
 related_notes:
   - "[[Dynamic-Island-Component]]"
-  - "[[Dock-Component]]"
   - "[[Daemon-IPC-Client]]"
   - "[[Wayland-LayerShell-Integration]]"
   - "[[QML-Best-Practices]]"
@@ -22,7 +21,6 @@ related_notes:
   - "[[Plan-Dynamic-Expanded-Layer-Interaction]]"
   - "[[Plan-Focus-Mode-And-Smart-Autohide]]"
   - "[[Plan-Per-Monitor-Focus-Mode-Autohide]]"
-  - "[[Plan-Dock-Component]]"
 ---
 
 # Shell Root Scope & Multi-Window Architecture

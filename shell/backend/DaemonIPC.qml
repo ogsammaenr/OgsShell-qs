@@ -14,6 +14,7 @@ Item {
 
   // Wi-Fi, Network & Bluetooth
   property var wifi: ({ "connected": false, "ssid": "", "signal": 0 })
+  property bool isScanningWifi: false
   property var networkDetails: null
   property var savedWifiProfiles: []
   property var bluetooth: ({ "adapter_powered": false, "discovering": false, "devices": [] })
@@ -73,6 +74,8 @@ Item {
   signal appLaunched(var payload)
   signal networkDetailsUpdated(var payload)
   signal cleanupDuplicatesCompleted(var payload)
+  signal wifiScanStarted()
+  signal wifiScanCompleted(var payload)
   signal launcherToggled()
   signal launcherOpened()
   signal launcherClosed()
@@ -110,11 +113,33 @@ Item {
     sendAction("get_saved_wifi_profiles", {});
   }
 
+  function scanWifi() {
+    root.isScanningWifi = true;
+    root.wifiScanStarted();
+    sendAction("scan_wifi", {});
+    sendAction("get_active_wifi", {});
+    wifiScanSafetyTimer.restart();
+  }
+
+  Timer {
+    id: wifiScanSafetyTimer
+    interval: 8000
+    repeat: false
+    onTriggered: {
+      root.isScanningWifi = false;
+    }
+  }
+
   // Send JSON RPC Action to daemon
   function sendAction(name, args) {
     if (!socket.connected) {
       console.log("[DaemonIPC] Warning: Socket not connected. Cannot send action:", name);
       return;
+    }
+    if (name === "scan_wifi") {
+      root.isScanningWifi = true;
+      root.wifiScanStarted();
+      wifiScanSafetyTimer.restart();
     }
     let packet = JSON.stringify({
       "name": name,
@@ -188,12 +213,21 @@ Item {
 
   // Notification Helpers
   function addNotification(appName, summary, body, icon, urgency) {
+    let urgStr = "normal";
+    if (typeof urgency === "number") {
+      if (urgency === 0) urgStr = "low";
+      else if (urgency === 2) urgStr = "critical";
+      else urgStr = "normal";
+    } else if (typeof urgency === "string" && urgency.trim().length > 0) {
+      urgStr = urgency.trim().toLowerCase();
+    }
+
     sendAction("add_notification", {
       "app_name": appName || "System",
       "summary": summary || "Notification",
       "body": body || "",
       "icon": icon || "",
-      "urgency": urgency || "normal"
+      "urgency": urgStr
     });
   }
 
@@ -473,6 +507,8 @@ Item {
               };
             }
           } else if (msg.type === "wifi_update" || msg.type === "wifi_scan_results") {
+            root.isScanningWifi = false;
+            wifiScanSafetyTimer.stop();
             let aps = Array.isArray(msg.payload) ? msg.payload : [];
             let activeAp = aps.find(a => a.is_active || a.is_connected);
             let isConn = !!activeAp || !!(root.net && root.net.is_connected);
@@ -483,6 +519,7 @@ Item {
               "access_points": aps,
               "scan_results": aps
             };
+            root.wifiScanCompleted(msg.payload);
           } else if (msg.type === "active_wifi_info") {
             let existingAps = (root.wifi && (root.wifi.access_points || root.wifi.scan_results)) ? (root.wifi.access_points || root.wifi.scan_results) : [];
             root.wifi = {

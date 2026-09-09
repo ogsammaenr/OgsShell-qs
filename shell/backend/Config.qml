@@ -107,6 +107,22 @@ Item {
     "height": 34
   })
 
+  property var shadows: ({
+    "enabled": true,
+    "island_shadow": true,
+    "notch_shadow": true,
+    "corner_hud_shadow": true,
+    "pinned_metrics_shadow": true,
+    "blur_radius": 24,
+    "spread": 0.12,
+    "opacity": 0.55,
+    "color": "#000000",
+    "vertical_offset": 6,
+    "expanded_blur_radius": 36,
+    "expanded_opacity": 0.65,
+    "expanded_vertical_offset": 10
+  })
+
   // =========================================================================
   // First-Class Typed Reactive Geometry Accessors
   // =========================================================================
@@ -187,6 +203,23 @@ Item {
   readonly property bool cornerHudClipboard: (cornerHud && cornerHud.clipboard_enabled !== undefined) ? cornerHud.clipboard_enabled : true
   readonly property int cornerHudTimeoutMs: (cornerHud && cornerHud.timeout_ms !== undefined) ? cornerHud.timeout_ms : 1200
   readonly property int cornerHudHeight: (cornerHud && cornerHud.height !== undefined) ? cornerHud.height : 34
+
+  // =========================================================================
+  // First-Class Typed Reactive Shadows Accessors
+  // =========================================================================
+  readonly property bool shadowsEnabled: (shadows && shadows.enabled !== undefined) ? shadows.enabled : true
+  readonly property bool shadowIsland: (shadows && shadows.island_shadow !== undefined) ? shadows.island_shadow : true
+  readonly property bool shadowNotch: (shadows && shadows.notch_shadow !== undefined) ? shadows.notch_shadow : true
+  readonly property bool shadowCornerHud: (shadows && shadows.corner_hud_shadow !== undefined) ? shadows.corner_hud_shadow : true
+  readonly property bool shadowPinnedMetrics: (shadows && shadows.pinned_metrics_shadow !== undefined) ? shadows.pinned_metrics_shadow : true
+  readonly property int shadowBlurRadius: (shadows && shadows.blur_radius !== undefined) ? shadows.blur_radius : 24
+  readonly property real shadowSpread: (shadows && shadows.spread !== undefined) ? shadows.spread : 0.12
+  readonly property real shadowOpacity: (shadows && shadows.opacity !== undefined) ? shadows.opacity : 0.55
+  readonly property string shadowColor: (shadows && shadows.color) ? shadows.color : "#000000"
+  readonly property int shadowVerticalOffset: (shadows && shadows.vertical_offset !== undefined) ? shadows.vertical_offset : 6
+  readonly property int shadowExpandedBlurRadius: (shadows && shadows.expanded_blur_radius !== undefined) ? shadows.expanded_blur_radius : 36
+  readonly property real shadowExpandedOpacity: (shadows && shadows.expanded_opacity !== undefined) ? shadows.expanded_opacity : 0.65
+  readonly property int shadowExpandedVerticalOffset: (shadows && shadows.expanded_vertical_offset !== undefined) ? shadows.expanded_vertical_offset : 10
 
   // Computed active geometry (reactive to formFactor and configRevision)
   readonly property var activeGeometry: {
@@ -291,6 +324,7 @@ Item {
     if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
     if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
     if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
+    if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
 
     let full = {
       "form_factor": root.formFactor,
@@ -304,7 +338,8 @@ Item {
       "animation": root.animation,
       "screen_corners": root.screenCorners,
       "audio_feedback": root.audioFeedback,
-      "corner_hud": root.cornerHud
+      "corner_hud": root.cornerHud,
+      "shadows": root.shadows
     }
 
     let jsonStr = JSON.stringify(full, null, 2)
@@ -451,6 +486,7 @@ Item {
       if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
       if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
       if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
+      if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
 
       root.configRevision++
       root.configUpdated(cfg)

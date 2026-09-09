@@ -7,7 +7,7 @@ tags:
   - quickshell/qml
   - theming/schema
 created: 2026-08-09
-updated: 2026-08-28
+updated: 2026-09-09
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -155,6 +155,24 @@ The configuration system continuously watches both locations using a real-time e
         "clipboard_enabled": { "type": "bool", "default": true },
         "timeout_ms": { "type": "integer", "default": 1200 },
         "height": { "type": "integer", "default": 34 }
+      }
+    },
+    "shadows": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "bool", "default": true },
+        "island_shadow": { "type": "bool", "default": true },
+        "notch_shadow": { "type": "bool", "default": true },
+        "corner_hud_shadow": { "type": "bool", "default": true },
+        "pinned_metrics_shadow": { "type": "bool", "default": true },
+        "blur_radius": { "type": "integer", "default": 24 },
+        "spread": { "type": "number", "default": 0.12 },
+        "opacity": { "type": "number", "default": 0.55 },
+        "color": { "type": "string", "default": "#000000" },
+        "vertical_offset": { "type": "integer", "default": 6 },
+        "expanded_blur_radius": { "type": "integer", "default": 36 },
+        "expanded_opacity": { "type": "number", "default": 0.65 },
+        "expanded_vertical_offset": { "type": "integer", "default": 10 }
       }
     }
   }
