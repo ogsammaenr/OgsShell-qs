@@ -59,6 +59,12 @@
     "bottom_left": true,
     "bottom_right": true
   },
+  "corner_tray": {
+    "enabled": true,
+    "height": 34,
+    "trigger_mode": "click",
+    "timeout_ms": 0
+  },
   "audio_feedback": {
     "enabled": true,
     "volume_change_sound": true,

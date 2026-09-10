@@ -25,10 +25,14 @@
             "id": "5dac5067c06cf735",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Grafik Görünümü"
+              "type": "markdown",
+              "state": {
+                "file": "PROJECT_STRUCTURE.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "PROJECT_STRUCTURE"
             }
           },
           {
@@ -230,6 +234,7 @@
   },
   "active": "5dac5067c06cf735",
   "lastOpenFiles": [
+    "04-Agent-Rules/Agent-Workflow-Directives.md",
     "05-Agent-Thoughts/Plan-Live-Config-Hot-Reload-Architecture.md",
     "05-Agent-Thoughts/Plan-Fix-Launcher-List-View.md",
     "05-Agent-Thoughts/Plan-Apple-Spotlight-Minimalist-Launcher-Redesign.md",
@@ -246,7 +251,6 @@
     "05-Agent-Thoughts/Plan-Dock-Smart-Autohide-And-Edge-Trigger.md",
     "03-UI-Components/Dock-Component.md",
     "05-Agent-Thoughts/Plan-Dock-Component.md",
-    "04-Agent-Rules/Agent-Workflow-Directives.md",
     "05-Agent-Thoughts/Plan-Theme-App-Wallpapers-Tab.md",
     "02-Services/Theme-Service.md",
     "02-Services/RAM-Monitor-Service.md",

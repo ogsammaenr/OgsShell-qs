@@ -107,6 +107,13 @@ Item {
     "height": 34
   })
 
+  property var cornerTray: ({
+    "enabled": true,
+    "height": 34,
+    "trigger_mode": "click",
+    "timeout_ms": 0
+  })
+
   property var shadows: ({
     "enabled": true,
     "island_shadow": true,
@@ -203,6 +210,14 @@ Item {
   readonly property bool cornerHudClipboard: (cornerHud && cornerHud.clipboard_enabled !== undefined) ? cornerHud.clipboard_enabled : true
   readonly property int cornerHudTimeoutMs: (cornerHud && cornerHud.timeout_ms !== undefined) ? cornerHud.timeout_ms : 1200
   readonly property int cornerHudHeight: (cornerHud && cornerHud.height !== undefined) ? cornerHud.height : 34
+
+  // =========================================================================
+  // First-Class Typed Reactive Corner System Tray HUD Accessors
+  // =========================================================================
+  readonly property bool cornerTrayEnabled: (cornerTray && cornerTray.enabled !== undefined) ? cornerTray.enabled : true
+  readonly property int cornerTrayHeight: (cornerTray && cornerTray.height !== undefined) ? cornerTray.height : 34
+  readonly property string cornerTrayTriggerMode: (cornerTray && cornerTray.trigger_mode) ? cornerTray.trigger_mode : "click"
+  readonly property int cornerTrayTimeoutMs: (cornerTray && cornerTray.timeout_ms !== undefined) ? cornerTray.timeout_ms : 0
 
   // =========================================================================
   // First-Class Typed Reactive Shadows Accessors
@@ -486,6 +501,7 @@ Item {
       if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
       if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
       if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
+      if (cfg.corner_tray) root.cornerTray = Object.assign({}, root.cornerTray, cfg.corner_tray)
       if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
 
       root.configRevision++

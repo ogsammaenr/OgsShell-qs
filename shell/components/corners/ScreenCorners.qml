@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell.Hyprland
+import "../.."
 
 Item {
   id: root
@@ -93,7 +94,7 @@ Item {
     anchors.right: parent.right
     width: root.radius
     height: root.radius
-    visible: root.topRight && root.radius > 0
+    visible: root.topRight && root.radius > 0 && !Config.cornerTrayEnabled
 
     layer.enabled: true
     layer.samples: 4

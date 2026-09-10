@@ -9,3 +9,4 @@ DaemonIPC 1.0 backend/DaemonIPC.qml
 CornerHUDService 1.0 components/corners/CornerHUDService.qml
 CornerIslandHUD 1.0 components/corners/CornerIslandHUD.qml
 ScreenCorners 1.0 components/corners/ScreenCorners.qml
+TopRightTrayHUD 1.0 components/corners/TopRightTrayHUD.qml

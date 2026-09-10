@@ -187,7 +187,7 @@ Scope {
       PanelWindow {
         id: backdropWindow
         screen: screenScope.modelData
-        visible: island.stateMode === "EXPANDED"
+        visible: (island.stateMode === "EXPANDED") || (topRightTrayHud && topRightTrayHud.isExpanded)
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Top
 
@@ -204,6 +204,9 @@ Scope {
           anchors.fill: parent
           onClicked: {
             island.collapse()
+            if (topRightTrayHud && topRightTrayHud.isExpanded) {
+              topRightTrayHud.collapse()
+            }
           }
         }
       }
@@ -389,6 +392,41 @@ Scope {
           bottomLeft: Config.screenCornerBottomLeft
           bottomRight: Config.screenCornerBottomRight
           hudService: cornerHudService
+        }
+      }
+
+      // =========================================================================
+      // Top-Right Corner Tray Window: Interactive Background App HUD
+      // =========================================================================
+      PanelWindow {
+        id: topRightTrayWindow
+        screen: screenScope.modelData
+        visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled
+        color: "transparent"
+        WlrLayershell.layer: (topRightTrayHud && topRightTrayHud.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+        anchors {
+          top: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        implicitWidth: topRightTrayHud ? (topRightTrayHud.width + 10) : (Config.screenCornersRadius + 10)
+        implicitHeight: topRightTrayHud ? (topRightTrayHud.height + 10) : (Config.screenCornersRadius + 10)
+
+        // Precision Wayland input mask strictly conforms to tray HUD bounds
+        mask: Region {
+          item: topRightTrayHud
+        }
+
+        TopRightTrayHUD {
+          id: topRightTrayHud
+          anchors.top: parent.top
+          anchors.right: parent.right
+          radius: Config.screenCornersRadius
+          cornerColor: Config.screenCornersColor
         }
       }
 

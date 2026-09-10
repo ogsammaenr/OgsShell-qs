@@ -30,6 +30,7 @@ related_notes:
 * **Hardware Anti-Aliasing:** Uses `QtQuick.Shapes` vector paths with `layer.samples: 4` and `layer.smooth: true` to prevent pixelation on high-DPI displays.
 * **Per-Corner Granularity:** Supports toggling individual corners (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`).
 * **Top-Left Dynamic Morphing HUD:** Sol-üst köşede statik kavis yerine `CornerIslandHUD` barındırır.
+* **Top-Right Dynamic System Tray HUD:** Sağ-üst köşede `TopRightTrayHUD` barındırır; tıklandığında arka plandaki tepsi uygulamalarını (Steam, Discord vb.) açar.
 * **Per-Monitor Workspace Isolation:** Her ekranda `hyprMonitor.activeWorkspace.id` ve o ekrana ait `monitorWorkspaces` listesini dinler; ekranlar arası odak/fare geçişlerinde yanlış tetikleme oluşmasını engeller.
 
 ---
@@ -45,6 +46,12 @@ related_notes:
   "top_right": true,
   "bottom_left": true,
   "bottom_right": true
+},
+"corner_tray": {
+  "enabled": true,
+  "height": 34,
+  "trigger_mode": "click",
+  "timeout_ms": 0
 }
 ```
 
@@ -54,4 +61,6 @@ related_notes:
 
 * Config Engine Spec: `[[Configuration-System-Spec]]`
 * Shell Root Window: `[[Shell-Root-PanelWindow]]`
+* Top-Right Tray HUD: `[[Top-Right-Tray-HUD-Component]]`
 * Proposal Plan: `[[Plan-Screen-Rounded-Corners]]`
+* Tray Plan: `[[Plan-Top-Right-Corner-System-Tray-HUD]]`
