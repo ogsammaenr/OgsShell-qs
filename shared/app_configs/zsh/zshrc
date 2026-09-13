@@ -1,0 +1,23 @@
+# =============================================================================
+# ~/.zshrc - Root Zsh Entry Point
+# Sorumluluk: Bu dosya doğrudan hiçbir yapılandırma İÇERMEZ.
+# Yalnızca ~/.config/zsh/ altındaki mantıksal modüllere bağlantı sağlar.
+# =============================================================================
+
+ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+
+# Modüler Yapılandırma Dosyaları Bağlantıları
+[[ -r "$ZSH_CONFIG_DIR/00-environment.zsh" ]] && source "$ZSH_CONFIG_DIR/00-environment.zsh"
+[[ -r "$ZSH_CONFIG_DIR/10-options.zsh"     ]] && source "$ZSH_CONFIG_DIR/10-options.zsh"
+[[ -r "$ZSH_CONFIG_DIR/20-completion.zsh"  ]] && source "$ZSH_CONFIG_DIR/20-completion.zsh"
+[[ -r "$ZSH_CONFIG_DIR/30-aliases.zsh"     ]] && source "$ZSH_CONFIG_DIR/30-aliases.zsh"
+[[ -r "$ZSH_CONFIG_DIR/40-plugins.zsh"     ]] && source "$ZSH_CONFIG_DIR/40-plugins.zsh"
+[[ -r "$ZSH_CONFIG_DIR/50-prompt.zsh"      ]] && source "$ZSH_CONFIG_DIR/50-prompt.zsh"
+
+# Kullanıcıya Özel Ek Modüller (~/.config/zsh/custom/*.zsh)
+if [[ -d "$ZSH_CONFIG_DIR/custom" ]]; then
+  for _custom_conf in "$ZSH_CONFIG_DIR"/custom/*.zsh(N); do
+    [[ -r "$_custom_conf" ]] && source "$_custom_conf"
+  done
+  unset _custom_conf
+fi
