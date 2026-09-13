@@ -35,6 +35,7 @@ related_notes:
   - "[[Plan-Rose-Pine-Theme-Integration]]"
   - "[[Plan-Tmux-Prefix-Window-Color-Highlight]]"
   - "[[Plan-Tmux-Dual-Capsule-Status-Bar]]"
+  - "[[Plan-Starship-Dynamic-Theme-Adapter]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service
@@ -88,6 +89,7 @@ graph TD
    - **Tmux:** Copies `shared/app_configs/tmux/<id>.conf` to both `~/.tmux/current-theme.conf` and `~/.config/tmux/theme.conf`, executes live `tmux source-file`, reloads `minimal.tmux` status plugin, and triggers `tmux refresh-client -S`. Detay: `[[Plan-Fix-Tmux-Theme-Adapter]]`.
    - **IntelliJ IDEA / JetBrains:** Copies `shared/app_configs/intellij/<id>.icls` to `~/.config/JetBrains/<IDE>/colors/<SchemeName>.icls` and updates `options/colors.scheme.xml`. Detay: `[[Plan-IntelliJ-Theme-Adapter]]`.
    - **Android Studio:** Copies `shared/app_configs/android_studio/<id>.icls` (fallback to `intellij/<id>.icls`) to `~/.config/Google/AndroidStudio*/colors/<SchemeName>.icls` (as well as Flatpak and Snap directories) and updates `options/colors.scheme.xml`. Detay: `[[Plan-Android-Studio-Nord-Theme-Adapter]]`.
+   - **Starship Prompt:** Dynamically synthesizes `~/.config/starship.toml` by concatenating `shared/app_configs/starship/base.toml` and `palettes/<id>.toml`, enabling instant zero-restart cross-shell prompt recoloring on the next command prompt. Detay: `[[Plan-Starship-Dynamic-Theme-Adapter]]`.
 6. **Concurrent Error & Timeout Isolation:** Adapters execute concurrently with dedicated timeouts; failure or latency in one app adapter does not impact others or the Go daemon.
 
 ---
@@ -99,4 +101,4 @@ graph TD
 * QML IPC Singleton: `[[Daemon-IPC-Client]]`
 * Design Tokens & Style: `[[Style-Design-Tokens]]`
 * Go Daemon: `[[Go-Daemon-Core]]`
-* Implementation Plans: `[[Plan-Async-Theme-Engine-And-Exact-Matching]]`, `[[Plan-Shared-Directory-Theme-Engine]]`
+* Implementation Plans: `[[Plan-Async-Theme-Engine-And-Exact-Matching]]`, `[[Plan-Shared-Directory-Theme-Engine]]`, `[[Plan-Starship-Dynamic-Theme-Adapter]]`, `[[Plan-Standardize-Starship-Palette-Tokens]]`

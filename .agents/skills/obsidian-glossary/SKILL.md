@@ -1,28 +1,30 @@
 ---
 name: obsidian-glossary
-description: Rules and guidelines for reading, creating, and updating Obsidian markdown notes inside the ogsShell-qs_brain/ directory, including agent-autonomous thought logs and deep inter-note wikilinking.
+description: Rules and guidelines for reading, creating, and updating Obsidian markdown notes inside the ogsShell-qs_brain/ directory with deep inter-note wikilinking.
 ---
 
 # Skill: Obsidian Brain & Knowledge Base Management
 
 ## Purpose
 
-This skill governs how any agent interacts with the `ogsShell-qs_brain/` directory (the Obsidian Vault). The agent MUST maintain a structured, interconnected, and up-to-date knowledge base regarding system architecture, Go daemon services, Unix Domain Socket IPC schemas, Quickshell UI components, development standards, and autonomous agent thought logs inside `ogsShell-qs_brain/`.
+This skill governs how any agent interacts with the `ogsShell-qs_brain/` directory (the Obsidian Vault). The agent MUST maintain a structured, interconnected, and living knowledge base regarding system architecture, Go daemon services, Unix Domain Socket IPC schemas, Quickshell UI components, and development standards inside `ogsShell-qs_brain/`.
 
 ---
 
 ## 1. Vault Directory Structure
 
-All documentation created or updated by the agent MUST strictly adhere to this layout:
+All documentation created or updated by the agent MUST strictly adhere to this lean 4-pillar layout:
 
 ```text
 ogsShell-qs_brain/
-├── 01-Architecture/      # High-level architecture, IPC JSON schemas, config formats
+├── 01-Architecture/      # High-level architecture, IPC JSON schemas, config formats, HIG specs
 ├── 02-Services/          # Go Daemon services (PipeWire, NetworkManager, BlueZ, Hyprland IPC, SysMetrics)
-├── 03-UI-Components/     # Quickshell QML & PySide6 UI standards, themes, Dynamic Island widgets
-├── 04-Agent-Rules/       # Coding standards (Go, QML, Python), git commit rules, agent workflows
-└── 05-Agent-Thoughts/    # Agent scratchpad, autonomous ideas, refactoring proposals, reasoning logs
+├── 03-UI-Components/      # Quickshell QML UI standards, themes, Dynamic Island widgets, settings
+└── 04-Agent-Rules/       # Coding standards (Go, QML, Python), git rules, agent workflow directives
 ```
+
+> [!NOTE]
+> Ephemeral task planning and scratchpad thoughts happen dynamically within the agent-user conversation session. Persistent notes are strictly reserved for living architecture, concrete services, and active UI components. Do not create transient scratchpad or proposal markdown files in the vault.
 
 ---
 
@@ -32,8 +34,8 @@ To build a fully connected graph in Obsidian, the agent MUST explicitly link not
 
 1. **Format:** Always use standard Obsidian Wikilinks `[[Note-Name]]`. Do **not** use file extensions (e.g., use `[[Audio-Pipewire]]`, NOT `[[Audio-Pipewire.md]]`).
 2. **Bi-Directional Tracing:**
-   * Notes in `05-Agent-Thoughts/` MUST link to the relevant services in `02-Services/` or architecture specs in `01-Architecture/` that they are proposing to alter.
-   * Notes in `02-Services/` MUST link back to related UI components in `03-UI-Components/` and IPC schemas in `01-Architecture/`.
+   * Notes in `02-Services/` MUST link to related UI components in `03-UI-Components/` and IPC schemas in `01-Architecture/`.
+   * Notes in `03-UI-Components/` MUST link to relevant backend services in `02-Services/` and design specifications in `01-Architecture/`.
 3. **Contextual Anchors:** Use inline Wikilinks inside narrative text to build context.
    * *Example:* "This Go service communicates with `[[Hyprland-IPC]]` and broadcasts JSON events over `[[IPC-Socket-Schema]]`."
 
@@ -45,20 +47,15 @@ Every note generated or modified by the agent MUST follow these Obsidian-native 
 
 ### A. YAML Frontmatter (Metadata)
 
-Every `.md` file must start with a valid YAML frontmatter block:
+Every `.md` file must start with a valid, minimal YAML frontmatter block (do not track timestamps or duplicate wikilinks here):
 
 ```yaml
 ---
 title: "Document Title"
-type: architecture | service | ui-component | rule | agent-thought
+type: architecture | service | ui-component | rule
 tags:
   - topic/subtopic
-created: YYYY-MM-DD
-updated: YYYY-MM-DD
-status: draft | active | deprecated | proposed | implemented
-related_notes:
-  - "[[Note-Name-1]]"
-  - "[[Note-Name-2]]"
+status: active | deprecated
 ---
 ```
 
@@ -73,92 +70,40 @@ Use callouts to highlight important contexts or warnings:
 > [!WARNING]
 > Breaking change risk or D-Bus method deprecation.
 
-> [!IDEA]
-> Agent proposal for optimization or refactoring.
+> [!TIP]
+> Implementation tip or recommended practice.
 ```
 
 ### C. Code Blocks & Diagrams
 
 * Always specify language tags in code fences (`go`, `qml`, `python`, `bash`, `json`).
-* Use **Mermaid.js** syntax for data flow or architecture diagrams when explaining complex interactions.
+* Use **Mermaid.js** diagrams strictly for complex state machines or asynchronous socket IPC flows. Keep nodes and labels minimal to conserve context tokens.
 
 ---
 
-## 4. Usage Rules for `05-Agent-Thoughts/`
+## 4. Agent Execution Protocol
 
-The `05-Agent-Thoughts/` directory is the agent's dedicated space for internal reasoning, multi-step task planning, architectural proposals, and post-mortems.
+When executing coding, refactoring, or feature tasks, the agent follows this streamlined three-phase pipeline:
 
-1. **When to Create a Thought Note:**
-   * Before undertaking a major refactoring or complex feature implementation.
-   * When discovering a potential system bottleneck or architectural flaw.
-   * To outline a step-by-step execution plan for complex multi-file changes.
-2. **Linking Obligation:** A thought note MUST link to all target notes it intends to modify or reference.
-   * *Example:* A note `[[Refactoring-NetworkManager-Service]]` must explicitly link to `[[Network-Manager]]`, `[[NetworkSettings]]`, and `[[IPC-Socket-Schema]]`.
-3. **Lifecycle:** When a proposal in `05-Agent-Thoughts/` is implemented, update its frontmatter `status` to `implemented` and add a link to the commit or the updated official docs.
+### Phase 1: Context Recall (Read)
 
----
-
-## 5. Agent Execution Protocol
-
-When executing coding, refactoring, or feature tasks, the agent MUST follow this three-phase pipeline:
-
-### Phase 1: Context Recall & Ideation (Read)
-
-1. Inspect existing notes in `01-Architecture/`, `02-Services/`, and `04-Agent-Rules/`.
-2. For complex tasks, draft a proposal note in `05-Agent-Thoughts/` (e.g., `[[Plan-Audio-Device-Selection]]`) and cross-link relevant components.
+1. Inspect relevant specs in `01-Architecture/`, `02-Services/`, and `03-UI-Components/`.
+2. Inspect `.agents/BACKEND_ENDPOINTS.md` for socket actions and broadcast event schemas.
+3. Discuss or present the plan directly in conversation with the user (no temporary proposal files).
 
 ### Phase 2: Implementation (Write Code)
 
-1. Implement or modify the required code in `core/` (Go), `shell/` (QML), or `settings_app/` (PySide6) following `[[Go-Coding-Style]]`, `[[QML-Best-Practices]]`, and `[[PySide6-Standards]]`.
+1. Implement or modify the required code in `shell/` (QML) or `core/` (Go) following `[[Go-Coding-Style]]` and `[[QML-Best-Practices]]`.
 
-### Phase 3: Brain Synchronization (Update Docs)
+### Phase 3: Brain Synchronization (Update Living Docs)
 
-1. **Update Official Docs:** Create or update the relevant service/UI notes in `01-Architecture/`, `02-Services/`, or `03-UI-Components/`.
-2. **Update Thought Logs:** Mark the corresponding note in `05-Agent-Thoughts/` as `status: implemented`.
-3. **Update Metadata:** Refresh the `updated: YYYY-MM-DD` timestamp on all modified notes.
+1. **Update Living Docs:** If a new widget, configuration key, or IPC endpoint was added/changed, update the corresponding documentation in `01-Architecture/`, `02-Services/`, or `03-UI-Components/`.
 
 ---
 
-## 6. Standard Note Templates
+## 5. Standard Note Templates
 
-### Template A: Agent Thought / Proposal Note (`05-Agent-Thoughts/`)
-
-```markdown
----
-title: "Proposal: Async NetworkManager D-Bus Scanner in Go"
-type: agent-thought
-tags:
-  - proposal/refactor
-  - network/dbus
-  - go/daemon
-created: 2026-08-09
-updated: 2026-08-09
-status: proposed
-related_notes:
-  - "[[Network-Manager]]"
-  - "[[IPC-Socket-Schema]]"
----
-
-# Proposal: Async NetworkManager D-Bus Scanner in Go
-
-> [!IDEA]
-> Moving network scanning from polling to asynchronous D-Bus signals in the Go daemon will reduce idle CPU usage.
-
-## Problem Statement
-Current polling routine in `[[Network-Manager]]` queries D-Bus every 2 seconds, generating unnecessary CPU interrupts.
-
-## Proposed Solution
-1. Use `godbus/dbus` signal subscriptions inside a dedicated Go goroutine.
-2. Broadcast `net_update` JSON events via Unix Domain Socket only when state changes occur.
-3. Update `[[NetworkSettings]]` and `[[NetworkWidget]]` to react to new socket events.
-
-## Affected Components
-- `[[Network-Manager]]` - Go service implementation (`core/internal/services/net.go`)
-- `[[IPC-Socket-Schema]]` - JSON broadcast message specification
-- `[[NetworkWidget]]` - Quickshell QML component
-```
-
-### Template B: System Service Note (`02-Services/`)
+### Template A: System Service Note (`02-Services/`)
 
 ```markdown
 ---
@@ -167,13 +112,7 @@ type: service
 tags:
   - audio/pipewire
   - go/daemon
-created: 2026-08-09
-updated: 2026-08-09
 status: active
-related_notes:
-  - "[[IPC-Socket-Schema]]"
-  - "[[AudioWidget]]"
-  - "[[AudioSettings]]"
 ---
 
 # PipeWire Audio Service
@@ -206,6 +145,36 @@ When audio state changes, the service broadcasts the following JSON structure ov
 
 * Socket IPC specification: `[[IPC-Socket-Schema]]`
 * QML Dynamic Island Widget: `[[AudioWidget]]`
-* PySide6 Control Panel: `[[AudioSettings]]`
+* Settings View: `[[AudioSettings]]`
 
+```
+
+### Template B: UI Component Note (`03-UI-Components/`)
+
+```markdown
+---
+title: "Dynamic Island Component"
+type: ui-component
+tags:
+  - quickshell/qml
+  - dynamic-island
+  - ui/widgets
+status: active
+---
+
+# Dynamic Island Component
+
+Houses the primary status bar, morphing spring animations, and state machines for Island and Notch presentations.
+
+## File Location
+* `shell/components/island/DynamicIsland.qml`
+
+## Properties & Reactive Bindings
+* `stateMode`: `"IDLE"` | `"HOVER"` | `"EXPANDED"` | `"TRANSIENT"`
+* `formFactor`: Bound dynamically to `Config.formFactor` (`"island"` vs `"notch"`)
+
+## Connected Services & Specs
+* Socket IPC specification: `[[IPC-Socket-Schema]]`
+* System architecture: `[[System-Architecture]]`
+* Design tokens: `[[Style-Design-Tokens]]`
 ```

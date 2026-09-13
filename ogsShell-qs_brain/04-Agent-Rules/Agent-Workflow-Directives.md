@@ -6,7 +6,7 @@ tags:
   - workflow/lifecycle
   - obsidian/glossary
 created: 2026-08-09
-updated: 2026-08-09
+updated: 2026-09-13
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -35,8 +35,8 @@ related_notes:
 graph TD
     subgraph Pre-Task Lifecycle
         A1["1. Inspect .agents/ARCHITECTURE.md"] --> A2["2. Inspect Backend Endpoints (.agents/BACKEND_ENDPOINTS.md)"]
-        A2 --> A3["3. Check / Create Obsidian Docs (ogsShell-qs_brain/)"]
-        A3 --> A4["4. Draft Thought Proposal in 05-Agent-Thoughts/ (status: proposed)"]
+        A2 --> A3["3. Check / Inspect Living Docs (ogsShell-qs_brain/)"]
+        A3 --> A4["4. Align plan with user in chat"]
     end
     
     subgraph Execution
@@ -45,7 +45,7 @@ graph TD
     
     subgraph Post-Task Lifecycle
         B1 --> C1["1. Update .agents/ARCHITECTURE.md & BACKEND_ENDPOINTS.md"]
-        C1 --> C2["2. Update Brain Docs & Mark Thought as status: implemented"]
+        C1 --> C2["2. Update Living Docs (01-Architecture, 02-Services, 03-UI-Components)"]
     end
 ```
 
@@ -53,13 +53,13 @@ graph TD
 
 ## 3. Obsidian Knowledge Graph Integrity
 
-1. **Strict Directory Placement:**
+1. **Strict Directory Placement (4 Pillars):**
    * `01-Architecture/`: High-level architecture, IPC schemas, HIG rules.
-   * `02-Services/`: Go daemon subsystems.
+   * `02-Services/`: Go daemon subsystems and IPC broadcasters.
    * `03-UI-Components/`: Quickshell QML components & widgets.
    * `04-Agent-Rules/`: Style and workflow guidelines.
-   * `05-Agent-Thoughts/`: Reasoning logs and execution plans.
-2. **Mandatory Wikilinking:** Every note must include YAML frontmatter, callout blocks, and bi-directional `[[Note-Name]]` links. Orphan notes are strictly forbidden.
+2. **No Transient Thought Files:** Ephemeral thoughts and task plans stay within conversational sessions. Persistent notes are strictly for living, real architectural specifications.
+3. **Mandatory Wikilinking:** Every note must include YAML frontmatter, callout blocks, and bi-directional `[[Note-Name]]` links. Orphan notes are strictly forbidden.
 
 ---
 

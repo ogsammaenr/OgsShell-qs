@@ -8,7 +8,7 @@ tags:
   - multimonitor
   - dynamic-island
 created: 2026-08-14
-updated: 2026-08-17
+updated: 2026-09-11
 status: implemented
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -21,6 +21,7 @@ related_notes:
   - "[[Plan-Dynamic-Expanded-Layer-Interaction]]"
   - "[[Plan-Focus-Mode-And-Smart-Autohide]]"
   - "[[Plan-Per-Monitor-Focus-Mode-Autohide]]"
+  - "[[Plan-Fix-Island-Idle-Input-Mask-Deadzone]]"
 ---
 
 # Shell Root Scope & Multi-Window Architecture
@@ -49,8 +50,10 @@ related_notes:
      * `IDLE`/`HOVER` durumlarında `Top` katmanında kalarak tam ekran uygulamaların (oyun, video) altında otomatik gizlenir.
      * `EXPANDED` durumunda `Overlay` katmanına çıkarak `backdropWindow`'un (`Top`) üzerinde yer alır; açık uygulamanın tüm interaktif kontrolleri sorunsuz tıklanabilir.
    * **Exclusion Mode:** `ExclusionMode.Ignore` (Ada genişlediğinde pencereleri aşağı itip titretmez).
-   * **Canvas:** Sabit `540x360` GPU yüzeyi.
-   * **Girdi:** `mask: Region { item: island }` ile piksel düzeyinde girdi maskesi.
+   * **Canvas:** Sabit `560px` GPU yüzeyi.
+   * **Girdi Maskesi (`mask: Region { item: activeInputEnvelope }`):**
+     * Ada görünürken (`isRevealed`): `width: island.width + (Config.isNotch ? 10 : 0)`, `height: Math.max(screenScope.shouldAutoHide ? 12 : 0, Math.round(island.y + island.height))`. IDLE, HOVER, EXPANDED ve TRANSIENT modlarında adanın piksel sınırlarına tam oturur; adanın altındaki veya yanındaki masaüstü alanında sıfır ölü bölge (zero deadzone) bırakır.
+     * Ada gizliyken (Focus Mode Autohide): Sadece ekranın en üst 12px hotspot alanını (`topHotspot.width`, `12px`) kapsar; alttaki pencerelerin tıklanmasını engellemez.
 
 4. **`powerOverlayWindow` (Tam Ekran Güç Menüsü):**
    * **Katman:** `WlrLayershell.layer: WlrLayer.Overlay`

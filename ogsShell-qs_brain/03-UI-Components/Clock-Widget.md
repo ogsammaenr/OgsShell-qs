@@ -6,7 +6,7 @@ tags:
   - widget/clock
   - quickshell/qml
 created: 2026-08-09
-updated: 2026-08-23
+updated: 2026-09-11
 status: active
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -27,10 +27,13 @@ related_notes:
 ## 1. Features & Implementation (`shell/components/widgets/ClockWidget.qml`)
 
 * **Unified Morphing Coordinate System:** Instead of destroying/recreating DOM elements between `IDLE` and `HOVER`, a single persistent `ClockWidget` instance interpolates all transforms continuously.
-* **Idle Typography:** Primary time text displays in bold **`16px`** (`Font.DemiBold` / `Font.Bold`, `0.3px` letter spacing) for effortless glanceability within the 34-36px Island/Notch bar.
+* **Idle Typography & Reactive Display Font Engine:**
+  * Primary time text directly binds to `Config.fontDisplay` and `Config.fontWeightDisplayInt` (defaulting to `"Noto Sans Display"` SemiBold).
+  * Font size is bound to `Config.clockIdleSize` (default: `20px` in notch, `18px` in island).
+  * Changes to `config.json` (`"font_display"`, `"font_weight_display"`, `"clock_idle_size"`) are picked up live via reactive bindings without shell restart.
 * **Hover Expansion & Typography Transition:**
-  * In `HOVER`, the primary time text glides upward (`anchors.verticalCenterOffset: -10px`) via `Easing.OutCubic` and expands to **`20px Bold`** (`0.5px` letter spacing) with smooth animation.
-  * In `HOVER`, localized date text expands to **`13px Medium`** (`0.3px` letter spacing) and slides up directly beneath the time text (`anchors.topMargin: 3px`).
+  * In `HOVER`, the primary time text glides upward (`anchors.verticalCenterOffset: -10px`) via `Easing.OutCubic` and expands to `Config.clockHoverSize` (default: `22px Bold`) with smooth animation.
+  * In `HOVER`, localized date text expands to `Config.dateHoverSize` (default: `14px Medium`) with `Config.fontDisplay` family and slides up directly beneath the time text (`anchors.topMargin: 3px`).
 * **Live Activity Pulse Indicator (Canlı Aktivite Durum Işığı):**
   - Normal saat gösterilirken nokta tamamen gizlenir (`visible: false`, `width: 0`).
   - Arka planda bir **Kronometre**, **Sayaç (Zamanlayıcı)** veya **Pomodoro** seansı başladığında (`isLiveActivity == true`), `7x7px` nokta otomatik olarak o aktivitenin durum rengiyle (yeşil/turuncu/kırmızı) saatin solunda beliriş ve nefes alma animasyonuyla çalışır.

@@ -162,6 +162,7 @@ if command -v go >/dev/null 2>&1; then
     echo -e "      Modüller indiriliyor (go mod download)..."
     go mod download
     echo -e "      Derleniyor (go build -> bin/ogsshell-core)..."
+    export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
     go build -o "${BIN_DIR}/ogsshell-core" .
   )
   echo -e "  ${C_GREEN}[✓]${C_RESET} Backend başarıyla derlendi: ${C_BOLD}${BIN_DIR}/ogsshell-core${C_RESET}"

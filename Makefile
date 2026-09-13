@@ -4,7 +4,7 @@ all: build-core
 
 build-core:
 	mkdir -p bin
-	cd core && go build -o ../bin/ogsshell-core .
+	cd core && CGO_CFLAGS="$${CGO_CFLAGS:-} -Wno-deprecated-declarations" go build -o ../bin/ogsshell-core .
 
 run-core: build-core
 	./bin/ogsshell-core

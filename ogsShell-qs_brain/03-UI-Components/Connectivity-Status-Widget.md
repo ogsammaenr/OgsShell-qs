@@ -7,7 +7,7 @@ tags:
   - widget/bluetooth
   - quickshell/qml
 created: 2026-08-12
-updated: 2026-08-23
+updated: 2026-09-11
 status: active
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -18,6 +18,7 @@ related_notes:
   - "[[Bluetooth-Service]]"
   - "[[Style-Design-Tokens]]"
   - "[[Plan-Dynamic-Island-Idle-And-Hover-Typography-Enlargement]]"
+  - "[[Plan-Fix-Wifi-Interface-Detection-Wired-Misclassification]]"
 ---
 
 # Connectivity Status Widget Component (Wi-Fi & Bluetooth)

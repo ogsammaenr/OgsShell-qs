@@ -18,6 +18,9 @@ related_notes:
   - "[[Plan-Reactive-Config-Geometry-And-Synchronization]]"
   - "[[Plan-Live-Config-Hot-Reload-Architecture]]"
   - "[[Plan-Instant-Live-Config-Hot-Reload-And-Reactive-Sync]]"
+  - "[[Plan-Modern-Display-Typography-System]]"
+  - "[[Plan-Noto-Sans-Display-Typography-Switch]]"
+  - "[[Plan-Configurable-Display-Font-Weight]]"
 ---
 
 # Configuration System & JSON Schema Specification
@@ -62,6 +65,9 @@ The configuration system continuously watches both locations using a real-time e
     "typography": {
       "type": "object",
       "properties": {
+        "font_display": { "type": "string", "default": "Noto Sans Display", "description": "Display & number font family (e.g. Noto Sans Display, Outfit, Plus Jakarta Sans)" },
+        "font_weight_display": { "type": "string", "default": "SemiBold", "description": "Font weight for display typography: Thin, Light, Normal, Medium, SemiBold, Bold, ExtraBold, Black or 100-900" },
+        "font_text": { "type": "string", "default": "Inter", "description": "Body & UI text font family (e.g. Inter)" },
         "clock_idle_size": { "type": "integer", "default": 16 },
         "clock_hover_size": { "type": "integer", "default": 20 },
         "date_hover_size": { "type": "integer", "default": 13 },

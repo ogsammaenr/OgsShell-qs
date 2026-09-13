@@ -8,7 +8,7 @@ tags:
   - dynamic-island/ui
   - system-controls
 created: 2026-08-14
-updated: 2026-09-03
+updated: 2026-09-11
 status: active
 related_notes:
   - "[[Pinned-Metrics-Widget]]"
@@ -30,6 +30,7 @@ related_notes:
   - "[[Plan-Fix-Bluetooth-Pairing-Trust-And-UI-Interaction]]"
   - "[[Plan-Control-Center-Wired-Ethernet-Management]]"
   - "[[Plan-Wifi-Scan-Refresh-Button-Animation]]"
+  - "[[Plan-Fix-Wifi-Interface-Detection-Wired-Misclassification]]"
 ---
 
 # Control Center UI Component Suite

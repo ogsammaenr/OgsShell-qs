@@ -142,7 +142,24 @@ function triggerTransient(contentComponent, durationMs) {
 
 ---
 
-## 5. Wayland LayerShell Integration
+## 5. 3D Katmanlı Kart Destesi Fiziği (Cascading Notification Deck Physics)
+
+Dynamic Island & Dynamic Notch form faktörlerinde peş peşe gelen bildirimlerin birbirini ezmesini önlemek için 3D fiziksel katmanlı kart destesi kullanılır:
+
+1. **Katman Hiyerarşisi ve Geometrisi:**
+   - **Katman 1 (Ön):** Genişlik `%100`, $Y = 0$, Opacity $1.0$, $Z = 3$. Aktif içerik ve `[+X Deste]` rozeti.
+   - **Katman 2 (Orta):** Genişlik `%91`, Opacity $0.75$, $Z = 2$. Island modunda $+8\text{px}$, Notch modunda $+9\text{px}$ tavandan aşağı sarkar.
+   - **Katman 3 (Dip):** Genişlik `%82`, Opacity $0.45$, $Z = 1$. Island modunda $+16\text{px}$, Notch modunda $+17\text{px}$ tavandan aşağı sarkar.
+2. **Ascension Lifecycle (Yükselme Fiziği):**
+   - Aktif kart kapandığında (`dismissFront()`), 2. katman anında `SpringAnimation` (`spring: 28.0`, `damping: 0.78`) ile hem genişlik hem yükseklik bakımından 1. katman formuna yaylanarak büyür.
+3. **Aciliyet Önceliği (Critical Urgency Preemption):**
+   - `urgency === "critical"` bildirimler kuyruğu atlayarak doğrudan dizinin başına yerleşir (`unshift`) ve anında ön plana çıkar.
+4. **Wayland Giriş Maskesi Uyumu:**
+   - `shell/shell.qml` içerisindeki `activeInputEnvelope` yüksekliği, sarkan katmanların $+18\text{px}$'lik taşmasını kapsayacak şekilde `island.extraStackHeight` ile dinamik hesaplanır.
+
+---
+
+## 6. Wayland LayerShell Integration
 
 * **Exclusion Mode:** The parent window in `[[Shell-Root-PanelWindow]]` sets `exclusionMode: ExclusionMode.Ignore`.
 * **Non-Blocking Overlay:** The root window implicit canvas is sized to `island.implicitWidth + 40` by `400px`, allowing child animations to render smoothly outside the idle bounds while maintaining a transparent non-blocking footprint across the Hyprland workspace.

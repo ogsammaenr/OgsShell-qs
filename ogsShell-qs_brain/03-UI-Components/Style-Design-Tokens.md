@@ -37,16 +37,20 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 
 ---
 
-## 2. Tipografi Ölçeği (Typography Scale Hierarchy)
+## 2. Tipografi Ölçeği ve Font Aileleri (Typography System & Font Families)
 
-| Tipografi Düzeyi | Boyut (`pixelSize`) | Yazı Tipi Ağırlığı | Kullanım Alanı |
-| :--- | :--- | :--- | :--- |
-| **Micro Caption / Status** | `10px - 10.5px` | `Font.Medium` | Zaman damgaları, alt ipuçları, rozetler |
-| **Subtext / List Caption** | `10.5px - 11.5px`| `Font.Medium / Bold` | Pano karakter sayısı, Wi-Fi sinyali, DND butonu |
-| **Body / List Item** | `12px - 12.5px` | `Font.Medium / DemiBold`| Pano önizleme metni, bildirim başlığı, Wi-Fi adı |
-| **Section Title** | `12.5px - 13.5px`| `Font.Bold` | Modül başlıkları, alt uygulama başlıkları, diyalog butonları |
-| **Modal / Window Title** | `14px - 16px` | `Font.Bold` | Güç menüsü başlığı, Ay/Yıl takvim başlığı, Pano tam ekran başlığı |
-| **Glyph / Vector Icon** | `13px - 22px` | `Nerd Font` | Aksiyon ikonları, telemetri sembolleri, ada HUD glifleri |
+`ogsShell-qs`, modern arayüz estetiği ve yüksek okunabilirlik için iki katmanlı tipografi hiyerarşisi kullanır:
+
+1. **Display & Rakam Fontu (`Style.fontDisplay`):** **Noto Sans Display** (Alternatifler: **Outfit**, **Plus Jakarta Sans**). Google'ın optik ekran tipografisi standardı; saat, yüzdeler, başlıklar ve telemetri rakamları için mükemmel optik denge.
+2. **Gövde Metni Fontu (`Style.fontText`):** **Inter**. Yüksek legibility, mikro-yazı netliği; alt metinler, bildirim gövdeleri ve açıklama etiketleri için optimize.
+
+| Tipografi Düzeyi | Boyut (`pixelSize`) | Font Ailesi | Yazı Tipi Ağırlığı | Kullanım Alanı |
+| :--- | :--- | :--- | :--- | :--- |
+| **Clock / Primary Time** | `18px - 22px` | `Style.fontDisplay` | `Style.fontWeightDisplay` (Idle) / `Bold` (Hover) | Ada saati, canlı sayaçlar, kronometre |
+| **Telemetry & Percent** | `10px - 12px` | `Style.fontDisplay` | `Style.fontWeightDisplay` | CPU, RAM, GPU, Net hızları, Ses/Parlaklık % |
+| **Section / Card Title**| `12px - 14px` | `Style.fontDisplay` | `Style.fontWeightDisplay` | Kart başlıkları, hızlı butonlar, bildirim başlığı |
+| **Subtext / Body Text** | `10px - 12px` | `Style.fontText` | `Font.Normal / Medium` | Bildirim açıklamaları, Wi-Fi SSID, sanatçı adı |
+| **Glyph / Vector Icon** | `13px - 22px` | `Nerd Font` | Normal | Aksiyon ikonları, telemetri sembolleri |
 
 ---
 

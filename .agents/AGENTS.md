@@ -18,11 +18,11 @@ Ajan her yeni göreve başladığında ve görevi tamamladığında aşağıdaki
 
 1. **[GÖREV ÖNCESİ - 1] Mimari Kontrolü:** İstisnasız her görevden önce `.agents/ARCHITECTURE.md` dosyası okunmalı ve mevcut mimari durum anlaşılmalıdır.
 2. **[GÖREV ÖNCESİ - 2] Backend Erişim Uçları Kontrolü:** Frontend (`shell/`) veya IPC katmanında herhangi bir geliştirme/refactoring yapmadan önce `.agents/BACKEND_ENDPOINTS.md` dosyası incelenmeli, backend'in (`core/`) sunduğu RPC action'lar, yayınlanan event'ler ve payload şemaları teyit edilmelidir.
-3. **[GÖREV ÖNCESİ - 3] Obsidian Doküman Kontrolü:** Düzenlenecek veya oluşturulacak bileşenlerle ilgili dokümantasyon `ogsShell-qs_brain/` dizininden okunmalıdır.
+3. **[GÖREV ÖNCESİ - 3] Obsidian Doküman Kontrolü:** Düzenlenecek veya oluşturulacak bileşenlerle ilgili dokümantasyon `ogsShell-qs_brain/` dizininden (`01-Architecture/`, `02-Services/`, `03-UI-Components/`) okunmalıdır.
    * Eğer ilgili dosya/bileşen için Obsidian notu **yoksa**, ajan kodu yazmadan önce dokümanı oluşturmalıdır.
-4. **[GÖREV ÖNCESİ - 4] Düşünce Günlüğü:** Karmaşık refactoring veya yeni UI bileşeni eklenmeden önce `ogsShell-qs_brain/05-Agent-Thoughts/` altına `status: proposed` durumunda bir plan notu yazılmalıdır.
+4. **[GÖREV ÖNCESİ - 4] Doğrudan İletişim & Planlama:** Görevle ilgili planlar ve mimari fikirler doğrudan kullanıcıyla sohbet içinde paylaşılır; geçici plan/düşünce dosyaları oluşturulmaz.
 5. **[GÖREV SONRASI - 1] Mimari ve Erişim Uçları Güncelleme:** Görev tamamlandıktan sonra yapılan tüm mimari güncellemeler `.agents/ARCHITECTURE.md` dosyasına ve yeni/güncellenen IPC uçları `.agents/BACKEND_ENDPOINTS.md` dosyasına işlenmelidir.
-6. **[GÖREV SONRASI - 2] Dokümantasyon Güncelleme:** Yapılan kod değişiklikleri `ogsShell-qs_brain/` altındaki ilgili notlara yansıtılmalı ve düşünce günlüğü notunun durumu `status: implemented` olarak güncellenmelidir.
+6. **[GÖREV SONRASI - 2] Dokümantasyon Güncelleme:** Yapılan kod değişiklikleri `ogsShell-qs_brain/` altındaki ilgili living dokümanlara (`01-Architecture/`, `02-Services/`, `03-UI-Components/`) yansıtılmalıdır.
 
 ---
 
@@ -47,12 +47,12 @@ Ajan her yeni göreve başladığında ve görevi tamamladığında aşağıdaki
 
 ## 5. Obsidian Brain ve Dokümantasyon Yönetimi (`obsidian-glossary`)
 
-Projeyle ilgili mimari dokümantasyon, servis tanımları, UI bileşenleri veya ajan düşünce günlükleri (`ogsShell-qs_brain/` dizini) yazılırken veya güncellenirken daima [.agents/skills/obsidian-glossary/SKILL.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/skills/obsidian-glossary/SKILL.md) dosyasında tanımlı `obsidian-glossary` skill kurallarına uyulması ZORUNLUDUR:
+Projeyle ilgili mimari dokümantasyon, servis tanımları veya UI bileşenleri (`ogsShell-qs_brain/` dizini) yazılırken veya güncellenirken daima [.agents/skills/obsidian-glossary/SKILL.md](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/.agents/skills/obsidian-glossary/SKILL.md) dosyasında tanımlı `obsidian-glossary` skill kurallarına uyulması ZORUNLUDUR:
 
-* **Dizin Yapısı:** `ogsShell-qs_brain/` altında `01-Architecture/`, `02-Services/`, `03-UI-Components/`, `04-Agent-Rules/` ve `05-Agent-Thoughts/` klasör yapısına sadık kalın.
+* **Dizin Yapısı:** `ogsShell-qs_brain/` altında `01-Architecture/`, `02-Services/`, `03-UI-Components/` ve `04-Agent-Rules/` klasör yapısına sadık kalın.
 * **Wikilink Bağlantıları:** Oluşturulan ve güncellenen tüm notlarda diğer ilgili notlara `[[Not-Adı]]` biçiminde Obsidian Wikilink bağlantısı verin. Bağlantısız (yetim) not oluşturmayın.
-* **Obsidian Standartları:** Notların başında YAML frontmatter (`title`, `type`, `tags`, `created`, `updated`, `status`, `related_notes`) kullanın ve callout bloklarını (`> [!NOTE]`, `> [!WARNING]`, `> [!IDEA]`) uygulayın.
-* **Düşünce Günlüğü (`05-Agent-Thoughts/`):** Karmaşık refactoring ve mimari değişikliklerden önce bir plan/proposal notu oluşturun; işlem tamamlandığında notun durumunu `status: implemented` olarak güncellenin.
+* **Obsidian Standartları:** Notların başında minimal YAML frontmatter (`title`, `type`, `tags`, `status`) kullanın ve callout bloklarını (`> [!NOTE]`, `> [!WARNING]`, `> [!TIP]`) uygulayın.
+* **Geçici Dosya Yasağı:** Geçici scratchpad/plan dosyaları oluşturulmaz; tüm bilgiler doğrudan ilgili bileşenin kalıcı yaşayan dokümanına (`01`, `02` veya `03` altına) işlenir.
 
 ---
 
