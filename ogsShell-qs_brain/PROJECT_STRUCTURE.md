@@ -661,8 +661,7 @@ graph LR
         BR_02["📁 02-Services/"]
         BR_03["📁 03-UI-Components/"]
         BR_04["📁 04-Agent-Rules/"]
-        BR_05["📁 05-Agent-Thoughts/"]
     end
     D_AGENTS --> AG_RULES
-    D_BRAIN --> BR_01 & BR_02 & BR_03 & BR_04 & BR_05
+    D_BRAIN --> BR_01 & BR_02 & BR_03 & BR_04
 ```
