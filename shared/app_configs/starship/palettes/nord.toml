@@ -1,0 +1,12 @@
+[palettes.nord]
+bg      = "#2e3440"
+fg      = "#eceff4"
+surface = "#3b4252"
+muted   = "#4c566a"
+accent  = "#88c0d0"
+red     = "#bf616a"
+yellow  = "#ebcb8b"
+green   = "#a3be8c"
+cyan    = "#8fbcbb"
+blue    = "#81a1c1"
+purple  = "#b48ead"

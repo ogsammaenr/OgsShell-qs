@@ -41,6 +41,7 @@ fi
 
 # 3. Ensure Go daemon binary is built and up-to-date
 mkdir -p "${REPO_ROOT}/bin"
+export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
 (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
 
 # 4. Start Go Backend Daemon in background

@@ -1,0 +1,13 @@
+[palettes.gruvbox]
+bg      = "#282828"
+fg      = "#ebdbb2"
+surface = "#3c3836"
+muted   = "#928374"
+accent  = "#fabd2f"
+orange  = "#d65d0e"
+red     = "#cc241d"
+yellow  = "#fabd2f"
+green   = "#98971a"
+cyan    = "#689d6a"
+blue    = "#458588"
+purple  = "#b16286"

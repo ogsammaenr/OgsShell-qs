@@ -1,0 +1,12 @@
+[palettes.monochrome]
+bg      = "#121212"
+fg      = "#f0f0f0"
+surface = "#1e1e1e"
+muted   = "#52525b"
+accent  = "#e0e0e0"
+red     = "#ff6b6b"
+yellow  = "#c9a96e"
+green   = "#8fa87a"
+cyan    = "#78a3a0"
+blue    = "#a1a1aa"
+purple  = "#a68cb8"

@@ -272,6 +272,7 @@ func main() {
 			adapters.NewTmuxAdapter(),
 			adapters.NewIntelliJAdapter(),
 			adapters.NewAndroidStudioAdapter(),
+			adapters.NewStarshipAdapter(),
 			wallpaperAdapter,
 		)
 		themeMgr.SetUpdateCallback(func(state *theme.ThemeState) {

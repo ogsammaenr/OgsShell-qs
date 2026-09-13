@@ -25,7 +25,7 @@ type HolidayFetcher struct {
 	baseURL    string
 }
 
-// NewHolidayFetcher creates a new HolidayFetcher with a 5-second timeout.
+// NewHolidayFetcher creates a new HolidayFetcher with a 12-second timeout.
 func NewHolidayFetcher(baseURL ...string) *HolidayFetcher {
 	url := "https://date.nager.at/api/v3/PublicHolidays"
 	if len(baseURL) > 0 && baseURL[0] != "" {
@@ -34,7 +34,7 @@ func NewHolidayFetcher(baseURL ...string) *HolidayFetcher {
 
 	return &HolidayFetcher{
 		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
+			Timeout: 12 * time.Second,
 		},
 		baseURL: url,
 	}

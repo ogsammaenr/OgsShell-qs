@@ -103,7 +103,7 @@ func (m *DefaultCalendarManager) Start(ctx context.Context) {
 	// Background non-blocking sync for current year holidays
 	go func() {
 		select {
-		case <-time.After(2 * time.Second):
+		case <-time.After(5 * time.Second):
 			_, _ = m.SyncHolidays(ctx, time.Now().Year())
 		case <-ctx.Done():
 		case <-m.done:
@@ -169,7 +169,11 @@ func (m *DefaultCalendarManager) SyncHolidays(ctx context.Context, year int) ([]
 	m.log.Info("Çevrim içi tatil senkronizasyonu başlatılıyor...", "year", year)
 	holidays, err := m.holidays.SyncHolidaysOnline(ctx, year)
 	if err != nil {
-		m.log.Warn("Çevrim içi tatil senkronizasyonu başarısız (Yerel önbellek/algoritma devrede)", "err", err)
+		if cached, _ := LoadHolidaysCache(year); len(cached) > 0 {
+			m.log.Info("Çevrim içi tatil servisine erişilemedi (Mevcut disk önbelleği devrede)", "year", year)
+		} else {
+			m.log.Warn("Çevrim içi tatil senkronizasyonu başarısız (Yerel algoritma devrede)", "err", err)
+		}
 		return m.holidays.GetHolidaysForYear(year), err
 	}
 

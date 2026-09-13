@@ -19,6 +19,7 @@ killall mako 2>/dev/null || true
 if ! pgrep -x "ogsshell-core" > /dev/null; then
   echo "[ogsShell] Go backend daemon is not running. Starting..."
   if [ ! -f "${CORE_BIN}" ]; then
+    export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
     (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
   fi
   "${CORE_BIN}" > /tmp/ogsshell-core.log 2>&1 &

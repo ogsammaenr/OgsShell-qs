@@ -1,0 +1,12 @@
+[palettes.tokyonight]
+bg      = "#1a1b26"
+fg      = "#c0caf5"
+surface = "#24283b"
+muted   = "#565f89"
+accent  = "#7aa2f7"
+red     = "#f7768e"
+yellow  = "#e0af68"
+green   = "#9ece6a"
+cyan    = "#7dcfff"
+blue    = "#7aa2f7"
+purple  = "#bb9af7"

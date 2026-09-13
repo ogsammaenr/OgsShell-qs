@@ -30,6 +30,7 @@ trap cleanup EXIT INT TERM
 
 echo -e "\033[1;34m[ogsShell Backend]\033[0m Go backend derleniyor..."
 mkdir -p "${REPO_ROOT}/bin"
+export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
 (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
 
 echo -e "\033[1;32m[ogsShell Backend]\033[0m Go daemon başlatılıyor (Canlı Log Akışı):"

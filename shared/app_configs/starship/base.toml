@@ -1,0 +1,176 @@
+# ==============================================================================
+#  OGSSHELL-QS DYNAMIC ISLAND PILL PROMPT (STARSHIP)
+#  Base Layout & Module Configuration | Zero External Plugins
+# ==============================================================================
+
+# Ferah ve temiz bir terminal akışı için boşluk bırak
+add_newline = true
+
+# İki satırlı düzen:
+# 1. Satır: Yüzen renkli kapsüller (OS/Kullanıcı, Dizin, Git Dalı & Durumu, Diller/Çalışma Zamanları, Süre) 2. Satır: Odaklanmış minimalist komut istemci karakteri
+format = """
+$os\
+$username\
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$golang\
+$python\
+$rust\
+$c\
+$lua\
+$java\
+$zig\
+$kotlin\
+$dart\
+$php\
+$dotnet\
+$ruby\
+$swift\
+$elixir\
+$haskell\
+$scala\
+$julia\
+$ocaml\
+$docker_context\
+$cmd_duration\
+$line_break\
+$character"""
+
+# --- Komut İstemci Karakteri (Prompt Character) ---
+[character]
+success_symbol = "[❯](bold accent)"
+error_symbol   = "[❯](bold red)"
+vimcmd_symbol  = "[❮](bold cyan)"
+
+# --- Dizin Kapsülü (Directory Pill) ---
+[directory]
+style             = "bg:accent fg:bg bold"
+format            = "[](fg:accent)[󰉋 $path ]($style)[](fg:accent) "
+truncation_length = 3
+truncation_symbol = "…/"
+home_symbol       = "~"
+read_only         = " 󰌾"
+read_only_style   = "bg:accent fg:bg"
+
+# --- Git Dalı Kapsülü (Git Branch Pill) ---
+[git_branch]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[󰘬 $branch]($style)"
+
+# --- Git Durumu Kapsülü (Git Status Pill) ---
+[git_status]
+style       = "bg:cyan fg:bg bold"
+format      = "[ $all_status$ahead_behind]($style)[](fg:cyan) "
+conflicted  = "󰞇 "
+ahead       = "⇡${count} "
+behind      = "⇣${count} "
+diverged    = "⇕ "
+untracked   = " "
+stashed     = "󰆓 "
+modified    = "󰷥 "
+staged      = "✓ "
+renamed     = "» "
+deleted     = " "
+
+# --- Komut Çalışma Süresi (Command Duration Pill - 2 saniyeden uzun işlemler) ---
+[cmd_duration]
+min_time = 2000
+style    = "bg:yellow fg:bg bold"
+format   = "[](fg:yellow)[󱎫 $duration ]($style)[](fg:yellow) "
+
+# --- Programlama Dilleri & Çalışma Zamanları (Yalnızca ilgili projede görünür) ---
+[nodejs]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[󰏗 $version ]($style)[](fg:green) "
+
+[golang]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[ $version ]($style)[](fg:green) "
+
+[python]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[󰌠 $version ]($style)[](fg:green) "
+
+[rust]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[󱘗 $version ]($style)[](fg:purple) "
+
+[c]
+style  = "bg:blue fg:bg bold"
+format = "[](fg:blue)[󰙱 $version]($style)[](fg:blue) "
+
+[lua]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[ $version ]($style)[](fg:purple) "
+
+[java]
+style  = "bg:accent fg:bg bold"
+format = "[](fg:accent)[ $version ]($style)[](fg:accent) "
+
+[zig]
+style  = "bg:yellow fg:bg bold"
+format = "[](fg:yellow)[ $version ]($style)[](fg:yellow) "
+
+[kotlin]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[ $version ]($style)[](fg:purple) "
+
+[dart]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[ $version ]($style)[](fg:cyan) "
+
+[php]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[ $version ]($style)[](fg:purple) "
+
+[dotnet]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[󰌛 $version ]($style)[](fg:purple) "
+
+[ruby]
+style  = "bg:red fg:bg bold"
+format = "[](fg:red)[ $version ]($style)[](fg:red) "
+
+[swift]
+style  = "bg:accent fg:bg bold"
+format = "[](fg:accent)[󰛥 $version ]($style)[](fg:accent) "
+
+[elixir]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[ $version ]($style)[](fg:purple) "
+
+[haskell]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[ $version ]($style)[](fg:cyan) "
+
+[scala]
+style  = "bg:red fg:bg bold"
+format = "[](fg:red)[ $version ]($style)[](fg:red) "
+
+[julia]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[ $version ]($style)[](fg:purple) "
+
+[ocaml]
+style  = "bg:yellow fg:bg bold"
+format = "[](fg:yellow)[ $version ]($style)[](fg:yellow) "
+
+
+
+[docker_context]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[󰡨 $context ]($style)[](fg:cyan) "
+
+
+
+[os]
+disabled = false
+style    = "bg:surface fg:accent bold"
+format   = "[](fg:surface)[$symbol]($style)[](fg:surface) "
+
+[os.symbols]
+Arch             = "󰣇"
+Linux            = "󰌽"
+Unknown          = ""

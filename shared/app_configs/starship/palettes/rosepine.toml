@@ -1,0 +1,12 @@
+[palettes.rosepine]
+bg      = "#191724"
+fg      = "#e0def4"
+surface = "#1f1d2e"
+muted   = "#6e6a86"
+accent  = "#ebbcba"
+red     = "#eb6f92"
+yellow  = "#f6c177"
+green   = "#31748f"
+cyan    = "#9ccfd8"
+blue    = "#9ccfd8"
+purple  = "#c4a7e7"

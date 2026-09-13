@@ -1,0 +1,108 @@
+# ==============================================================================
+#  OGSSHELL-QS DYNAMIC ISLAND PILL PROMPT (STARSHIP)
+#  Modern Minimalist Dual-Capsule CLI | Zero External Plugins
+# ==============================================================================
+
+# Ferah ve temiz bir terminal akışı için boşluk bırak
+add_newline = true
+
+# Aktif palet
+palette = "rosepine"
+
+# İki satırlı düzen:
+# 1. Satır: Yüzen renkli kapsüller (OS/Kullanıcı, Dizin, Git Dalı & Durumu, Diller/Çalışma Zamanları, Süre)
+# 2. Satır: Odaklanmış minimalist komut istemci karakteri
+format = """
+$os\
+$username\
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$golang\
+$python\
+$rust\
+$docker_context\
+$cmd_duration\
+$line_break\
+$character"""
+
+# --- Komut İstemci Karakteri (Prompt Character) ---
+[character]
+success_symbol = "[❯](bold accent)"
+error_symbol   = "[❯](bold red)"
+vimcmd_symbol  = "[❮](bold cyan)"
+
+# --- Dizin Kapsülü (Directory Pill) ---
+[directory]
+style             = "bg:accent fg:bg bold"
+format            = "[](fg:accent)[󰉋 $path ]($style)[](fg:accent) "
+truncation_length = 3
+truncation_symbol = "…/"
+home_symbol       = "~"
+read_only         = " 󰌾"
+read_only_style   = "bg:accent fg:bg"
+
+# --- Git Dalı Kapsülü (Git Branch Pill) ---
+[git_branch]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[󰘬 $branch ]($style)"
+symbol = "󰘬 "
+
+# --- Git Durumu Kapsülü (Git Status Pill) ---
+[git_status]
+style       = "bg:cyan fg:bg bold"
+format      = "[$all_status$ahead_behind]($style)[](fg:cyan) "
+conflicted  = "󰞇 "
+ahead       = "⇡${count} "
+behind      = "⇣${count} "
+diverged    = "⇕ "
+untracked   = " "
+stashed     = "󰆓 "
+modified    = "+ "
+staged      = "✓ "
+renamed     = "» "
+deleted     = " "
+
+# --- Komut Çalışma Süresi (Command Duration Pill - 2 saniyeden uzun işlemler) ---
+[cmd_duration]
+min_time = 2000
+style    = "bg:yellow fg:bg bold"
+format   = "[](fg:yellow)[󱎫 $duration ]($style)[](fg:yellow) "
+
+# --- Programlama Dilleri & Çalışma Zamanları (Yalnızca ilgili projede görünür) ---
+[nodejs]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[󰏗 $version ]($style)[](fg:green) "
+
+[golang]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[󰟓 $version ]($style)[](fg:green) "
+
+[python]
+style  = "bg:green fg:bg bold"
+format = "[](fg:green)[󰌠 $version ]($style)[](fg:green) "
+
+[rust]
+style  = "bg:purple fg:bg bold"
+format = "[](fg:purple)[󱘗 $version ]($style)[](fg:purple) "
+
+[docker_context]
+style  = "bg:cyan fg:bg bold"
+format = "[](fg:cyan)[󰡨 $context ]($style)[](fg:cyan) "
+
+# ==============================================================================
+#  ROSÉ PINE RENK PALETİ TANIMI (VARSAYILAN YEDEK)
+# ==============================================================================
+[palettes.rosepine]
+bg      = "#191724"
+fg      = "#e0def4"
+surface = "#1f1d2e"
+muted   = "#6e6a86"
+accent  = "#ebbcba"
+red     = "#eb6f92"
+yellow  = "#f6c177"
+green   = "#31748f"
+cyan    = "#9ccfd8"
+blue    = "#9ccfd8"
+purple  = "#c4a7e7"

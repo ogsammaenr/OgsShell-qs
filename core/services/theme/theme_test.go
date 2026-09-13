@@ -71,10 +71,10 @@ func TestSharedThemeDiscoveryAndApply(t *testing.T) {
   {
     "id": "gruvbox",
     "name": "Gruvbox Dark",
-    "accent": "#fe8019",
+    "accent": "#d65d0e",
     "bg": "#282828",
     "fg": "#ebdbb2",
-    "card_bg": "#3c3836"
+    "card_bg": "#32302f"
   },
   {
     "id": "monochrome",
