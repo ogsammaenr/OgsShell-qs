@@ -292,8 +292,9 @@ Item {
 
         Text {
           text: activeEvent ? activeEvent.subtitle : ""
+          font.family: Style.fontDisplay
           font.pixelSize: 11
-          font.weight: Font.DemiBold
+          font.weight: Style.fontWeightDisplay
           color: Style.textPrimary
         }
       }
@@ -343,6 +344,7 @@ Item {
 
         Text {
           text: "Caps Lock"
+          font.family: Style.fontText
           font.pixelSize: 11
           color: Style.textMuted
         }
@@ -357,6 +359,7 @@ Item {
             id: capsText
             anchors.centerIn: parent
             text: activeEvent ? activeEvent.subtitle : ""
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             font.weight: Font.Bold
             color: (activeEvent && activeEvent.isCaps) ? Style.accentGreen : Style.textMuted
@@ -371,6 +374,7 @@ Item {
 
         Text {
           text: "Mikrofon"
+          font.family: Style.fontText
           font.pixelSize: 11
           color: Style.textMuted
         }
@@ -385,6 +389,7 @@ Item {
             id: micText
             anchors.centerIn: parent
             text: activeEvent ? activeEvent.subtitle : ""
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             font.weight: Font.Bold
             color: (activeEvent && activeEvent.isMuted) ? Style.accentOrange : Style.accentGreen
@@ -399,6 +404,7 @@ Item {
 
         Text {
           text: "Pano Kopyalandı"
+          font.family: Style.fontDisplay
           font.pixelSize: 10
           font.weight: Font.DemiBold
           color: Style.accentMagenta
@@ -406,6 +412,7 @@ Item {
 
         Text {
           text: activeEvent ? activeEvent.subtitle : ""
+          font.family: Style.fontText
           font.pixelSize: 11
           color: Style.textPrimary
           elide: Text.ElideRight

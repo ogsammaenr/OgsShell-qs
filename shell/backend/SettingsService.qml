@@ -26,8 +26,8 @@ Item {
 
   function executeScript(scriptName, extraArgs) {
     let home = Quickshell.env("HOME") || "/home/excalibur"
-    let p1 = home + "/WorkSpace/projects/OgsShell-qs/scripts/" + scriptName
-    let p2 = "/home/excalibur/WorkSpace/projects/OgsShell-qs/scripts/" + scriptName
+    let p1 = home + "/Workspace/projects/OgsShell-qs/scripts/" + scriptName
+    let p2 = "/home/excalibur/Workspace/projects/OgsShell-qs/scripts/" + scriptName
     let extra = extraArgs ? (" " + extraArgs) : ""
     let bashCmd = "if [ -f '" + p1 + "' ]; then bash '" + p1 + "'" + extra + "; " +
       "elif [ -f '" + p2 + "' ]; then bash '" + p2 + "'" + extra + "; " +

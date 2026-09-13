@@ -17,8 +17,10 @@ Item {
   property bool gameModeActive: false
 
   // Telemetry properties
-  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && ipc.net.interface && !ipc.net.interface.startsWith("wlan") && !ipc.net.interface.startsWith("lo"))
-  readonly property bool isWifiConnected: !!(ipc && ipc.wifi && (ipc.wifi.connected || (ipc.net && ipc.net.is_connected && !isEthernetConnected)))
+  readonly property bool isWifiInterface: !!(ipc && ipc.net && ipc.net.interface && (ipc.net.interface.startsWith("wl") || ipc.net.interface.startsWith("wifi")))
+  readonly property bool isEthInterface: !!(ipc && ipc.net && ipc.net.interface && (ipc.net.interface.startsWith("en") || ipc.net.interface.startsWith("eth")))
+  readonly property bool isWifiConnected: !!(ipc && ipc.wifi && (ipc.wifi.connected || isWifiInterface || (ipc.net && ipc.net.is_connected && !isEthInterface)))
+  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && isEthInterface && !isWifiConnected)
   readonly property bool isNetworkConnected: isEthernetConnected || isWifiConnected
   readonly property string wifiSsidText: (ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı") ? ipc.wifi.ssid : (isWifiConnected ? "Bağlı" : "Kapalı")
   readonly property string networkTitleText: isEthernetConnected ? "Kablolu Ağ" : "Wi-Fi"
@@ -256,12 +258,14 @@ Item {
 
                 Text {
                   text: root.networkTitleText
+                  font.family: Style.fontDisplay
                   font.pixelSize: 12
-                  font.weight: Font.Bold
+                  font.weight: Style.fontWeightDisplay
                   color: Style.textPrimary
                 }
                 Text {
                   text: root.networkSubtitleText
+                  font.family: Style.fontText
                   font.pixelSize: 10
                   color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accentCyan) : Style.textMuted
                   elide: Text.ElideRight
@@ -332,12 +336,14 @@ Item {
 
                 Text {
                   text: "Bluetooth"
+                  font.family: Style.fontDisplay
                   font.pixelSize: 12
-                  font.weight: Font.Bold
+                  font.weight: Style.fontWeightDisplay
                   color: Style.textPrimary
                 }
                 Text {
                   text: root.isBtPowered ? "Açık" : "Kapalı"
+                  font.family: Style.fontText
                   font.pixelSize: 10
                   color: root.isBtPowered ? Style.accentCyan : Style.textMuted
                 }
@@ -399,8 +405,9 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Odak Modu"
+                font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Font.DemiBold
+                font.weight: Style.fontWeightDisplay
                 color: Config.focusMode ? "#ffffff" : Style.textPrimary
               }
             }
@@ -439,8 +446,9 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Bildirimler"
+                font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Font.DemiBold
+                font.weight: Style.fontWeightDisplay
                 color: Style.textPrimary
               }
             }
@@ -484,8 +492,9 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Tema"
+                font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Font.DemiBold
+                font.weight: Style.fontWeightDisplay
                 color: Style.textPrimary
               }
             }
@@ -522,8 +531,9 @@ Item {
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "Pano"
+                font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Font.DemiBold
+                font.weight: Style.fontWeightDisplay
                 color: Style.textPrimary
               }
             }
@@ -580,6 +590,7 @@ Item {
         Text {
           anchors.verticalCenter: parent.verticalCenter
           text: "Ekran Parlaklığı"
+          font.family: Style.fontDisplay
           font.pixelSize: 12
           font.weight: Font.Medium
           color: Style.textPrimary
@@ -592,8 +603,9 @@ Item {
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: `%${root.brightnessLevel}`
+        font.family: Style.fontDisplay
         font.pixelSize: 12
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textSecondary
       }
 
@@ -676,6 +688,7 @@ Item {
         Text {
           anchors.verticalCenter: parent.verticalCenter
           text: root.isMuted ? "Sessiz (Muted)" : "Ses Düzeyi"
+          font.family: Style.fontDisplay
           font.pixelSize: 12
           font.weight: Font.Medium
           color: root.isMuted ? Style.accentRed : Style.textPrimary
@@ -688,8 +701,9 @@ Item {
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: root.isMuted ? "0%" : `%${root.volumeLevel}`
+        font.family: Style.fontDisplay
         font.pixelSize: 12
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textSecondary
       }
 
@@ -752,8 +766,9 @@ Item {
           Text { text: "󰌌"; font.pixelSize: 13; color: Style.textSecondary; anchors.verticalCenter: parent.verticalCenter }
           Text {
             text: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code : "TR"
+            font.family: Style.fontDisplay
             font.pixelSize: 11
-            font.weight: Font.Bold
+            font.weight: Style.fontWeightDisplay
             color: Style.textPrimary
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -790,9 +805,10 @@ Item {
               let temp = (ipc && ipc.cpu && ipc.cpu.cpu_temp !== undefined && ipc.cpu.cpu_temp > 0) ? ` ${Math.round(ipc.cpu.cpu_temp)}°` : ""
               return `CPU %${pct}${temp}`
             }
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -806,9 +822,10 @@ Item {
 
           Text {
             text: `RAM %${(ipc && ipc.ram && ipc.ram.ram_percent !== undefined) ? Math.round(ipc.ram.ram_percent) : 0}`
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentGreen : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -826,9 +843,10 @@ Item {
               let temp = (ipc && ipc.gpu && ipc.gpu.gpu_temp !== undefined && ipc.gpu.gpu_temp > 0) ? ` ${Math.round(ipc.gpu.gpu_temp)}°` : ""
               return `GPU %${pct}${temp}`
             }
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentOrange : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -846,9 +864,10 @@ Item {
               let tx = (ipc && ipc.net && ipc.net.tx_bytes_sec !== undefined) ? ipc.net.tx_bytes_sec : 0
               return `NET ${root.formatSpeed(rx + tx)}`
             }
+            font.family: Style.fontDisplay
             font.pixelSize: 10
             color: Config.showPinnedSystemMetrics ? Style.accentSecondary : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Font.Bold : Font.Medium
+            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
         }

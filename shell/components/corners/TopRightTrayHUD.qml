@@ -260,6 +260,7 @@ Item {
 
       Text {
         text: "Boş"
+        font.family: Style.fontDisplay
         font.pixelSize: 11
         font.weight: Font.Medium
         color: Style.textMuted
@@ -322,6 +323,7 @@ Item {
             Text {
               anchors.centerIn: parent
               text: itemPill.itemTitle.length > 0 ? itemPill.itemTitle.charAt(0).toUpperCase() : "󰣖"
+              font.family: Style.fontDisplay
               font.pixelSize: 10
               font.weight: Font.Bold
               color: Style.accent

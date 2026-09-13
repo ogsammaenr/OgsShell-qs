@@ -11,6 +11,19 @@ import "components/corners"
 Scope {
   id: rootScope
 
+  // Global Typography Fonts
+  FontLoader {
+    id: fontNotoSansDisplay
+    source: Qt.resolvedUrl("assets/fonts/NotoSansDisplay.ttf")
+    onStatusChanged: {
+      if (status === FontLoader.Ready) console.log("[Typography] Loaded font:", name, "from assets/fonts/NotoSansDisplay.ttf")
+      else if (status === FontLoader.Error) console.warn("[Typography] Failed to load assets/fonts/NotoSansDisplay.ttf")
+    }
+  }
+  FontLoader { id: fontOutfit; source: Qt.resolvedUrl("assets/fonts/Outfit.ttf") }
+  FontLoader { id: fontInter; source: Qt.resolvedUrl("assets/fonts/Inter.ttf") }
+  FontLoader { id: fontPlusJakarta; source: Qt.resolvedUrl("assets/fonts/PlusJakartaSans.ttf") }
+
   // IPC Service instance
   DaemonIPC {
     id: ipcService

@@ -88,8 +88,9 @@ Item {
 
       Text {
         text: root.cpuTemp > 0 ? `CPU %${Math.round(root.cpuVal)} ${Math.round(root.cpuTemp)}°C` : `CPU %${Math.round(root.cpuVal)}`
+        font.family: Style.fontDisplay
         font.pixelSize: Config.pinnedMetricsSize
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -125,8 +126,9 @@ Item {
 
       Text {
         text: `RAM %${Math.round(root.ramVal)}`
+        font.family: Style.fontDisplay
         font.pixelSize: Config.pinnedMetricsSize
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -162,8 +164,9 @@ Item {
 
       Text {
         text: root.gpuTemp > 0 ? `GPU %${Math.round(root.gpuVal)} ${Math.round(root.gpuTemp)}°C` : `GPU %${Math.round(root.gpuVal)}`
+        font.family: Style.fontDisplay
         font.pixelSize: Config.pinnedMetricsSize
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)
@@ -199,8 +202,9 @@ Item {
 
       Text {
         text: `NET ${root.formatSpeed(root.netTotal)}`
+        font.family: Style.fontDisplay
         font.pixelSize: Config.pinnedMetricsSize
-        font.weight: Font.Bold
+        font.weight: Style.fontWeightDisplay
         color: Style.textPrimary
         style: Text.Outline
         styleColor: Qt.rgba(0, 0, 0, 0.90)

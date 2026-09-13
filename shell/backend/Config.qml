@@ -59,6 +59,9 @@ Item {
   })
 
   property var typography: ({
+    "font_display": "Noto Sans Display",
+    "font_weight_display": "SemiBold",
+    "font_text": "Inter",
     "clock_idle_size": 18,
     "clock_hover_size": 22,
     "date_hover_size": 14,
@@ -165,9 +168,51 @@ Item {
   readonly property bool notificationsEnabled: (notifications && notifications.enabled !== undefined) ? notifications.enabled : true
   readonly property int notificationTimeoutMs: (notifications && notifications.default_timeout_ms !== undefined) ? notifications.default_timeout_ms : 2200
 
+  // Helper to parse human-readable font weight names or numbers to Qt Quick Font.Weight
+  function parseFontWeight(val, defaultVal) {
+    if (val === undefined || val === null || val === "") return (defaultVal !== undefined ? defaultVal : Font.DemiBold)
+    if (typeof val === "number") return val
+    let s = ("" + val).toLowerCase().replace(/[-_ ]/g, "")
+    if (s === "thin" || s === "100") return Font.Thin
+    if (s === "extralight" || s === "ultralight" || s === "200") return Font.ExtraLight
+    if (s === "light" || s === "300") return Font.Light
+    if (s === "normal" || s === "regular" || s === "400") return Font.Normal
+    if (s === "medium" || s === "500") return Font.Medium
+    if (s === "semibold" || s === "demibold" || s === "600") return Font.DemiBold
+    if (s === "bold" || s === "700") return Font.Bold
+    if (s === "extrabold" || s === "ultrabold" || s === "800") return Font.ExtraBold
+    if (s === "black" || s === "heavy" || s === "900") return Font.Black
+    let n = parseInt(val)
+    return isNaN(n) ? (defaultVal !== undefined ? defaultVal : Font.DemiBold) : n
+  }
+
   // =========================================================================
   // First-Class Typed Reactive Typography Accessors
   // =========================================================================
+  readonly property string fontDisplay: {
+    let f = (typography && typography.font_display) ? ("" + typography.font_display).trim() : "Noto Sans Display"
+    let fl = f.toLowerCase()
+    if (fl.endsWith(" semibold")) return f.substring(0, f.length - 9).trim()
+    if (fl.endsWith(" demibold")) return f.substring(0, f.length - 9).trim()
+    if (fl.endsWith(" extrabold")) return f.substring(0, f.length - 10).trim()
+    if (fl.endsWith(" bold")) return f.substring(0, f.length - 5).trim()
+    if (fl.endsWith(" medium")) return f.substring(0, f.length - 7).trim()
+    if (fl.endsWith(" regular")) return f.substring(0, f.length - 8).trim()
+    if (fl.endsWith(" light")) return f.substring(0, f.length - 6).trim()
+    return f
+  }
+  readonly property string fontWeightDisplay: {
+    if (typography && typography.font_weight_display) return ("" + typography.font_weight_display).trim()
+    let raw = (typography && typography.font_display) ? ("" + typography.font_display).toLowerCase().trim() : ""
+    if (raw.endsWith("semibold") || raw.endsWith("demibold")) return "SemiBold"
+    if (raw.endsWith("extrabold")) return "ExtraBold"
+    if (raw.endsWith("bold")) return "Bold"
+    if (raw.endsWith("medium")) return "Medium"
+    if (raw.endsWith("light")) return "Light"
+    return "SemiBold"
+  }
+  readonly property int fontWeightDisplayInt: parseFontWeight(fontWeightDisplay, Font.DemiBold)
+  readonly property string fontText: (typography && typography.font_text) ? typography.font_text : "Inter"
   readonly property int clockIdleSize: (typography && typography.clock_idle_size) ? typography.clock_idle_size : 18
   readonly property int clockHoverSize: (typography && typography.clock_hover_size) ? typography.clock_hover_size : 22
   readonly property int dateHoverSize: (typography && typography.date_hover_size) ? typography.date_hover_size : 14
@@ -258,7 +303,8 @@ Item {
     if (u.startsWith("file://")) {
       return u.substring(7)
     }
-    return u
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    return home + "/Workspace/projects/OgsShell-qs/shell/config.json"
   }
   readonly property string workspaceConfigDir: {
     let p = workspaceConfigPath
@@ -272,7 +318,8 @@ Item {
     if (u.startsWith("file://")) {
       return u.substring(7)
     }
-    return u
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    return home + "/Workspace/projects/OgsShell-qs/shared/app_configs/shell/config.json"
   }
 
   Process {
@@ -334,7 +381,13 @@ Item {
     if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)
     if (cfg.notch) root.notch = Object.assign({}, root.notch, cfg.notch)
     if (cfg.notifications) root.notifications = Object.assign({}, root.notifications, cfg.notifications)
-    if (cfg.typography) root.typography = Object.assign({}, root.typography, cfg.typography)
+    if (cfg.typography) {
+      root.typography = Object.assign({}, root.typography, cfg.typography)
+      if (root.fontDisplay) Style.fontDisplay = root.fontDisplay
+      if (root.fontText) Style.fontText = root.fontText
+      if (root.fontWeightDisplayInt !== undefined) Style.fontWeightDisplay = root.fontWeightDisplayInt
+      if (root.fontWeightDisplay) Style.fontWeightDisplayName = root.fontWeightDisplay
+    }
     if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
     if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
     if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
@@ -496,7 +549,13 @@ Item {
       if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)
       if (cfg.notch) root.notch = Object.assign({}, root.notch, cfg.notch)
       if (cfg.notifications) root.notifications = Object.assign({}, root.notifications, cfg.notifications)
-      if (cfg.typography) root.typography = Object.assign({}, root.typography, cfg.typography)
+      if (cfg.typography) {
+        root.typography = Object.assign({}, root.typography, cfg.typography)
+        if (root.fontDisplay) Style.fontDisplay = root.fontDisplay
+        if (root.fontText) Style.fontText = root.fontText
+        if (root.fontWeightDisplayInt !== undefined) Style.fontWeightDisplay = root.fontWeightDisplayInt
+        if (root.fontWeightDisplay) Style.fontWeightDisplayName = root.fontWeightDisplay
+      }
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
       if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
       if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
@@ -520,6 +579,10 @@ Item {
 
   Component.onCompleted: {
     // Initial pass
+    if (root.fontDisplay) Style.fontDisplay = root.fontDisplay
+    if (root.fontText) Style.fontText = root.fontText
+    if (root.fontWeightDisplayInt !== undefined) Style.fontWeightDisplay = root.fontWeightDisplayInt
+    if (root.fontWeightDisplay) Style.fontWeightDisplayName = root.fontWeightDisplay
     triggerWorkspaceRead()
     triggerUserRead()
   }

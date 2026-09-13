@@ -82,12 +82,12 @@ QtObject {
       "bgBase": "#282828",
       "bgSidebar": "#1d2021",
       "bgCard": "#32302f",
-      "accent": "#fe8019",
+      "accent": "#d65d0e",
       "accentSecondary": "#fabd2f",
-      "accentCyan": "#8ec07c",
-      "accentGreen": "#b8bb26",
-      "accentOrange": "#fe8019",
-      "accentRed": "#fb4934"
+      "accentCyan": "#689d6a",
+      "accentGreen": "#98971a",
+      "accentOrange": "#d65d0e",
+      "accentRed": "#cc241d"
     },
     "monochrome": {
       "id": "monochrome",
@@ -173,6 +173,12 @@ QtObject {
   property color textPrimary: activePalette.fg ? activePalette.fg : "#ffffff"
   property color textSecondary: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.68)
   property color textMuted: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.42)
+
+  // Typography Font Families & Weights (Modern Display & High-Legibility Body)
+  property string fontDisplay: "Noto Sans Display"
+  property int fontWeightDisplay: Font.DemiBold
+  property string fontWeightDisplayName: "SemiBold"
+  property string fontText: "Inter"
 
   // =========================================================================
   // 4. Dynamic Theme Semantic Accents

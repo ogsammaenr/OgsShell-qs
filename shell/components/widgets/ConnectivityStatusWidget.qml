@@ -14,11 +14,13 @@ Item {
   // ==========================================
   // Network (Ethernet & Wi-Fi) Telemetry & State
   // ==========================================
-  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && ipc.net.interface && !ipc.net.interface.startsWith("wlan") && !ipc.net.interface.startsWith("lo"))
   readonly property var wifi: ipc ? ipc.wifi : null
-  readonly property bool wifiConnected: !!(wifi && wifi.connected)
+  readonly property bool isWifiInterface: !!(ipc && ipc.net && ipc.net.interface && (ipc.net.interface.startsWith("wl") || ipc.net.interface.startsWith("wifi")))
+  readonly property bool isEthInterface: !!(ipc && ipc.net && ipc.net.interface && (ipc.net.interface.startsWith("en") || ipc.net.interface.startsWith("eth")))
+  readonly property bool wifiConnected: !!(wifi && (wifi.connected || isWifiInterface))
+  readonly property bool isEthernetConnected: !!(ipc && ipc.net && ipc.net.is_connected && isEthInterface && !wifiConnected)
   readonly property bool isNetworkConnected: isEthernetConnected || wifiConnected
-  readonly property string wifiSsid: (wifi && wifi.ssid && wifi.ssid.length > 0) ? wifi.ssid : (wifiConnected ? "Bağlı" : "Bağlantı Yok")
+  readonly property string wifiSsid: (wifi && wifi.ssid && wifi.ssid.length > 0 && wifi.ssid !== "Kapalı") ? wifi.ssid : (wifiConnected ? "Bağlı" : "Bağlantı Yok")
   readonly property int wifiSignal: wifi && wifi.signal ? wifi.signal : 0
 
   readonly property string networkIcon: {
@@ -108,8 +110,9 @@ Item {
           id: ssidText
           text: root.networkLabel
           color: root.isNetworkConnected ? Style.textPrimary : Style.textMuted
+          font.family: Style.fontDisplay
           font.pixelSize: Config.connectivityTextSize
-          font.weight: Font.DemiBold
+          font.weight: Style.fontWeightDisplay
           elide: Text.ElideRight
           maximumLineCount: 1
           width: Math.min(implicitWidth, 54)

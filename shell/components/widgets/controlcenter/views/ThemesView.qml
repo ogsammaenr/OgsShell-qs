@@ -55,7 +55,7 @@ Item {
       "id": "gruvbox",
       "name": "Gruvbox Dark",
       "author": "morhetz",
-      "colors": { "bg": "#282828", "surface": "#3c3836", "card_bg": "#3c3836", "fg": "#ebdbb2", "accent": "#fe8019", "border": "#fe8019", "cyan": "#689d6a" }
+      "colors": { "bg": "#282828", "surface": "#3c3836", "card_bg": "#32302f", "fg": "#ebdbb2", "accent": "#d65d0e", "border": "#d65d0e", "cyan": "#689d6a" }
     },
     {
       "id": "monochrome",

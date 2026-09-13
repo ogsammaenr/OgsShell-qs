@@ -2,6 +2,9 @@
   "form_factor": "notch",
   "theme": "catppuccin",
   "typography": {
+    "font_display": "Noto Sans Display",
+    "font_weight_display": "bold",
+    "font_text": "Noto Sans Display",
     "clock_idle_size": 20,
     "clock_hover_size": 22,
     "date_hover_size": 14,
