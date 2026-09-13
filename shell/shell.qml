@@ -263,15 +263,17 @@ Scope {
           id: activeInputEnvelope
           anchors.top: parent.top
           anchors.horizontalCenter: parent.horizontalCenter
-          width: Math.max(island.width + 40, 320)
+          width: {
+            if (!screenScope.isRevealed) {
+              return topHotspot.width
+            }
+            return island.width + (Config.isNotch ? 10 : 0)
+          }
           height: {
             if (!screenScope.isRevealed) {
-              return screenScope.shouldAutoHide ? 12 : (Config.isNotch ? Config.notchIdleHeight : (Config.islandTopMargin + Config.islandIdleHeight))
+              return screenScope.shouldAutoHide ? 12 : 0
             }
-            if (island.stateMode === "EXPANDED") {
-              return Math.max(island.implicitHeight + 30, 360)
-            }
-            return Config.isNotch ? (Config.notchHoverHeight + 6) : (Config.islandTopMargin + Config.islandHoverHeight + 6)
+            return Math.max(screenScope.shouldAutoHide ? 12 : 0, Math.round(island.y + island.height + (island.extraStackHeight || 0)))
           }
           color: "transparent"
         }

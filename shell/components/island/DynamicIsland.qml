@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Shapes
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
+import Quickshell.Hyprland
 import "../.."
 import "../widgets"
 import "../widgets/clock"
@@ -23,11 +24,42 @@ Item {
   property string clockAppActiveTab: "WORLD" // "WORLD" | "POMODORO" | "STOPWATCH" | "ALARMS"
   readonly property bool isIslandHovered: islandHoverHandler.hovered
 
-  // Transient notification metadata
-  property string transientSummary: "Notification"
-  property string transientBody: ""
-  property string transientAppName: "System"
-  property int transientTimeout: 3500
+  // Notification Stack & 3D Layered Cards Deck
+  property var notificationStack: []
+  readonly property int notificationCount: notificationStack.length
+  readonly property var activeNotification: notificationCount > 0 ? notificationStack[0] : null
+  readonly property var secondNotification: notificationCount > 1 ? notificationStack[1] : null
+  readonly property var thirdNotification: notificationCount > 2 ? notificationStack[2] : null
+  readonly property int extraStackHeight: {
+    if (stateMode !== "TRANSIENT") return 0
+    if (notificationCount >= 3) return 18
+    if (notificationCount >= 2) return 10
+    return 0
+  }
+
+  // Active notification convenience bindings (with fallbacks)
+  property string transientSummary: activeNotification ? (activeNotification.summary || "Notification") : "Notification"
+  property string transientBody: activeNotification ? (activeNotification.body || "") : ""
+  property string transientAppName: activeNotification ? (activeNotification.appName || "System") : "System"
+  property string transientUrgency: activeNotification ? (activeNotification.urgency || "normal") : "normal"
+  property string transientIcon: activeNotification ? (activeNotification.icon || "") : ""
+  property int transientTimeout: activeNotification ? (activeNotification.timeoutMs || 3500) : 3500
+
+  // Dismiss & Slide Transition States
+  property bool isDismissing: false
+  property bool isTransitioning: false
+  property var incomingNotification: null
+  property real deckShiftProgress: 0.0
+
+  // Primary (front) card animation coordinates
+  property real currentCardOffsetY: 0
+  property real currentCardOpacity: 1.0
+  property real currentCardScale: 1.0
+
+  // Incoming (next) card animation coordinates
+  property real incomingCardOffsetY: 36
+  property real incomingCardOpacity: 0.0
+  property real incomingCardScale: 1.0
 
   // Pomodoro completion alert listener
   Connections {
@@ -45,7 +77,7 @@ Item {
         title = "☕ Mola Süresi Bitti!"
         body = "Mola bitti, yeni çalışma seansına hazır mısın?"
       }
-      root.triggerNotification(title, body, "Pomodoro", 8000)
+      root.triggerNotification(title, body, "Pomodoro", 8000, "normal", "pomodoro_" + Date.now(), "", "")
     }
   }
 
@@ -56,18 +88,27 @@ Item {
     target: root.ipc || null
 
     function onAlarmTriggered(payload) {
-      root.triggerNotification("⏰ Alarm: " + (payload.label || "Alarm"), payload.time || "", "ogsShell Alarm", 10000);
+      root.triggerNotification("⏰ Alarm: " + (payload.label || "Alarm"), payload.time || "", "ogsShell Alarm", 10000, "critical", "alarm_" + Date.now(), "", "");
     }
 
     function onCalendarReminderTriggered(payload) {
-      root.triggerNotification("📅 " + payload.title, (payload.date || "") + " " + (payload.time || ""), "ogsShell Takvim", 8000);
+      root.triggerNotification("📅 " + payload.title, (payload.date || "") + " " + (payload.time || ""), "ogsShell Takvim", 8000, "normal", "calendar_" + Date.now(), "", "");
     }
 
     function onNotificationReceived(payload) {
       if (payload && payload.should_popup) {
         let n = payload.notification || {};
-        let t = (n.timeout_ms && n.timeout_ms > 0) ? n.timeout_ms : (Config.notificationTimeoutMs || 2200);
-        root.triggerNotification(n.summary || "Notification", n.body || "", n.app_name || "System", t);
+        let t = (n.timeout_ms && n.timeout_ms > 0) ? n.timeout_ms : (Config.notificationTimeoutMs || 3500);
+        root.enqueueNotification({
+          id: n.id || ("notif_" + Date.now() + "_" + Math.floor(Math.random() * 1000)),
+          summary: n.summary || "Notification",
+          body: n.body || "",
+          appName: n.app_name || "System",
+          urgency: n.urgency || "normal",
+          icon: n.icon || "",
+          timeoutMs: t,
+          desktopEntry: n.desktop_entry || ""
+        });
       }
     }
 
@@ -249,6 +290,7 @@ Item {
   function collapse() {
     if (stateMode === "TRANSIENT") {
       transientTimer.stop()
+      root.notificationStack = []
     }
     expandedUnhoverTimer.stop()
     if (controlCenterLoader.item) {
@@ -264,22 +306,363 @@ Item {
     }
   }
 
-  // Trigger transient notification display
-  function triggerNotification(summary, body, appName, timeoutMs) {
-    transientSummary = summary && summary.length > 0 ? summary : "Notification"
-    transientBody = body || ""
-    transientAppName = appName || "System"
-    transientTimeout = (timeoutMs && timeoutMs > 0) ? timeoutMs : (Config.notificationTimeoutMs || (Config.notifications && Config.notifications.default_timeout_ms) || 2200)
+  // Add notification to stack with criticality preemption
+  function enqueueNotification(notif) {
+    if (!notif) return;
+    let isCrit = (notif.urgency === "critical");
+    let newStack = [];
+    if (isCrit) {
+      // Critical urgency bypasses queue and jumps directly to front (unshift)
+      newStack = [notif, ...root.notificationStack];
+    } else {
+      // Normal / low urgency appends to end of deck
+      newStack = [...root.notificationStack, notif];
+    }
+    // Reassignment guarantees QML reactivity
+    root.notificationStack = newStack;
 
-    if (stateMode !== "EXPANDED") {
-      if (stateMode !== "TRANSIENT") {
-        previousState = stateMode
+    if (root.stateMode !== "EXPANDED") {
+      if (root.stateMode !== "TRANSIENT") {
+        root.previousState = root.stateMode;
       }
-      stateMode = "TRANSIENT"
+      root.stateMode = "TRANSIENT";
     }
 
-    transientTimer.interval = transientTimeout
-    transientTimer.restart()
+    // If critical or first item, immediately reset timer for active item
+    if (isCrit || root.notificationStack.length === 1) {
+      startNotificationTimer(notif.timeoutMs);
+    }
+  }
+
+  // ==========================================
+  // Dual-Card Slide Transition & Dismiss Animations
+  // Outgoing card slides UP and out, while incoming card simultaneously slides UP into place.
+  // ==========================================
+  ParallelAnimation {
+    id: transitionToNextSequence
+
+    // Outgoing card slides up and fades out
+    NumberAnimation {
+      target: root
+      property: "currentCardOffsetY"
+      to: -36
+      duration: 260
+      easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+      target: root
+      property: "currentCardOpacity"
+      to: 0.0
+      duration: 230
+      easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+      target: root
+      property: "currentCardScale"
+      to: 0.96
+      duration: 260
+      easing.type: Easing.OutCubic
+    }
+
+    // Incoming card slides up from below into place
+    NumberAnimation {
+      target: root
+      property: "incomingCardOffsetY"
+      to: 0
+      duration: 260
+      easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+      target: root
+      property: "incomingCardOpacity"
+      to: 1.0
+      duration: 230
+      easing.type: Easing.OutCubic
+    }
+    NumberAnimation {
+      target: root
+      property: "incomingCardScale"
+      to: 1.0
+      duration: 260
+      easing.type: Easing.OutCubic
+    }
+
+    // Stacked physical deck ascends into notch bottom
+    NumberAnimation {
+      target: root
+      property: "deckShiftProgress"
+      to: 1.0
+      duration: 260
+      easing.type: Easing.OutCubic
+    }
+
+    onFinished: {
+      root.performStackShift();
+      root.isTransitioning = false;
+      root.incomingNotification = null;
+      root.deckShiftProgress = 0.0;
+      root.currentCardOffsetY = 0;
+      root.currentCardOpacity = 1.0;
+      root.currentCardScale = 1.0;
+      root.incomingCardOffsetY = 36;
+      root.incomingCardOpacity = 0.0;
+      root.incomingCardScale = 0.96;
+      root.isDismissing = false;
+    }
+  }
+
+  // Dismiss animation when only 1 notification remains in deck
+  SequentialAnimation {
+    id: dismissLastSequence
+
+    PropertyAction { target: root; property: "isDismissing"; value: true }
+
+    ParallelAnimation {
+      NumberAnimation {
+        target: root
+        property: "currentCardOffsetY"
+        to: -32
+        duration: 160
+        easing.type: Easing.InQuad
+      }
+      NumberAnimation {
+        target: root
+        property: "currentCardOpacity"
+        to: 0.0
+        duration: 150
+        easing.type: Easing.InQuad
+      }
+      NumberAnimation {
+        target: root
+        property: "currentCardScale"
+        to: 0.96
+        duration: 160
+        easing.type: Easing.InQuad
+      }
+    }
+
+    ScriptAction {
+      script: {
+        root.performStackShift();
+        root.currentCardOffsetY = 0;
+        root.currentCardOpacity = 1.0;
+        root.currentCardScale = 1.0;
+        root.isDismissing = false;
+      }
+    }
+  }
+
+  // App Focus & Launch Animation (Tactile click pulse followed by slide to next or fly-out)
+  SequentialAnimation {
+    id: focusLaunchSequence
+
+    PropertyAction { target: root; property: "isDismissing"; value: true }
+
+    // Step 1: Tactile press-in
+    NumberAnimation {
+      target: root
+      property: "currentCardScale"
+      to: 0.94
+      duration: 75
+      easing.type: Easing.OutQuad
+    }
+
+    // Step 2: Trigger Hyprland focus / launch
+    ScriptAction {
+      script: {
+        root.activateNotificationApp(root.activeNotification);
+      }
+    }
+
+    // Step 3: Branch based on remaining stack items
+    ScriptAction {
+      script: {
+        if (root.notificationStack.length > 1) {
+          root.incomingNotification = root.notificationStack[1];
+          root.isTransitioning = true;
+          root.incomingCardOffsetY = 36;
+          root.incomingCardOpacity = 0.0;
+          root.incomingCardScale = 0.96;
+          transitionToNextSequence.restart();
+        } else {
+          flyOutLastSequence.restart();
+        }
+      }
+    }
+  }
+
+  // Fly-out animation for last notification after app focus
+  SequentialAnimation {
+    id: flyOutLastSequence
+
+    ParallelAnimation {
+      NumberAnimation {
+        target: root
+        property: "currentCardScale"
+        to: 1.04
+        duration: 130
+        easing.type: Easing.OutQuad
+      }
+      NumberAnimation {
+        target: root
+        property: "currentCardOffsetY"
+        to: -28
+        duration: 130
+        easing.type: Easing.InQuad
+      }
+      NumberAnimation {
+        target: root
+        property: "currentCardOpacity"
+        to: 0.0
+        duration: 120
+        easing.type: Easing.InQuad
+      }
+    }
+
+    ScriptAction {
+      script: {
+        root.performStackShift();
+        root.currentCardOffsetY = 0;
+        root.currentCardOpacity = 1.0;
+        root.currentCardScale = 1.0;
+        root.isDismissing = false;
+      }
+    }
+  }
+
+  // Dismiss the frontmost active card; second card ascends to front with slide physics
+  function dismissFront(isFocusLaunch) {
+    if (root.isDismissing) return;
+    if (root.notificationStack.length === 0) {
+      transientTimer.stop();
+      if (root.stateMode === "TRANSIENT") {
+        root.stateMode = root.previousState || "IDLE";
+      }
+      return;
+    }
+
+    if (isFocusLaunch) {
+      focusLaunchSequence.restart();
+    } else {
+      if (root.notificationStack.length > 1) {
+        root.isDismissing = true;
+        root.incomingNotification = root.notificationStack[1];
+        root.isTransitioning = true;
+        root.incomingCardOffsetY = 36;
+        root.incomingCardOpacity = 0.0;
+        root.incomingCardScale = 0.96;
+        transitionToNextSequence.restart();
+      } else {
+        dismissLastSequence.restart();
+      }
+    }
+  }
+
+  // Internal stack shift logic executed when transition finishes
+  function performStackShift() {
+    if (root.notificationStack.length === 0) {
+      transientTimer.stop();
+      if (root.stateMode === "TRANSIENT") {
+        root.stateMode = root.previousState || "IDLE";
+      }
+      return;
+    }
+
+    let nextStack = root.notificationStack.slice(1);
+    root.notificationStack = nextStack;
+
+    if (root.notificationStack.length > 0) {
+      let nextNotif = root.notificationStack[0];
+      startNotificationTimer(nextNotif.timeoutMs);
+    } else {
+      transientTimer.stop();
+      if (root.stateMode === "TRANSIENT") {
+        root.stateMode = root.previousState || "IDLE";
+      }
+    }
+  }
+
+  // Clear entire deck at once
+  function clearNotificationStack() {
+    if (transitionToNextSequence.running) transitionToNextSequence.stop();
+    if (dismissLastSequence.running) dismissLastSequence.stop();
+    if (focusLaunchSequence.running) focusLaunchSequence.stop();
+    if (flyOutLastSequence.running) flyOutLastSequence.stop();
+
+    root.isTransitioning = false;
+    root.incomingNotification = null;
+    root.deckShiftProgress = 0.0;
+    root.isDismissing = false;
+    root.currentCardOffsetY = 0;
+    root.currentCardOpacity = 1.0;
+    root.currentCardScale = 1.0;
+    root.incomingCardOffsetY = 36;
+    root.incomingCardOpacity = 0.0;
+    root.incomingCardScale = 1.0;
+    root.notificationStack = [];
+    transientTimer.stop();
+    if (root.stateMode === "TRANSIENT") {
+      root.stateMode = root.previousState || "IDLE";
+    }
+    if (root.ipc && root.ipc.clearNotifications) {
+      root.ipc.clearNotifications();
+    }
+  }
+
+  // Start / restart timer for front card
+  function startNotificationTimer(timeoutMs) {
+    transientTimer.stop();
+    let ms = (timeoutMs && timeoutMs > 0) ? timeoutMs : (Config.notificationTimeoutMs || 3500);
+    transientTimer.interval = ms;
+    if (!root.isIslandHovered) {
+      transientTimer.restart();
+    }
+  }
+
+  // Backward-compatible triggerNotification
+  function triggerNotification(summary, body, appName, timeoutMs, urgency, notifId, icon, desktopEntry) {
+    let t = (timeoutMs && timeoutMs > 0) ? timeoutMs : (Config.notificationTimeoutMs || (Config.notifications && Config.notifications.default_timeout_ms) || 3500);
+    enqueueNotification({
+      id: notifId || ("notif_" + Date.now() + "_" + Math.floor(Math.random() * 1000)),
+      summary: summary && summary.length > 0 ? summary : "Notification",
+      body: body || "",
+      appName: appName || "System",
+      urgency: urgency || "normal",
+      icon: icon || "",
+      timeoutMs: t,
+      desktopEntry: desktopEntry || ""
+    });
+  }
+
+  // Focus or launch the application associated with a notification
+  function activateNotificationApp(notif) {
+    if (!notif) return;
+    let app = (notif.appName || notif.desktopEntry || "").trim();
+    if (!app || app.toLowerCase() === "system" || app.toLowerCase() === "ogsshell") {
+      return;
+    }
+
+    let found = false;
+    let appLower = app.toLowerCase();
+    let toplevels = (Hyprland.toplevels && Hyprland.toplevels.values) ? Hyprland.toplevels.values : [];
+    for (let i = 0; i < toplevels.length; i++) {
+      let win = toplevels[i];
+      let winClass = (win.initialClass || win.class || "").toLowerCase();
+      let winTitle = (win.title || "").toLowerCase();
+      if (winClass.includes(appLower) || winTitle.includes(appLower) || appLower.includes(winClass)) {
+        if (win.address) {
+          Hyprland.dispatch("focuswindow address:" + win.address);
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (!found) {
+      if (root.ipc && root.ipc.launchApp) {
+        root.ipc.launchApp(notif.desktopEntry || "", appLower);
+      }
+    }
   }
 
   // Dynamic geometry derived from active form-factor (Island vs Notch)
@@ -360,6 +743,40 @@ Item {
       easing.type: root.stateMode === "EXPANDED" ? Easing.OutBack : Easing.OutCubic
       easing.overshoot: Config.animation.overshoot_factor
     }
+  }
+
+  // =========================================================================
+  // 3D Notification Deck: Tier 3 & Tier 2 Background Cards
+  // Stacked depth visualization when multiple notifications are pending
+  // =========================================================================
+  NotificationDeckBackground {
+    id: deckTier3
+    tierLevel: 3
+    isNotch: Config.isNotch
+    baseWidth: root.width
+    baseHeight: root.height
+    activeRadius: root.activeRadius
+    surfaceColor: root.surfaceColor
+    visibleTier: root.stateMode === "TRANSIENT" && root.notificationCount >= 3
+    urgency: root.thirdNotification ? (root.thirdNotification.urgency || "normal") : "normal"
+    shiftProgress: root.deckShiftProgress
+    hasCardBehind: root.notificationCount >= 4
+    z: -3
+  }
+
+  NotificationDeckBackground {
+    id: deckTier2
+    tierLevel: 2
+    isNotch: Config.isNotch
+    baseWidth: root.width
+    baseHeight: root.height
+    activeRadius: root.activeRadius
+    surfaceColor: root.surfaceColor
+    visibleTier: root.stateMode === "TRANSIENT" && root.notificationCount >= 2
+    urgency: root.secondNotification ? (root.secondNotification.urgency || "normal") : "normal"
+    shiftProgress: root.deckShiftProgress
+    hasCardBehind: root.notificationCount >= 3
+    z: -2
   }
 
   // =========================================================================
@@ -538,6 +955,9 @@ Item {
         if (root.stateMode === "EXPANDED") {
           expandedUnhoverTimer.stop()
         }
+        if (root.stateMode === "TRANSIENT") {
+          transientTimer.stop()
+        }
       } else {
         if (root.stateMode === "HOVER") {
           root.stateMode = "IDLE"
@@ -545,22 +965,41 @@ Item {
         if (root.stateMode === "EXPANDED") {
           expandedUnhoverTimer.restart()
         }
+        if (root.stateMode === "TRANSIENT" && root.notificationStack.length > 0) {
+          transientTimer.restart()
+        }
       }
     }
   }
 
+  // Left-Click Gesture: If transient notification, activates app with tactile pulse animation & dismisses
   TapHandler {
+    acceptedButtons: Qt.LeftButton
     onTapped: {
       if (root.stateMode === "TRANSIENT") {
-        root.collapse()
+        root.dismissFront(true)
       }
     }
   }
 
-  // Right-Click Gesture: Opens Control Center directly when hovering over the island
+  // Middle-Click Gesture: Dismisses front notification; second card ascends with spring physics
+  TapHandler {
+    acceptedButtons: Qt.MiddleButton
+    onTapped: {
+      if (root.stateMode === "TRANSIENT") {
+        root.dismissFront(false)
+      }
+    }
+  }
+
+  // Right-Click Gesture: In TRANSIENT mode, clears entire notification deck; in HOVER/IDLE, opens Control Center
   TapHandler {
     acceptedButtons: Qt.RightButton
     onTapped: {
+      if (root.stateMode === "TRANSIENT") {
+        root.clearNotificationStack()
+        return
+      }
       if (root.stateMode === "HOVER" || root.stateMode === "IDLE") {
         if (controlCenterLoader.item) {
           controlCenterLoader.item.resetToMain()
@@ -670,7 +1109,11 @@ Item {
     Item {
       id: transientLayer
       anchors.fill: parent
-      anchors.margins: 10
+      anchors.leftMargin: 14
+      anchors.rightMargin: 14
+      anchors.topMargin: 8
+      anchors.bottomMargin: 8
+      clip: true
       opacity: root.stateMode === "TRANSIENT" ? 1.0 : 0.0
       visible: opacity > 0.0
 
@@ -678,58 +1121,54 @@ Item {
         NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
       }
 
-      Row {
-        anchors.fill: parent
-        spacing: 12
-
-        // Leading: Notification Icon Badge
-        Rectangle {
-          width: 36
-          height: 36
-          radius: 18
-          color: Style.surface
-          border.color: Style.border
-          border.width: 1
-          anchors.verticalCenter: parent.verticalCenter
-
-          Rectangle {
-            anchors.centerIn: parent
-            width: 12
-            height: 12
-            radius: 6
-            color: Style.accent
-
-            SequentialAnimation on scale {
-              loops: Animation.Infinite
-              running: root.stateMode === "TRANSIENT"
-              PropertyAnimation { from: 0.85; to: 1.15; duration: 900; easing.type: Easing.InOutSine }
-              PropertyAnimation { from: 1.15; to: 0.85; duration: 900; easing.type: Easing.InOutSine }
-            }
-          }
+      // Primary (Active / Outgoing) Notification Card Container
+      Item {
+        id: currentCardContainer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: parent.height
+        opacity: root.currentCardOpacity
+        scale: root.currentCardScale
+        transformOrigin: Item.Center
+        transform: Translate {
+          y: root.currentCardOffsetY
         }
 
-        // Content Stack: Title & Message
-        Column {
-          width: parent.width - 48
-          anchors.verticalCenter: parent.verticalCenter
-          spacing: 2
+        NotificationCardView {
+          anchors.fill: parent
+          summary: root.transientSummary
+          body: root.transientBody
+          appName: root.transientAppName
+          urgency: root.transientUrgency
+          icon: root.transientIcon
+          remainingStackCount: Math.max(0, root.notificationCount - 1)
+          isTransitioning: root.isTransitioning
+        }
+      }
 
-          Text {
-            width: parent.width
-            text: root.transientSummary
-            color: Style.textPrimary
-            font.pixelSize: Config.notificationTitleSize
-            font.weight: Font.DemiBold
-            elide: Text.ElideRight
-          }
+      // Incoming (Next in Deck) Notification Card Container - Active only during dual-card slide transition
+      Item {
+        id: incomingCardContainer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: parent.height
+        visible: root.isTransitioning && root.incomingNotification !== null
+        opacity: root.incomingCardOpacity
+        scale: root.incomingCardScale
+        transformOrigin: Item.Center
+        transform: Translate {
+          y: root.incomingCardOffsetY
+        }
 
-          Text {
-            width: parent.width
-            text: root.transientBody.length > 0 ? root.transientBody : root.transientAppName
-            color: Style.textMuted
-            font.pixelSize: Config.notificationBodySize
-            elide: Text.ElideRight
-          }
+        NotificationCardView {
+          anchors.fill: parent
+          summary: root.incomingNotification ? (root.incomingNotification.summary || "") : ""
+          body: root.incomingNotification ? (root.incomingNotification.body || "") : ""
+          appName: root.incomingNotification ? (root.incomingNotification.appName || "System") : "System"
+          urgency: root.incomingNotification ? (root.incomingNotification.urgency || "normal") : "normal"
+          icon: root.incomingNotification ? (root.incomingNotification.icon || "") : ""
+          remainingStackCount: Math.max(0, root.notificationCount - 2)
+          isTransitioning: true
         }
       }
     }
@@ -819,7 +1258,7 @@ Item {
     repeat: false
     onTriggered: {
       if (root.stateMode === "TRANSIENT") {
-        root.stateMode = root.previousState || "IDLE"
+        root.dismissFront()
       }
     }
   }
