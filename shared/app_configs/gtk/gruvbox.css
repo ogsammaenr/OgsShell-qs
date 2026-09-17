@@ -14,3 +14,74 @@
 @define-color dialog_fg_color #fbf1c7;
 @define-color popover_bg_color #282828;
 @define-color popover_fg_color #fbf1c7;
+
+@define-color theme_selected_bg_color #504945;
+@define-color theme_selected_fg_color #fbf1c7;
+@define-color theme_unfocused_selected_bg_color #3c3836;
+@define-color theme_unfocused_selected_fg_color rgba(251, 241, 199, 0.7);
+
+/* Selection & highlight styling for Thunar and GTK file views */
+headerbar entry selection,
+.titlebar entry selection,
+.view:selected,
+.view:selected:focus,
+.view text:selected,
+.view text:selected:focus,
+.view text selection,
+.view text selection:focus,
+iconview:selected,
+iconview:selected:focus,
+iconview text:selected,
+iconview text:selected:focus,
+iconview text selection,
+iconview text selection:focus,
+treeview.view:selected,
+treeview.view:selected:focus,
+flowbox flowboxchild:selected,
+flowbox flowboxchild:selected:focus,
+entry selection,
+spinbutton:not(.vertical) selection,
+.thunar .view:selected,
+.thunar .view:selected:focus,
+.thunar .standard-view .view:selected,
+.thunar .standard-view .view:selected:focus,
+.thunar iconview:selected,
+.thunar iconview:selected:focus,
+.thunar iconview text:selected,
+.thunar iconview text:selected:focus,
+.thunar treeview.view:selected,
+.thunar treeview.view:selected:focus,
+.thunar .cell:selected,
+.thunar .cell:selected:focus,
+.thunar-window .view:selected,
+.thunar-window .view:selected:focus,
+.thunar-window .standard-view .view:selected,
+.thunar-window .standard-view .view:selected:focus {
+    color: #fbf1c7;
+    background-color: #504945;
+}
+
+.view:selected:backdrop,
+iconview:selected:backdrop,
+iconview text:selected:backdrop,
+treeview.view:selected:backdrop,
+.thunar .view:selected:backdrop,
+.thunar .standard-view .view:selected:backdrop,
+.thunar iconview:selected:backdrop,
+.thunar iconview text:selected:backdrop,
+.thunar treeview.view:selected:backdrop,
+.thunar .cell:selected:backdrop,
+.thunar-window .view:selected:backdrop,
+.thunar-window .standard-view .view:selected:backdrop {
+    color: rgba(251, 241, 199, 0.7);
+    background-color: #3c3836;
+}
+
+rubberband,
+.rubberband,
+flowbox rubberband,
+treeview.view rubberband,
+.content-view rubberband {
+    border: 1px solid rgba(250, 189, 47, 0.4);
+    background-color: rgba(250, 189, 47, 0.15);
+}

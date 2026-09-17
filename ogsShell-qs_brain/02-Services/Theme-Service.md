@@ -36,6 +36,7 @@ related_notes:
   - "[[Plan-Tmux-Prefix-Window-Color-Highlight]]"
   - "[[Plan-Tmux-Dual-Capsule-Status-Bar]]"
   - "[[Plan-Starship-Dynamic-Theme-Adapter]]"
+  - "[[Plan-GTK-Live-Theme-Reload-And-Xsettingsd]]"
 ---
 
 # Theme Management & Multi-App Dispatcher Service
@@ -85,7 +86,7 @@ graph TD
    - **Neovim (LazyVim):** Copies `shared/app_configs/nvim/<id>.lua` to `~/.config/nvim/lua/plugins/theme.lua` and reloads active Neovim sessions live via Unix domain sockets.
    - **Dolphin / Qt:** Copies `shared/app_configs/dolphin/<id>.kdeglobals` to `~/.config/kdeglobals` and `shared/app_configs/qt/<id>.conf` to `~/.config/qt5ct/` / `~/.config/qt6ct/`.
    - **Btop:** Copies `shared/app_configs/btop/<id>.theme` to `~/.config/btop/themes/ogsshell.theme`.
-   - **GTK:** Copies `shared/app_configs/gtk/<id>.css` & `.ini` to `~/.config/gtk-3.0/` and `~/.config/gtk-4.0/`.
+   - **GTK:** Pre-deploys 7 named themes into `~/.local/share/themes/ogsShell-<id>/` (`gtk-3.0`, `gtk-4.0`, `index.theme`), neutralizes `~/.config/gtk-3.0/gtk.css` to eliminate Priority 800 locks, dispatches dynamic `gtk-theme` across `gsettings` and `xfconf-query` (Thunar/XFCE) for 0ms live hot-reloading in running GTK3/GTK4 apps without restart, and generates `~/.config/xsettingsd/xsettingsd.conf` with `SIGHUP` reload / background daemon spawning for XWayland/X11 apps. Detay: `[[Plan-GTK-Live-Theme-Reload-And-Xsettingsd]]`.
    - **Tmux:** Copies `shared/app_configs/tmux/<id>.conf` to both `~/.tmux/current-theme.conf` and `~/.config/tmux/theme.conf`, executes live `tmux source-file`, reloads `minimal.tmux` status plugin, and triggers `tmux refresh-client -S`. Detay: `[[Plan-Fix-Tmux-Theme-Adapter]]`.
    - **IntelliJ IDEA / JetBrains:** Copies `shared/app_configs/intellij/<id>.icls` to `~/.config/JetBrains/<IDE>/colors/<SchemeName>.icls` and updates `options/colors.scheme.xml`. Detay: `[[Plan-IntelliJ-Theme-Adapter]]`.
    - **Android Studio:** Copies `shared/app_configs/android_studio/<id>.icls` (fallback to `intellij/<id>.icls`) to `~/.config/Google/AndroidStudio*/colors/<SchemeName>.icls` (as well as Flatpak and Snap directories) and updates `options/colors.scheme.xml`. Detay: `[[Plan-Android-Studio-Nord-Theme-Adapter]]`.
