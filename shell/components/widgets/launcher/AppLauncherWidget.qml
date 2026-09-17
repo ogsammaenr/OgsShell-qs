@@ -1,7 +1,9 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import "../../.."
+import "MathEvaluator.js" as MathEvaluator
 
 Item {
   id: root
@@ -11,9 +13,93 @@ Item {
   signal closeRequested()
   signal userActivity()
 
+  // Selection index: -1 represents Hero Result Card, 0..N represents AppList
   property int selectedIndex: 0
   onSelectedIndexChanged: root.userActivity()
   focus: true
+
+  // Hero result model { type: "math" | "currency", display, subtitle, rawValue, expression }
+  property var heroResult: null
+  property bool isHeroCopied: false
+
+  // Offline-First Live/Cached Currency Engine (Powered by Go Daemon)
+  CurrencyEngine {
+    id: currencyEngine
+    ipc: root.ipc
+  }
+
+  // Wayland dual-clipboard copy process
+  Process {
+    id: wlCopyProc
+  }
+
+  Timer {
+    id: copyDismissTimer
+    interval: 260
+    repeat: false
+    onTriggered: {
+      root.isHeroCopied = false
+      root.launchRequested()
+    }
+  }
+
+  function copyHeroResult() {
+    if (!heroResult || !heroResult.rawValue) return
+    let textToCopy = heroResult.rawValue
+
+    // 1. Copy via DaemonIPC
+    if (ipc) {
+      ipc.copyClipboardItem("", textToCopy)
+    }
+
+    // 2. Direct Wayland copy fallback
+    wlCopyProc.running = false
+    wlCopyProc.command = ["wl-copy", textToCopy]
+    wlCopyProc.running = true
+
+    // 3. UI Confirmation feedback
+    root.isHeroCopied = true
+    copyDismissTimer.restart()
+  }
+
+  function evaluateQuery(rawQuery) {
+    let q = rawQuery ? rawQuery.trim() : ""
+    if (q.length === 0) {
+      root.heroResult = null
+      return
+    }
+
+    // 1. Currency Conversion Evaluation
+    let currRes = currencyEngine.evaluate(q)
+    if (currRes) {
+      root.heroResult = {
+        type: "currency",
+        display: currRes.display,
+        subtitle: currRes.subtitle,
+        rawValue: currRes.rawValue,
+        expression: q
+      }
+      root.selectedIndex = -1
+      return
+    }
+
+    // 2. Mathematical Expression Evaluation
+    let mathRes = MathEvaluator.evaluate(q)
+    if (mathRes) {
+      root.heroResult = {
+        type: "math",
+        display: mathRes.display,
+        subtitle: mathRes.expression,
+        rawValue: mathRes.rawValue,
+        expression: mathRes.expression
+      }
+      root.selectedIndex = -1
+      return
+    }
+
+    // 3. Fallback: Normal Application Search
+    root.heroResult = null
+  }
 
   readonly property var activeList: {
     if (searchInput.text.trim().length > 0) {
@@ -23,11 +109,14 @@ Item {
   }
 
   onActiveListChanged: {
+    if (heroResult !== null && selectedIndex === -1) {
+      return
+    }
     if (selectedIndex >= activeList.length) {
       selectedIndex = Math.max(0, activeList.length - 1)
     }
     if (activeList.length > 0 && selectedIndex < 0) {
-      selectedIndex = 0
+      selectedIndex = (heroResult !== null) ? -1 : 0
     }
   }
 
@@ -53,10 +142,16 @@ Item {
       if (ipc) {
         ipc.requestAppsList(50)
       }
+      currencyEngine.refreshRates()
     }
   }
 
   function launchSelected() {
+    if (heroResult !== null && selectedIndex === -1) {
+      copyHeroResult()
+      return
+    }
+
     if (activeList && activeList.length > 0 && selectedIndex >= 0 && selectedIndex < activeList.length) {
       let app = activeList[selectedIndex]
       if (ipc) {
@@ -113,7 +208,10 @@ Item {
 
         onTextChanged: {
           root.userActivity()
-          selectedIndex = 0
+          root.evaluateQuery(text)
+          if (root.heroResult === null) {
+            root.selectedIndex = 0
+          }
           if (ipc) {
             ipc.searchApps(text.trim(), 30)
           }
@@ -123,17 +221,43 @@ Item {
 
         Keys.onDownPressed: {
           root.userActivity()
-          if (activeList.length > 0) {
-            selectedIndex = (selectedIndex + 1) % activeList.length
-            appList.positionViewAtIndex(selectedIndex, ListView.Contain)
+          if (root.heroResult !== null) {
+            if (root.selectedIndex === -1) {
+              if (activeList.length > 0) {
+                root.selectedIndex = 0
+                appList.positionViewAtIndex(0, ListView.Contain)
+              }
+            } else if (activeList.length > 0) {
+              if (root.selectedIndex === activeList.length - 1) {
+                root.selectedIndex = -1
+              } else {
+                root.selectedIndex++
+                appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+              }
+            }
+          } else if (activeList.length > 0) {
+            root.selectedIndex = (root.selectedIndex + 1) % activeList.length
+            appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
           }
         }
 
         Keys.onUpPressed: {
           root.userActivity()
-          if (activeList.length > 0) {
-            selectedIndex = (selectedIndex - 1 + activeList.length) % activeList.length
-            appList.positionViewAtIndex(selectedIndex, ListView.Contain)
+          if (root.heroResult !== null) {
+            if (root.selectedIndex === -1) {
+              if (activeList.length > 0) {
+                root.selectedIndex = activeList.length - 1
+                appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+              }
+            } else if (root.selectedIndex === 0) {
+              root.selectedIndex = -1
+            } else {
+              root.selectedIndex--
+              appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+            }
+          } else if (activeList.length > 0) {
+            root.selectedIndex = (root.selectedIndex - 1 + activeList.length) % activeList.length
+            appList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
           }
         }
 
@@ -144,6 +268,8 @@ Item {
           root.userActivity()
           if (text.length > 0) {
             text = ""
+            root.heroResult = null
+            root.selectedIndex = 0
           } else {
             root.closeRequested()
           }
@@ -153,7 +279,7 @@ Item {
         Text {
           anchors.fill: parent
           verticalAlignment: Text.AlignVCenter
-          text: "Uygulama ara..."
+          text: "Uygulama ara"
           color: Style.textMuted
           font.pixelSize: 14
           font.weight: Font.Normal
@@ -185,6 +311,8 @@ Item {
           cursorShape: Qt.PointingHandCursor
           onClicked: {
             searchInput.text = ""
+            root.heroResult = null
+            root.selectedIndex = 0
             searchInput.forceActiveFocus()
           }
         }
@@ -203,6 +331,23 @@ Item {
     opacity: 0.5
   }
 
+  // =========================================================================
+  // 2. Hero Result Card (Rich Math & Currency Result View)
+  // =========================================================================
+  HeroResultCard {
+    id: heroCard
+    anchors.top: topDivider.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.topMargin: visible ? 6 : 0
+    anchors.leftMargin: 6
+    anchors.rightMargin: 6
+    result: root.heroResult
+    isSelected: root.selectedIndex === -1
+    isCopied: root.isHeroCopied
+    onCopyTriggered: root.copyHeroResult()
+  }
+
   // Bottom Hairline Divider
   Rectangle {
     id: bottomDivider
@@ -215,7 +360,7 @@ Item {
   }
 
   // =========================================================================
-  // 3. Quiet Minimalist Footer (Anchored to Bottom)
+  // 4. Quiet Minimalist Footer (Anchored to Bottom)
   // =========================================================================
   Item {
     id: footerRow
@@ -230,15 +375,20 @@ Item {
       anchors.rightMargin: 12
 
       Text {
-        text: searchInput.text.trim().length > 0 ? (activeList.length + " sonuç") : (activeList.length + " uygulama")
+        text: {
+          if (root.heroResult !== null) {
+            return root.heroResult.type === "currency" ? "Döviz Dönüştürücü" : "Hesap Makinesi"
+          }
+          return searchInput.text.trim().length > 0 ? (activeList.length + " sonuç") : (activeList.length + " uygulama")
+        }
         font.pixelSize: 11
-        color: Style.textMuted
+        color: root.heroResult !== null ? Style.accent : Style.textMuted
       }
 
       Item { Layout.fillWidth: true }
 
       Text {
-        text: "↵ Aç  •  esc Kapat"
+        text: root.heroResult !== null ? "↵ Kopyala  •  esc Kapat" : "↵ Aç  •  esc Kapat"
         font.pixelSize: 11
         color: Style.textMuted
       }
@@ -246,15 +396,15 @@ Item {
   }
 
   // =========================================================================
-  // 2. Application List View (Anchored between Header and Footer Dividers)
+  // 3. Application List View (Anchored between Hero/Divider and Footer)
   // =========================================================================
   ListView {
     id: appList
-    anchors.top: topDivider.bottom
+    anchors.top: heroCard.visible ? heroCard.bottom : topDivider.bottom
     anchors.bottom: bottomDivider.top
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.topMargin: 4
+    anchors.topMargin: heroCard.visible ? 6 : 4
     anchors.bottomMargin: 4
     anchors.leftMargin: 4
     anchors.rightMargin: 4
@@ -413,13 +563,13 @@ Item {
     }
   }
 
-  // Minimal Empty State
+  // Minimal Empty State (Hidden if Hero Result is visible)
   Item {
-    anchors.top: topDivider.bottom
+    anchors.top: heroCard.visible ? heroCard.bottom : topDivider.bottom
     anchors.bottom: bottomDivider.top
     anchors.left: parent.left
     anchors.right: parent.right
-    visible: root.activeList.length === 0
+    visible: root.activeList.length === 0 && root.heroResult === null
 
     ColumnLayout {
       anchors.centerIn: parent
