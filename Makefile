@@ -10,10 +10,10 @@ run-core: build-core
 	./bin/ogsshell-core
 
 run-shell: build-core
-	./scripts/run_shell.sh
+	./scripts/ogsshell.sh run
 
 reload:
-	./shell/reload.sh
+	./scripts/ogsshell.sh reload
 
 run-settings:
 	python3 settings_app/main.py

@@ -91,6 +91,7 @@ check_command "pw-play" "pipewire-audio" "pipewire-utils" "false" "PipeWire Ses 
 check_command "nmcli" "networkmanager" "NetworkManager" "false" "Wi-Fi & Ağ Yönetimi"
 check_command "bluetoothctl" "bluez-utils" "bluez" "false" "Bluetooth Servisi"
 check_command "inotifywait" "inotify-tools" "inotify-tools" "false" "Canlı Konfigürasyon İzleme"
+check_command "xsettingsd" "xsettingsd" "xsettingsd" "false" "X11/XWayland Tema & Font Ayarları Servisi"
 
 # Font kontrolü
 if fc-list : family | grep -iq "Nerd Font"; then
@@ -101,6 +102,19 @@ else
     MISSING_PACKAGES+=("ttf-jetbrains-mono-nerd")
   fi
 fi
+
+# GTK Tema (adw-gtk3-dark) kontrolü
+if [ -d "/usr/share/themes/adw-gtk3-dark" ] || [ -d "$HOME/.themes/adw-gtk3-dark" ] || [ -d "$HOME/.local/share/themes/adw-gtk3-dark" ]; then
+  echo -e "  ${C_GREEN}[✓]${C_RESET} ${C_BOLD}adw-gtk3-dark${C_RESET} teması kurulu (GTK 3/4 temalama için)"
+else
+  echo -e "  ${C_YELLOW}[!]${C_RESET} ${C_BOLD}adw-gtk3-dark${C_RESET} teması bulunamadı! ${C_MUTED}(GTK uygulamalarında tema senkronizasyonu için gereklidir)${C_RESET}"
+  if [ "$OS_ID" = "arch" ] || [ "$OS_ID" = "archarm" ] || [ "$OS_ID" = "endeavouros" ] || [ "$OS_ID" = "manjaro" ] || [ "$OS_ID" = "cachyos" ]; then
+    MISSING_PACKAGES+=("adw-gtk-theme")
+  elif [ "$OS_ID" = "fedora" ]; then
+    MISSING_PACKAGES+=("adw-gtk3-theme")
+  fi
+fi
+
 
 # ------------------------------------------------------------------------------
 # 3. Eksik Paketlerin Kurulumu (İsteğe Bağlı)
@@ -192,6 +206,16 @@ if [ -d "${REPO_ROOT}/shared/themes" ]; then
   echo -e "  ${C_GREEN}[✓]${C_RESET} Tema paletleri eşitlendi -> ${C_BOLD}${CONFIG_DIR}/themes/${C_RESET}"
 fi
 
+# Yönetim scriptini kopyalama (ogsshell.sh)
+cp "${REPO_ROOT}/scripts/ogsshell.sh" "${CONFIG_DIR}/ogsshell.sh"
+chmod +x "${CONFIG_DIR}/ogsshell.sh"
+ln -sf "${CONFIG_DIR}/ogsshell.sh" "${CONFIG_DIR}/ogs.sh"
+echo -e "  ${C_GREEN}[✓]${C_RESET} Yönetim scripti kopyalandı -> ${C_BOLD}${CONFIG_DIR}/ogsshell.sh${C_RESET}"
+
+# Otomatik Tab Tamamlama (Zsh & Bash) Kurulumu
+"${CONFIG_DIR}/ogsshell.sh" completion install >/dev/null 2>&1 || true
+echo -e "  ${C_GREEN}[✓]${C_RESET} Terminal sekme (Tab) tamamlamaları yapılandırıldı (Zsh & Bash)"
+
 # ------------------------------------------------------------------------------
 # 6. Global Çalıştırıcı ve Kısayol Entegrasyonu
 # ------------------------------------------------------------------------------
@@ -203,7 +227,7 @@ mkdir -p "${LOCAL_BIN}"
 
 cat << RUNNER_EOF > "${LOCAL_BIN}/ogsshell"
 #!/usr/bin/env bash
-exec "${REPO_ROOT}/scripts/run_shell.sh" "\$@"
+exec "${CONFIG_DIR}/ogsshell.sh" "\$@"
 RUNNER_EOF
 chmod +x "${LOCAL_BIN}/ogsshell"
 
@@ -219,7 +243,7 @@ echo -e "${C_BOLD}🎉 ogsShell-qs Kurulumu Başarıyla Tamamlandı!${C_RESET}"
 echo -e "${C_GREEN}================================================================${C_RESET}"
 echo ""
 echo -e "${C_BOLD}Nasıl Başlatılır?${C_RESET}"
-echo -e "  1. Terminalden çalıştırmak için:       ${C_CYAN}ogsshell${C_RESET} veya ${C_CYAN}./scripts/run_shell.sh${C_RESET}"
+echo -e "  1. Terminalden çalıştırmak için:       ${C_CYAN}ogsshell${C_RESET} veya ${C_CYAN}~/.config/ogsShell/ogsshell.sh run${C_RESET}"
 echo -e "  2. Hyprland otomatik başlatma için:   ${C_BOLD}~/.config/hypr/hyprland.conf${C_RESET} dosyasına ekleyin:"
 echo -e "     ${C_YELLOW}exec-once = ogsshell${C_RESET}"
 echo ""
