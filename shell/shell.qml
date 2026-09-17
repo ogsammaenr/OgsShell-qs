@@ -467,16 +467,26 @@ Scope {
 
         exclusionMode: ExclusionMode.Ignore
 
-        implicitWidth: topRightTrayHud ? (topRightTrayHud.width + 10) : (Config.screenCornersRadius + 10)
-        implicitHeight: topRightTrayHud ? (topRightTrayHud.height + 10) : (Config.screenCornersRadius + 10)
+        // Fixed canvas preventing Wayland surface reconfiguration stutter during animation
+        implicitWidth: 420
+        implicitHeight: 80
 
         // Precision Wayland input mask strictly conforms to tray HUD bounds
         mask: Region {
-          item: topRightTrayHud
+          item: activeTrayInputEnvelope
+        }
+
+        Item {
+          id: activeTrayInputEnvelope
+          anchors.top: parent.top
+          anchors.right: parent.right
+          width: topRightTrayHud ? (topRightTrayHud.isExpanded ? topRightTrayHud.width : Math.max(topRightTrayHud.radius + 12, 28)) : 28
+          height: topRightTrayHud ? (topRightTrayHud.isExpanded ? topRightTrayHud.height : Math.max(topRightTrayHud.radius + 12, 28)) : 28
         }
 
         TopRightTrayHUD {
           id: topRightTrayHud
+          parentWindow: topRightTrayWindow
           anchors.top: parent.top
           anchors.right: parent.right
           radius: Config.screenCornersRadius

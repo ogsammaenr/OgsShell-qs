@@ -33,6 +33,8 @@
 │  - reservedSpacerWindow (Top exclusive tiling spacer)  │
 │  - backdropWindow (Fullscreen click-outside dismiss)   │
 │  - islandWindow (Fixed 540x360 stable Wayland surface) │
+│  - topRightTrayWindow (Fixed 420x80 stable Tray surface)│
+│  - TopRightTrayHUD (Mirrored Corner System Tray HUD)   │
 │  - bottomNotchWindow (Inverted Bottom Command Notch)   │
 │  - BottomCommandNotch (Mirrored G2 Bezier Shell Runner)│
 │  - DynamicIsland (Island vs Notch presentation modes)  │

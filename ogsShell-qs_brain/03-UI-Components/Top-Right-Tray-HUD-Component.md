@@ -6,45 +6,46 @@ tags:
   - ui/screen-corners
   - quickshell/qml
   - wayland/layershell
-created: 2026-09-10
-updated: 2026-09-10
 status: active
-related_notes:
-  - "[[Screen-Corners-Component]]"
-  - "[[Corner-Island-HUD-Component]]"
-  - "[[Shell-Root-PanelWindow]]"
-  - "[[Configuration-System-Spec]]"
-  - "[[Plan-Top-Right-Corner-System-Tray-HUD]]"
 ---
 
 # Top-Right Screen Corner System Tray HUD Component (`shell/components/corners/TopRightTrayHUD.qml`)
 
 > [!NOTE]
-> `TopRightTrayHUD.qml` embeds an interactive, expandable System Tray HUD into the top-right screen corner. It provides instant visibility into background daemon applications (Steam, Discord, Spotify, OBS, Telegram) with zero backend overhead.
+> `TopRightTrayHUD.qml`, sağ-üst ekran köşesinde konumlanan, `CornerIslandHUD.qml` (sol-üst mini bildirim HUD'ı) bileşeniyle tam simetrik (1:1 mirrored) Bézier kavis ve OLED Siyah kapsül geometrisine sahip, arka planda çalışan sistem tepsisi (System Tray / StatusNotifierItem) uygulamalarını gösteren ve yöneten interaktif arayüz bileşenidir.
 
 ---
 
-## 1. Overview & Architecture
+## 1. Mimari ve Bileşen Mimarisi
 
-* **Wayland Layer & Surface:** Hosted in a dedicated `topRightTrayWindow` (`PanelWindow`) on `WlrLayer.Overlay` / `WlrLayer.Top` with `exclusionMode: ExclusionMode.Ignore`.
-* **Precision Wayland Input Mask:** Uses a dynamic `Region` conforming strictly to `TopRightTrayHUD`'s visual footprint (24x24px when idle, or the exact capsule bounds when expanded). All other display areas remain 100% click-through for underlying tiling windows.
-* **Dual Morphing Geometry:**
-  - **IDLE State:** Inverted concave arc matching the 14px display corner cutout.
-  - **EXPANDED State:** Liquid-morphed OLED black vector pill (`#000000`) with top-left concave ear, bottom-left convex corner radius (`14px`), and bottom-right concave ear connecting to the display's right bezel.
-* **Native D-Bus Integration:** Directly connects to `Quickshell.Services.SystemTray` (`SystemTray.items`).
+* **Wayland Layer & Surface:** `topRightTrayWindow` (`PanelWindow`) üzerinde barındırılır. Wayland buffer yeniden tahsisi ve pencere boyutu değiştirme gecikmelerini (surface resizing jitter/lag) engellemek için **sabit 420x80px yüzey alanı** kullanılır.
+* **Hassas Wayland Giriş Maskesi (Zero-Click Blocking):** `mask: Region { item: activeTrayInputEnvelope }` yapısı sayesinde:
+  - **IDLE Modunda:** Yalnızca sağ-üst köşedeki 28x28px tetikleyici alan tıklanabilir; kalan tüm alanlar altındaki Hyprland pencerelerine %100 geçirgendir.
+  - **EXPANDED Modunda:** Açılan OLED kapsülünün tam sınırları tıklamaları yakalar; arka plandaki `backdropWindow` ise kapsül dışına tıklamalarda adayı zarifçe kapatır.
+* **1:1 Simetrik Vektör Geometrisi (`expandedShape`):**
+  - Sol-üst köşedeki `CornerIslandHUD.qml` ile tam ayna simetriği oluşturur.
+  - **Üst-Sol Kulak (Top-Left Ear):** Üst ekran çerçevesinden (`y=0`) sol dikey duvara pürüzsüz dışbükey Bézier geçişi (`PathCubic`, `earW: 16, earH: 16`).
+  - **Sol Dikey Duvar:** Dikey eksende `earH` noktasından `animHeight - br` noktasına düz hat.
+  - **Sol-Alt Yuvarlatılmış Köşe:** `br: 14` yarıçaplı saat yönünün tersine (`PathArc.Counterclockwise`) pürüzsüz çember kavisi.
+  - **Alt Yatay Duvar:** Kapsül alt taban çizgisi.
+  - **Sağ-Alt Kulak (Bottom-Right Ear):** Alt tabandan sağ ekran çerçevesine bağlanan dışbükey Bézier kulak (`PathCubic`, `rightEarW: 12, rightEarH: 12`).
+  - **Sağ Dikey Duvar:** Sağ ekran çerçevesi boyunca `(width, 0)` başlangıç noktasına dönüş.
+* **Native D-Bus Entegrasyonu:** `Quickshell.Services.SystemTray` singleton'ı (`SystemTray.items`) üzerinden `StatusNotifierItem` listesi reaktif olarak takip edilir (`values.length` ve `Repeater.count`).
+* **Akıllı İkon Çözümleme:** `Quickshell.iconPath()` ve `image://qspixmap/` destekli reaktif görselleyici; ikon bulunamadığında uygulama baş harfini taşıyan monogram badge yedeği.
 
 ---
 
-## 2. Interactions & Behavior
+## 2. Etkileşim ve Davranış Modeli
 
-* **Left Click on Icon:** Calls `item.activate()` to restore/bring the application window to focus.
-* **Right Click on Icon:** Calls `item.display()` / `item.secondaryActivate()` to open the native Linux D-Bus tray context menu (Quit, Settings, etc.).
-* **Middle Click on Icon:** Triggers secondary action (`item.secondaryActivate()`).
-* **Click Outside:** Fullscreen transparent `backdropWindow` dismisses and smoothly collapses the capsule back into the corner cutout.
+* **Köşe Tıklaması:** Sağ-üst köşeye tıklandığında kapsül 360ms `Easing.OutCubic` animasyonuyla genişler; içerikler `scale: 0.92 -> 1.0` ve opaklık geçişiyle belirir.
+* **Sol Tık (İkon):** `trayItem.activate()` çağrılarak uygulamanın penceresi öne getirilir.
+* **Sağ Tık (İkon):** `trayItem.display(parentWindow, x, y)` çağrılarak yerel D-Bus menüsü açılır (Desteklenmiyorsa `secondaryActivate()`).
+* **Orta Tık (İkon):** `trayItem.secondaryActivate()` tetiklenir.
+* **Dışarı Tıklama (Backdrop):** `backdropWindow` üzerinden kapsül pürüzsüzce köşe kavis boyutuna (`14px`) geri kapanır.
 
 ---
 
-## 3. Config Schema Properties (`config.json`)
+## 3. Konfigürasyon Parametreleri (`config.json`)
 
 ```json
 "corner_tray": {
@@ -57,10 +58,10 @@ related_notes:
 
 ---
 
-## 4. Related Links
+## 4. İlgili Yaşayan Dokümanlar
 
-* Screen Corners: `[[Screen-Corners-Component]]`
-* Corner Island HUD: `[[Corner-Island-HUD-Component]]`
-* Shell Root: `[[Shell-Root-PanelWindow]]`
-* Configuration Spec: `[[Configuration-System-Spec]]`
-* Implementation Plan: `[[Plan-Top-Right-Corner-System-Tray-HUD]]`
+* Ekran Köşeleri: `[[Screen-Corners-Component]]`
+* Sol-Üst Bildirim ve OSD HUD: `[[Corner-Island-HUD-Component]]`
+* Ana Kabuk Katmanı: `[[Shell-Root-PanelWindow]]`
+* Konfigürasyon Sistemi: `[[Configuration-System-Spec]]`
+* Sistem Mimarisi: `[[System-Architecture]]`
