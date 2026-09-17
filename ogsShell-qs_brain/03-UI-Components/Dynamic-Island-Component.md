@@ -10,8 +10,11 @@ tags:
   - hover-state
   - focus-mode
   - autohide
+  - capture/screenshot
+  - capture/recording
+  - capture/ocr
 created: 2026-08-09
-updated: 2026-08-16
+updated: 2026-09-16
 status: active
 related_notes:
   - "[[Apple-Dynamic-Island-HIG]]"
@@ -25,6 +28,9 @@ related_notes:
   - "[[Daemon-IPC-Client]]"
   - "[[Notification-Card-View]]"
   - "[[Notification-Deck-Background]]"
+  - "[[Capture-Service]]"
+  - "[[Snipping-Overlay-Component]]"
+  - "[[Audio-Feedback-Service]]"
 ---
 
 # Dynamic Island Core QML Component
@@ -48,6 +54,10 @@ graph TD
     ANY["IDLE / HOVER"] -->|triggerNotification() / notify-send| TRANSIENT["TRANSIENT State<br/>(340x56, Notification Toast)"]
     TRANSIENT -->|transientTimer.onTriggered| IDLE
     TRANSIENT -->|Click Body| IDLE
+
+    REC_IDLE["IDLE / HOVER + isRecording"] -->|Recording starts| REC_PILL["RECORDING State<br/>(210-260px, Live Recording Pill)"]
+    REC_PILL -->|Left Click or Stop Btn| TRANSIENT_REC["TRANSIENT (Recording Finished Card)"]
+    REC_PILL -->|screenshot_captured| TRANSIENT_SS["TRANSIENT (Screenshot Thumbnail Card)"]
 ```
 
 ---
@@ -94,6 +104,54 @@ graph TD
 
 ---
 
+## 3.5. Ekran Yakalama, OCR & Kayıt Entegrasyonu (Capture Integration)
+
+> [!TIP]
+> Bu özellikler `[[Capture-Service]]` Go backend servisinden `[[Daemon-IPC-Client]]` üzerinden gelen olaylara tepki olarak çalışır. `[[Snipping-Overlay-Component]]` ile alan seçimi yapıldıktan sonra bu bildirim kartları otomatik tetiklenir.
+
+### Ekran Görüntüsü Bildirimi (`screenshot_captured` → TRANSIENT 5 Saniye)
+
+1. `onScreenshotCaptured` sinyali alındığında `[[Audio-Feedback-Service]]` üzerinden kamera deklanşör sesi (`camera-shutter.oga`) çalar.
+2. Ada TRANSIENT moduna geçerek zengin bir önizleme kartı gösterir:
+   - **Sol:** Çekilen görüntünün yuvarlak köşeli `Image` küçük resmi (thumbnail). Kaynak: `file://<screenshot_path>`.
+   - **Orta:** "📸 Ekran Görüntüsü Alındı" başlığı + dosya adı alt metni.
+   - **Sağ:** ✏️ düzenleme kalemi ikonu (`editButton`).
+3. **Tıklama Aksiyonu:** Bildirime veya kalem ikonuna tıklandığında `DaemonIPC.openAnnotator(filePath)` çağrılarak görsel **Gradia** editörüne açılır.
+4. 5 saniye sonra otomatik kapanır.
+
+### OCR Metin Bildirimi (`ocr_completed` → TRANSIENT 5 Saniye)
+
+1. `onOcrCompleted` sinyali alındığında:
+   - **Sol:** 🔍 büyüteç ikonu.
+   - **Başlık:** "🔍 OCR Metin Tanıma".
+   - **Gövde:** Tanınan metnin ilk 60 karakteri italik alıntı olarak gösterilir.
+2. Metin panoya otomatik kopyalanmış durumdadır (backend `wl-copy` aracılığıyla).
+
+### Canlı Ekran Kaydı Hapı (`recording_state_update` → Layer 1.5)
+
+1. `ipc.isRecording === true` olduğunda `mainBarLayer` gizlenir ve `recordingLayer` görünür:
+   - 🔴 Kırmızı nabız atan nokta (`SequentialAnimation`, 600ms `InOutSine`).
+   - Canlı `mm:ss` sayaç (`ipc.recordingDuration` reaktif bağlama).
+   - 🎙 mikrofon ikonu.
+   - Hover'da `[⏹ Kaydı Bitir]` butonu belirir → `ipc.stopRecording()`.
+2. Ada genişliği: `210px` (idle), `260px` (hover).
+3. Sol tıkla da `ipc.stopRecording()` çağrılır.
+4. Kayıt bittiğinde `onRecordingFinished` sinyali ile "🎥 Ekran Kaydı Tamamlandı" TRANSIENT bildirimi 5 saniye gösterilir.
+
+### SpringAnimation Fiziği
+
+Tüm ada genişlik/yükseklik geçişlerinde:
+```qml
+Behavior on width {
+  SpringAnimation { spring: 28.0; damping: 0.78; epsilon: 0.01 }
+}
+Behavior on height {
+  SpringAnimation { spring: 28.0; damping: 0.78; epsilon: 0.01 }
+}
+```
+
+---
+
 ## 4. Related Links
 
 * Shell Root: `[[Shell-Root-PanelWindow]]`
@@ -105,4 +163,7 @@ graph TD
 * Control Center: `[[Control-Center-Widget]]`
 * Design Tokens: `[[Style-Design-Tokens]]`
 * State Machine & Physics: `[[Dynamic-Island-Physics-State-Machine]]`
-
+* Capture Service (Go Backend): `[[Capture-Service]]`
+* Snipping Overlay: `[[Snipping-Overlay-Component]]`
+* Audio Feedback: `[[Audio-Feedback-Service]]`
+* IPC Client: `[[Daemon-IPC-Client]]`

@@ -38,7 +38,7 @@ related_notes:
    - Quickshell `FloatingWindow` (Wayland XDG Toplevel) mimarisiyle `880px × 580px` boyutunda çalışan bağımsız bir masaüstü uygulamasıdır (`app-id: ogs-settings`).
    - `Alt+Tab` ile pencereler arasında geçilebilir, başlıktan tutularak taşınabilir ve kenarlarından yeniden boyutlandırılabilir.
    - Sol üstte minimal pencere kapatma butonu barındırır.
-2. **Tekil Odaklama Koruması (`scripts/open_settings_app.sh`):**
+2. **Tekil Odaklama Koruması (`~/.config/ogsShell/ogsshell.sh open_settings`):**
    - Uygulama zaten açıksa `hyprctl dispatch focuswindow class:^ogs-settings$` komutuyla mevcut pencereye odaklanır, klon pencere açmaz.
 3. **Masaüstü Entegrasyonu (`ogs-settings.desktop`):**
    - `~/.local/share/applications/ogs-settings.desktop` aracılığıyla sistem uygulama menüsünde (Spotlight, Rofi vb.) "Ayarlar" olarak listelenir.

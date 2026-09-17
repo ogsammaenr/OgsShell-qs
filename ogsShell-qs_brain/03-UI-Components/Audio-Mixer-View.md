@@ -28,7 +28,7 @@ related_notes:
 ## 1. Tetikleme Yöntemleri (Trigger Methods)
 
 1. **Ses Barına Sağ Tık:** `ControlCenterMain.qml` ana görünümündeki `soundCapsule` ses kaydırıcısına sağ tıklandığında (`mouse.button === Qt.RightButton`) doğrudan `AudioMixerView` alt görünümü açılır.
-2. **Kısayol Scripti:** `scripts/toggle_audio_mixer.sh` çalıştırıldığında (veya Hyprland kısayoluna bağlandığında) Dynamic Island açılarak Ses Karıştırıcısına odaklanır.
+2. **Kısayol Scripti:** `~/.config/ogsShell/ogsshell.sh toggle_audio_mixer` (veya `ogsshell.sh mixer`) çalıştırıldığında (veya Hyprland kısayoluna bağlandığında) Dynamic Island açılarak Ses Karıştırıcısına odaklanır.
 
 ---
 

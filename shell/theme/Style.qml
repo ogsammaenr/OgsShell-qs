@@ -165,6 +165,7 @@ QtObject {
   property color surfaceHover: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.16)
   property color surfaceActive: Qt.rgba(accent.r, accent.g, accent.b, 0.24)
   property color border: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.12)
+  property color borderSubtle: Qt.rgba(textPrimary.r, textPrimary.g, textPrimary.b, 0.08)
   property color borderHover: Qt.rgba(accent.r, accent.g, accent.b, 0.40)
 
   // =========================================================================

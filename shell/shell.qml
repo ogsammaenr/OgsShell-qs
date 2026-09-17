@@ -7,6 +7,8 @@ import "components/island"
 import "components/widgets"
 import "components/widgets/controlcenter"
 import "components/corners"
+import "components/bottomnotch"
+import "components/capture"
 
 Scope {
   id: rootScope
@@ -27,6 +29,39 @@ Scope {
   // IPC Service instance
   DaemonIPC {
     id: ipcService
+  }
+
+  // Bottom Notch, Snipping & App IPC Signals Listener
+  Connections {
+    target: ipcService
+    function onAppToggleRequested(payload) {
+      if (payload && (payload.app === "bottom_notch" || payload.app === "command_runner" || payload.app === "runner")) {
+        BottomNotchService.toggle(payload.subview || "");
+      } else if (payload && (payload.app === "snipping" || payload.app === "snip" || payload.app === "capture")) {
+        if (SnippingService.isOpen) {
+          SnippingService.close();
+        } else {
+          ipcService.freezeScreen(payload.subview || "SS");
+        }
+      }
+    }
+    function onAppOpenRequested(payload) {
+      if (payload && (payload.app === "bottom_notch" || payload.app === "command_runner" || payload.app === "runner")) {
+        BottomNotchService.open(payload.subview || "");
+      } else if (payload && (payload.app === "snipping" || payload.app === "snip" || payload.app === "capture")) {
+        ipcService.freezeScreen(payload.subview || "SS");
+      }
+    }
+    function onAppCloseRequested(payload) {
+      if (payload && (payload.app === "bottom_notch" || payload.app === "command_runner" || payload.app === "runner")) {
+        BottomNotchService.close();
+      } else if (payload && (payload.app === "snipping" || payload.app === "snip" || payload.app === "capture")) {
+        SnippingService.close();
+      }
+    }
+    function onScreenFrozen(payload) {
+      SnippingService.openWithPayload(payload);
+    }
   }
 
   // Global Audio Feedback Service (Volume Change Sound Pop)
@@ -200,7 +235,7 @@ Scope {
       PanelWindow {
         id: backdropWindow
         screen: screenScope.modelData
-        visible: (island.stateMode === "EXPANDED") || (topRightTrayHud && topRightTrayHud.isExpanded)
+        visible: (island.stateMode === "EXPANDED") || (topRightTrayHud && topRightTrayHud.isExpanded) || (BottomNotchService.isOpen && screenScope.isFocusedMonitor)
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Top
 
@@ -219,6 +254,9 @@ Scope {
             island.collapse()
             if (topRightTrayHud && topRightTrayHud.isExpanded) {
               topRightTrayHud.collapse()
+            }
+            if (BottomNotchService.isOpen) {
+              BottomNotchService.close()
             }
           }
         }
@@ -264,13 +302,13 @@ Scope {
           anchors.top: parent.top
           anchors.horizontalCenter: parent.horizontalCenter
           width: {
-            if (!screenScope.isRevealed) {
+            if (SnippingService.isOpen || !screenScope.isRevealed) {
               return topHotspot.width
             }
             return island.width + (Config.isNotch ? 10 : 0)
           }
           height: {
-            if (!screenScope.isRevealed) {
+            if (SnippingService.isOpen || !screenScope.isRevealed) {
               return screenScope.shouldAutoHide ? 12 : 0
             }
             return Math.max(screenScope.shouldAutoHide ? 12 : 0, Math.round(island.y + island.height + (island.extraStackHeight || 0)))
@@ -286,7 +324,7 @@ Scope {
           width: Math.max(island.width + 40, 320)
           height: screenScope.shouldAutoHide ? 12 : 0
           color: "transparent"
-          visible: screenScope.shouldAutoHide
+          visible: screenScope.shouldAutoHide && !SnippingService.isOpen
 
           MouseArea {
             id: topHotspotMouseArea
@@ -298,29 +336,30 @@ Scope {
         DynamicIsland {
           id: island
           ipc: ipcService
+          audioFeedback: audioFeedbackService
           isScreenFocused: screenScope.isFocusedMonitor
           anchors.horizontalCenter: parent.horizontalCenter
-          y: screenScope.isRevealed ? (Config.isNotch ? 0 : Config.islandTopMargin) : (-island.implicitHeight - 12)
-          opacity: screenScope.isRevealed ? 1.0 : 0.0
+          y: SnippingService.isOpen ? (-island.implicitHeight - 24) : (screenScope.isRevealed ? (Config.isNotch ? 0 : Config.islandTopMargin) : (-island.implicitHeight - 12))
+          opacity: SnippingService.isOpen ? 0.0 : (screenScope.isRevealed ? 1.0 : 0.0)
           scale: screenScope.isRevealed ? 1.0 : 0.92
 
           Behavior on y {
             NumberAnimation {
-              duration: screenScope.isRevealed ? 190 : 150
+              duration: screenScope.isRevealed ? 240 : 180
               easing.type: screenScope.isRevealed ? Easing.OutCubic : Easing.InCubic
             }
           }
 
           Behavior on opacity {
             NumberAnimation {
-              duration: screenScope.isRevealed ? 170 : 130
+              duration: screenScope.isRevealed ? 220 : 160
               easing.type: Easing.OutQuad
             }
           }
 
           Behavior on scale {
             NumberAnimation {
-              duration: screenScope.isRevealed ? 190 : 150
+              duration: screenScope.isRevealed ? 240 : 180
               easing.type: Easing.OutCubic
             }
           }
@@ -343,7 +382,7 @@ Scope {
           islandStateMode: island.stateMode
           anchors.left: island.right
           anchors.leftMargin: 12
-          visible: opacity > 0.0 && screenScope.isRevealed
+          visible: opacity > 0.0 && screenScope.isRevealed && !SnippingService.isOpen
           y: island.y + (Config.isNotch ? Math.round((Config.notchIdleHeight - height) / 2) : Math.round((Config.islandTopMargin + (Config.islandIdleHeight - height) / 2)))
         }
 
@@ -468,6 +507,61 @@ Scope {
         PowerOverlay {
           anchors.fill: parent
         }
+      }
+
+      // =========================================================================
+      // Bottom Command Notch Window: Inverted Notch & Shell Command Runner
+      // =========================================================================
+      PanelWindow {
+        id: bottomNotchWindow
+        screen: screenScope.modelData
+        visible: BottomNotchService.isOpen && screenScope.isFocusedMonitor
+        color: "transparent"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: (BottomNotchService.isOpen && screenScope.isFocusedMonitor) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        anchors {
+          bottom: true
+          left: true
+          right: true
+        }
+
+        exclusionMode: ExclusionMode.Ignore
+
+        implicitHeight: 480
+
+        // Zero click-blocking: Precision Wayland input mask conforms strictly to bottom notch bounds
+        mask: Region {
+          item: activeBottomInputEnvelope
+        }
+
+        Rectangle {
+          id: activeBottomInputEnvelope
+          anchors.bottom: parent.bottom
+          anchors.horizontalCenter: parent.horizontalCenter
+          width: bottomNotch.width + 16
+          height: bottomNotch.height + 10
+          color: "transparent"
+        }
+
+        BottomCommandNotch {
+          id: bottomNotch
+          ipc: ipcService
+          anchors.bottom: parent.bottom
+          anchors.horizontalCenter: parent.horizontalCenter
+        }
+      }
+
+      // =========================================================================
+      // Snipping & Freeze Overlay Window: Fullscreen Capture & Snapping Canvas
+      // =========================================================================
+      SnippingOverlay {
+        id: snippingOverlayWindow
+        screen: screenScope.modelData
+        monitorName: screenScope.modelData.name
+        hyprMonitor: screenScope.hyprMonitor
+        ipc: ipcService
+        isFocusedScreen: screenScope.isFocusedMonitor
       }
     }
   }

@@ -33,6 +33,8 @@
 │  - reservedSpacerWindow (Top exclusive tiling spacer)  │
 │  - backdropWindow (Fullscreen click-outside dismiss)   │
 │  - islandWindow (Fixed 540x360 stable Wayland surface) │
+│  - bottomNotchWindow (Inverted Bottom Command Notch)   │
+│  - BottomCommandNotch (Mirrored G2 Bezier Shell Runner)│
 │  - DynamicIsland (Island vs Notch presentation modes)  │
 │  - DaemonIPC (Socket & SplitParser JSON receiver)      │
 │  - Style.qml (Catppuccin & Pure OLED Black tokens)     │
@@ -114,7 +116,7 @@
   - **Kitty:** `current-theme.conf` sync, live Unix socket color reload (`kitten @ set-colors`) to preserve dynamic runtime font scales (`Ctrl+Shift++/-`), and fallback to `SIGUSR1`.
   - **Zed Editor:** In-place inode-preserving JSON patching of `"theme"` in `~/.config/zed/settings.json` and `themes/ogsshell.json`.
   - **Vesktop (Discord/Vencord):** Dual sync of `themes/ogsshell.theme.css` and `settings/quickCss.css` for instant hot-reloading.
-  - **Neovim (LazyVim):** Updating `colorscheme` hook in `~/.config/nvim/lua/plugins/theme.lua` and live socket reload.
+  - **GTK 3 & GTK 4 / Libadwaita & XWayland:** Pre-deploys 7 named themes into `~/.local/share/themes/ogsShell-<id>/` (`gtk-3.0`, `gtk-4.0`, `index.theme`), neutralizes `~/.config/gtk-3.0/gtk.css` to prevent Priority 800 locks, dispatches dynamic `gtk-theme` across `gsettings` and `xfconf-query` (Thunar/XFCE) for 0ms live hot-reloading in running GTK3/GTK4 apps without restart, and generates `~/.config/xsettingsd/xsettingsd.conf` with `SIGHUP` reload / background daemon spawning for XWayland/X11 apps.
   - **Dolphin / Qt:** Dispatching `plasma-apply-colorscheme` or `kdeglobals`.
   - **IntelliJ IDEA / JetBrains:** `colors/<SchemeName>.icls` deployment and `options/colors.scheme.xml` dynamic patch.
   - **Android Studio:** `~/.config/Google/AndroidStudio*`, Flatpak, and Snap config auto-discovery with `colors/<SchemeName>.icls` deployment and atomic `options/colors.scheme.xml` update.
@@ -131,14 +133,54 @@
 * **Intelligent Typo-Tolerance & Acronyms:** Zero-heap-allocation Damerau-Levenshtein fuzzy matching, acronym resolution (`gimp` -> `GNU Image Manipulation Program`), and category matching.
 * **Real-Time Directory Watcher:** Debounced (150ms) `fsnotify` monitor watching `/usr/share/applications`, `~/.local/share/applications`, and Flatpak export paths.
 * **Detached Process Execution:** Spawns applications via `systemd-run --user --scope` with fallback to `syscall.SysProcAttr{Setsid: true}`.
+* **Instant Math & Currency Engine (Frontend):** Embedded zero-`eval()` math engine (`MathEvaluator.js`) and offline-first currency engine (`CurrencyEngine.qml`) caching to `$XDG_CONFIG_HOME/ogsShell/currency_rates.json` (>12h background Frankfurter + Binance sync), rendering high-contrast `HeroResultCard` with instant clipboard copy (`DaemonIPC.copyClipboardItem` + `wl-copy`).
 * **IPC Endpoints:** `search_apps`, `list_apps`, `launch_app`, `reindex_apps`, `toggle_launcher`, `open_launcher`, `close_launcher`.
 
 ---
 
-## 11. Obsidian Brain Vault Reference Map
+## 11. Currency Exchange Service (`core/services/currency/`)
+
+* **Low-Footprint Native Daemon Subsystem:** Fully native Go HTTP background synchronization engine completely free of external scripting or Python runtimes.
+* **Dual Telemetry & Cryptocurrencies:** Polls Frankfurter API for global fiat pairs (TRY, EUR, USD, GBP, CHF, JPY, CAD, AUD, etc.) and Binance Public Ticker for crypto (BTC, ETH, SOL).
+* **Atomic Inode-Preserving Caching:** Commits exchange rates atomically to `$XDG_CONFIG_HOME/ogsShell/currency_rates.json`.
+* **Dynamic Configuration Sync:** Configurable via `shell/config.json` (`currency.sync_interval_min`, default: 30m; `currency.default_target`, default: `"TRY"`).
+* **IPC Endpoints:** `get_currency_rates`, `sync_currency_rates`, `reload_currency_config`.
+
+---
+
+## 12. Screen Capture, OCR & Recording Engine (`core/services/capture/`)
+
+* **Instant Screen Freeze:** Captures an instant full-screen still to `/tmp/ogs_freeze.png` via `grim` upon snipping activation.
+* **Cropped & Fullscreen Screenshot:** Executes `grim -g "<geom>"` (or fullscreen), persists timestamped PNG to `$HOME/Pictures/Screenshots/screenshot_YYYY-MM-DD_HH-mm-ss.png`, and copies directly to Wayland clipboard (`wl-copy --type image/png`).
+* **Optical Character Recognition (OCR):** Cuts target geometry to `/tmp/ogs_ocr.png`, runs `tesseract /tmp/ogs_ocr.png stdout -l tur+eng`, copies recognized text to system clipboard, and dispatches `ocr_completed` event with HUD summary preview.
+* **Low-Overhead Screen Recording:** Spawns `wf-recorder -g "<geom>" -f $HOME/Videos/Recordings/recording_YYYY-MM-DD_HH-mm-ss.mp4` in a dedicated process group, emits 1-second duration ticks (`recording_state_update`), and cleanly terminates via `syscall.SIGINT` to ensure atomic MP4 moov atom header finalization.
+* **External Annotator Integration:** Launches `gradia <file_path>` detached via `systemd-run --user --scope` with `Setsid` fallback.
+* **IPC Endpoints:** `freeze_screen`, `capture_screenshot`, `capture_ocr`, `start_recording`, `stop_recording`, `open_annotator`.
+
+### 12.1. Dynamic Island Capture Integration (`shell/components/island/`)
+
+* **Screenshot Thumbnail Notification (TRANSIENT 5s):** Upon `screenshot_captured` event, `DynamicIsland.qml` plays a camera shutter sound via `AudioFeedbackService.playShutterSound()`, then enqueues a rich notification with a rounded `Image` thumbnail preview of the screenshot, "Ekran Görüntüsü Alındı" summary, filename body text, and a trailing ✏️ edit pencil icon button.
+* **OCR Text Card (TRANSIENT 5s):** Upon `ocr_completed` event, enqueues a notification with 🔍 magnifier icon, "OCR Metin Tanıma" summary, and an italic snippet of the recognized text in the body.
+* **Live Recording Pill:** When `ipc.isRecording` is `true`, the island's `mainBarLayer` hides and a `recordingLayer` appears with a pulsing red dot (🔴 `SequentialAnimation`), live `mm:ss` timer counter bound to `ipc.recordingDuration`, 🎙 mic icon, and a hover-revealed `[⏹ Kaydı Bitir]` stop button.
+* **Gradia Launch Action:** Left-clicking on a screenshot notification triggers `ipc.openAnnotator(filePath)` via the notification's action callback, opening the image in Gradia for annotation. Left-clicking the island during recording calls `ipc.stopRecording()`.
+* **SpringAnimation Physics:** All island width/height transitions use `SpringAnimation { spring: 28.0; damping: 0.78; epsilon: 0.01 }` per `.agents/AGENTS.md` directive.
+* **State Priority:** `EXPANDED_APP > RECORDING / TRANSIENT > HOVER > IDLE`. Recording layer only displays in non-EXPANDED, non-TRANSIENT modes.
+
+---
+
+## 13. Unified CLI Management Architecture (`ogsshell.sh`)
+
+* **Single Consolidated Entrypoint:** All lifecycle management (`run`, `run_backend`, `run_frontend`, `reload`, `stop`, `status`), IPC triggers (`launcher`, `settings`, `bottom_notch`, `cc`, `wifi`, `bluetooth`, `mixer`, `calendar`, `clock`, `media`, `notif`, `power`, `themes`, `dnd`, `switch_layout`, `next_wallpaper`), and developer utilities (`preview_starship`) are consolidated into a single executable script (`scripts/ogsshell.sh`).
+* **Canonical Installation Location:** Deployed to `$XDG_CONFIG_HOME/ogsShell/ogsshell.sh` (`~/.config/ogsShell/ogsshell.sh`) with `ogs.sh` symlink and exposed system-wide via `~/.local/bin/ogsshell`.
+* **Dynamic Workspace Resolution:** Auto-resolves project root across custom `$OGSSHELL_REPO_ROOT`, local repo checkouts, and canonical home directories without hardcoded path dependencies.
+* **Shell Auto-Completion Support:** Native context-aware Tab completion for both Zsh (`~/.config/zsh/custom/ogsshell.zsh`) and Bash (`~/.local/share/bash-completion/completions/ogsshell`), providing command and multi-argument subview completions for `ogsshell`, `ogsshell.sh`, `ogs`, and `ogs.sh`.
+
+---
+
+## 14. Obsidian Brain Vault Reference Map
 
 * **`01-Architecture/`**: `[[System-Architecture]]`, `[[Project-Structure]]`, `[[Backend-Endpoints-Reference]]`, `[[IPC-Socket-Schema]]`, `[[Apple-Dynamic-Island-HIG]]`, `[[Apple-HIG-Minimal-Design-System]]`, `[[Dynamic-Notch-Design-Specification]]`, `[[Dynamic-Island-Physics-State-Machine]]`, `[[Configuration-System-Spec]]`, `[[Configuration-Themes-Spec]]`
-* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
-* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
+* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[Capture-Service]]`, `[[Currency-Service]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
+* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Bottom-Command-Notch]]`, `[[Snipping-Overlay-Component]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
 * **`04-Agent-Rules/`**: `[[Go-Coding-Style]]`, `[[QML-Best-Practices]]`, `[[Agent-Workflow-Directives]]`
 

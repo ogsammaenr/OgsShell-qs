@@ -76,10 +76,10 @@ Item {
   })
 
   property var animation: ({
-    "duration_compact": 250,
-    "duration_transient": 280,
-    "duration_expanded": 320,
-    "overshoot_factor": 1.12
+    "duration_compact": 280,
+    "duration_transient": 320,
+    "duration_expanded": 360,
+    "overshoot_factor": 1.08
   })
 
   property var screenCorners: ({
@@ -131,6 +131,12 @@ Item {
     "expanded_blur_radius": 36,
     "expanded_opacity": 0.65,
     "expanded_vertical_offset": 10
+  })
+
+  property var currency: ({
+    "enabled": true,
+    "sync_interval_min": 30,
+    "default_target": "TRY"
   })
 
   // =========================================================================
@@ -281,6 +287,13 @@ Item {
   readonly property real shadowExpandedOpacity: (shadows && shadows.expanded_opacity !== undefined) ? shadows.expanded_opacity : 0.65
   readonly property int shadowExpandedVerticalOffset: (shadows && shadows.expanded_vertical_offset !== undefined) ? shadows.expanded_vertical_offset : 10
 
+  // =========================================================================
+  // First-Class Typed Reactive Currency Accessors
+  // =========================================================================
+  readonly property bool currencyEnabled: (currency && currency.enabled !== undefined) ? currency.enabled : true
+  readonly property int currencySyncIntervalMin: (currency && currency.sync_interval_min !== undefined) ? currency.sync_interval_min : 30
+  readonly property string currencyDefaultTarget: (currency && currency.default_target) ? currency.default_target : "TRY"
+
   // Computed active geometry (reactive to formFactor and configRevision)
   readonly property var activeGeometry: {
     let _rev = configRevision
@@ -393,6 +406,7 @@ Item {
     if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
     if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
     if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
+    if (cfg.currency) root.currency = Object.assign({}, root.currency, cfg.currency)
 
     let full = {
       "form_factor": root.formFactor,
@@ -407,7 +421,8 @@ Item {
       "screen_corners": root.screenCorners,
       "audio_feedback": root.audioFeedback,
       "corner_hud": root.cornerHud,
-      "shadows": root.shadows
+      "shadows": root.shadows,
+      "currency": root.currency
     }
 
     let jsonStr = JSON.stringify(full, null, 2)
@@ -562,6 +577,7 @@ Item {
       if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
       if (cfg.corner_tray) root.cornerTray = Object.assign({}, root.cornerTray, cfg.corner_tray)
       if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
+      if (cfg.currency) root.currency = Object.assign({}, root.currency, cfg.currency)
 
       root.configRevision++
       root.configUpdated(cfg)

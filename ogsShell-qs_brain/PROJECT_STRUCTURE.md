@@ -648,11 +648,10 @@ graph LR
 
     %% Scripts Subtree
     subgraph Tree_Scripts ["📁 scripts/ Subtree"]
-        SC_RUN["📄 run_backend.sh, run_frontend.sh, run_shell.sh"]
-        SC_TOGGLE["📄 toggle_*.sh (wifi, bluetooth, calendar, clock, clipboard, launcher, mixer, ...)"]
-        SC_OPEN["📄 open_launcher.sh, open_settings_app.sh, open_shell_app.sh"]
+        SC_UNIFIED["📄 ogsshell.sh (Unified CLI Manager: run, backend, frontend, reload, status, toggle_*, completion)"]
+        SC_SYM["📄 ogs.sh -> ogsshell.sh"]
     end
-    D_SCRIPTS --> SC_RUN & SC_TOGGLE & SC_OPEN
+    D_SCRIPTS --> SC_UNIFIED & SC_SYM
 
     %% Agents & Brain Subtree
     subgraph Tree_Docs ["📁 .agents/ & ogsShell-qs_brain/"]

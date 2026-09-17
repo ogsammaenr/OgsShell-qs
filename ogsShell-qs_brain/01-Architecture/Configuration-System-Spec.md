@@ -123,10 +123,10 @@ The configuration system continuously watches both locations using a real-time e
     "animation": {
       "type": "object",
       "properties": {
-        "duration_compact": { "type": "integer", "default": 250 },
-        "duration_transient": { "type": "integer", "default": 280 },
-        "duration_expanded": { "type": "integer", "default": 320 },
-        "overshoot_factor": { "type": "number", "default": 1.12 }
+        "duration_compact": { "type": "integer", "default": 280 },
+        "duration_transient": { "type": "integer", "default": 320 },
+        "duration_expanded": { "type": "integer", "default": 360 },
+        "overshoot_factor": { "type": "number", "default": 1.08 }
       }
     },
     "screen_corners": {
@@ -180,6 +180,14 @@ The configuration system continuously watches both locations using a real-time e
         "expanded_opacity": { "type": "number", "default": 0.65 },
         "expanded_vertical_offset": { "type": "integer", "default": 10 }
       }
+    },
+    "currency": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "bool", "default": true, "description": "Global toggle for currency conversion engine" },
+        "sync_interval_min": { "type": "integer", "default": 30, "description": "Background exchange rates refresh interval in minutes" },
+        "default_target": { "type": "string", "default": "TRY", "description": "Default target currency when not explicitly specified (e.g. 10 usd -> TRY)" }
+      }
     }
   }
 }
@@ -210,6 +218,7 @@ graph LR
 ## 4. Related Links
 
 * Corner Island HUD: `[[Corner-Island-HUD-Component]]`
+* Currency Service: `[[Currency-Service]]`
 * Plan Corner Island HUD: `[[Plan-Corner-Island-HUD]]`
 * Audio Feedback Service: `[[Audio-Feedback-Service]]`
 * Plan Audio Feedback: `[[Plan-Audio-Volume-Feedback-Sound]]`

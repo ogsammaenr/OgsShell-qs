@@ -83,39 +83,44 @@ implicitHeight: {
 
 ---
 
-## 3. Spring Animation & Motion Physics
+## 3. Motion Physics & Easing Curves
 
-Following `[[Apple-Dynamic-Island-HIG]]`, the island utilizes physics-based interpolation to maintain continuous motion velocity during rapid state transitions.
+Following `[[Apple-Dynamic-Island-HIG]]`, the island utilizes GPU-accelerated interpolation with calibrated easing curves and subtle elastic overshoot to provide a smooth, natural, and fluid tactile feel during all state transitions:
 
 ```mermaid
 graph LR
     A[State Change Triggered] --> B[Calculate Target implicitWidth / implicitHeight]
-    B --> C[Spring Dynamics Engine]
-    C --> D[Evaluate Mass, Spring k: 28.0, Damping: 0.78]
-    D --> E[Smooth Step Interpolation]
-    E --> F[Settle at Target with Epsilon < 0.01]
+    B --> C[Configuration Engine]
+    C --> D[Evaluate State Mode: EXPANDED vs TRANSIENT vs COMPACT]
+    D --> E[Apply Easing: OutBack for Expanded, OutCubic for Compact/Transient]
+    E --> F[Interpolate with Calibrated Durations: 360ms / 320ms / 280ms]
 ```
 
-### Recommended Quickshell Transition Config
-For full Apple-grade spring physics in QML:
+### Quickshell Transition Configuration
+Synchronized with `[[Configuration-System-Spec]]` (`Config.animation`):
 
 ```qml
-Behavior on implicitWidth {
-    SpringAnimation {
-        spring: 28.0
-        damping: Style.springDamping // 0.78
-        epsilon: Style.springEpsilon // 0.01
-    }
+Behavior on width {
+  NumberAnimation {
+    duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : (root.stateMode === "TRANSIENT" ? Config.animation.duration_transient : Config.animation.duration_compact)
+    easing.type: root.stateMode === "EXPANDED" ? Easing.OutBack : Easing.OutCubic
+    easing.overshoot: Config.animation.overshoot_factor
+  }
 }
 
-Behavior on implicitHeight {
-    SpringAnimation {
-        spring: 28.0
-        damping: Style.springDamping // 0.78
-        epsilon: Style.springEpsilon // 0.01
-    }
+Behavior on height {
+  NumberAnimation {
+    duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : (root.stateMode === "TRANSIENT" ? Config.animation.duration_transient : Config.animation.duration_compact)
+    easing.type: root.stateMode === "EXPANDED" ? Easing.OutBack : Easing.OutCubic
+    easing.overshoot: Config.animation.overshoot_factor
+  }
 }
 ```
+
+* **EXPANDED (`360ms`):** Utilizes `Easing.OutBack` with subtle overshoot (`1.08`) for a gentle, luxurious expansion modal pop.
+* **TRANSIENT (`320ms`):** Utilizes `Easing.OutCubic` for a smooth, non-intrusive notification glide.
+* **COMPACT / HOVER / IDLE (`280ms`):** Utilizes `Easing.OutCubic` for responsive, buttery-smooth cursor hover expansion and collapse.
+* **Synchronized Elements:** Corner radius (`activeRadius`), elevation shadows (`glowRadius`), and child layer crossfades (`opacity`) animate in exact lockstep to prevent shape deformation.
 
 ---
 

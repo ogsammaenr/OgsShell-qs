@@ -16,6 +16,7 @@ Item {
 
   // IPC Service Reference
   required property var ipc
+  property var audioFeedback: null
 
   // State Machine: "IDLE" | "HOVER" | "EXPANDED" | "TRANSIENT"
   property string stateMode: "IDLE"
@@ -44,6 +45,10 @@ Item {
   property string transientUrgency: activeNotification ? (activeNotification.urgency || "normal") : "normal"
   property string transientIcon: activeNotification ? (activeNotification.icon || "") : ""
   property int transientTimeout: activeNotification ? (activeNotification.timeoutMs || 3500) : 3500
+  property string transientType: activeNotification ? (activeNotification.type || "normal") : "normal"
+  property string transientThumbnail: activeNotification ? (activeNotification.thumbnail || "") : ""
+  property string transientFilePath: activeNotification ? (activeNotification.filePath || "") : ""
+  property var transientAction: activeNotification ? (activeNotification.action || null) : null
 
   // Dismiss & Slide Transition States
   property bool isDismissing: false
@@ -140,6 +145,70 @@ Item {
 
     function onAppCloseRequested(payload) {
       root.collapse();
+    }
+
+    function onScreenshotCaptured(payload) {
+      // Play camera shutter sound
+      if (root.audioFeedback && root.audioFeedback.playShutterSound) {
+        root.audioFeedback.playShutterSound();
+      }
+      let path = (payload && payload.file_path) ? payload.file_path : "";
+      let thumbSrc = path.length > 0 ? ("file://" + path) : "";
+      root.enqueueNotification({
+        id: "screenshot_" + Date.now(),
+        summary: "📸 Ekran Görüntüsü Alındı",
+        body: path.length > 0 ? path.split("/").pop() : "Panoya kopyalandı",
+        appName: "ogsShell Capture",
+        urgency: "normal",
+        icon: "",
+        timeoutMs: 5000,
+        desktopEntry: "",
+        type: "screenshot",
+        thumbnail: thumbSrc,
+        filePath: path,
+        action: function() {
+          if (root.ipc && root.ipc.openAnnotator && path.length > 0) {
+            root.ipc.openAnnotator(path);
+          }
+        }
+      });
+    }
+
+    function onOcrCompleted(payload) {
+      let text = (payload && payload.text) ? payload.text : "";
+      let snippet = text.length > 60 ? text.substring(0, 60) + "…" : text;
+      root.enqueueNotification({
+        id: "ocr_" + Date.now(),
+        summary: "🔍 OCR Metin Tanıma",
+        body: snippet.length > 0 ? ("\"" + snippet + "\"") : "Metin bulunamadı",
+        appName: "ogsShell Capture",
+        urgency: "normal",
+        icon: "",
+        timeoutMs: 5000,
+        desktopEntry: "",
+        type: "ocr",
+        thumbnail: "",
+        filePath: "",
+        action: null
+      });
+    }
+
+    function onRecordingFinished(payload) {
+      let path = (payload && payload.file_path) ? payload.file_path : "";
+      root.enqueueNotification({
+        id: "recording_" + Date.now(),
+        summary: "🎥 Ekran Kaydı Tamamlandı",
+        body: path.length > 0 ? path.split("/").pop() : "Kayıt tamamlandı",
+        appName: "ogsShell Capture",
+        urgency: "normal",
+        icon: "",
+        timeoutMs: 5000,
+        desktopEntry: "",
+        type: "recording",
+        thumbnail: "",
+        filePath: path,
+        action: null
+      });
     }
   }
 
@@ -346,21 +415,21 @@ Item {
       target: root
       property: "currentCardOffsetY"
       to: -36
-      duration: 260
+      duration: 300
       easing.type: Easing.OutCubic
     }
     NumberAnimation {
       target: root
       property: "currentCardOpacity"
       to: 0.0
-      duration: 230
+      duration: 260
       easing.type: Easing.OutCubic
     }
     NumberAnimation {
       target: root
       property: "currentCardScale"
       to: 0.96
-      duration: 260
+      duration: 300
       easing.type: Easing.OutCubic
     }
 
@@ -369,21 +438,21 @@ Item {
       target: root
       property: "incomingCardOffsetY"
       to: 0
-      duration: 260
+      duration: 300
       easing.type: Easing.OutCubic
     }
     NumberAnimation {
       target: root
       property: "incomingCardOpacity"
       to: 1.0
-      duration: 230
+      duration: 260
       easing.type: Easing.OutCubic
     }
     NumberAnimation {
       target: root
       property: "incomingCardScale"
       to: 1.0
-      duration: 260
+      duration: 300
       easing.type: Easing.OutCubic
     }
 
@@ -392,7 +461,7 @@ Item {
       target: root
       property: "deckShiftProgress"
       to: 1.0
-      duration: 260
+      duration: 300
       easing.type: Easing.OutCubic
     }
 
@@ -422,22 +491,22 @@ Item {
         target: root
         property: "currentCardOffsetY"
         to: -32
-        duration: 160
-        easing.type: Easing.InQuad
+        duration: 220
+        easing.type: Easing.OutQuad
       }
       NumberAnimation {
         target: root
         property: "currentCardOpacity"
         to: 0.0
-        duration: 150
-        easing.type: Easing.InQuad
+        duration: 200
+        easing.type: Easing.OutQuad
       }
       NumberAnimation {
         target: root
         property: "currentCardScale"
         to: 0.96
-        duration: 160
-        easing.type: Easing.InQuad
+        duration: 220
+        easing.type: Easing.OutQuad
       }
     }
 
@@ -637,8 +706,21 @@ Item {
   // Focus or launch the application associated with a notification
   function activateNotificationApp(notif) {
     if (!notif) return;
+
+    // Capture notifications: Direct action callback takes priority
+    if (notif.action && typeof notif.action === "function") {
+      notif.action();
+      return;
+    }
+
+    // Capture notifications: Open annotator for screenshots with filePath
+    if (notif.filePath && notif.filePath.length > 0 && root.ipc && root.ipc.openAnnotator) {
+      root.ipc.openAnnotator(notif.filePath);
+      return;
+    }
+
     let app = (notif.appName || notif.desktopEntry || "").trim();
-    if (!app || app.toLowerCase() === "system" || app.toLowerCase() === "ogsshell") {
+    if (!app || app.toLowerCase() === "system" || app.toLowerCase() === "ogsshell" || app.toLowerCase() === "ogsshell capture") {
       return;
     }
 
@@ -668,6 +750,11 @@ Item {
   // Dynamic geometry derived from active form-factor (Island vs Notch)
   implicitWidth: {
     let _rev = Config.configRevision
+    // Recording pill compact width (overrides IDLE/HOVER when recording is active)
+    let isRec = root.ipc && root.ipc.isRecording
+    if (isRec && stateMode !== "EXPANDED" && stateMode !== "TRANSIENT") {
+      return root.isIslandHovered ? 260 : 210
+    }
     switch (stateMode) {
       case "HOVER":     return Config.isNotch ? Config.notchHoverWidth : Config.islandHoverWidth
       case "TRANSIENT": return Config.isNotch ? Config.notchTransientWidth : Config.islandTransientWidth
@@ -727,7 +814,7 @@ Item {
   readonly property color surfaceColor: (root.stateMode === "EXPANDED" || root.stateMode === "TRANSIENT") ? Style.bgSecondary : Style.bgPrimary
 
   // ==========================================
-  // High-Performance GPU-Accelerated Animations
+  // High-Performance GPU-Accelerated Animations (Fluid Easing Curves)
   // ==========================================
   Behavior on width {
     NumberAnimation {
@@ -797,7 +884,7 @@ Item {
 
     Behavior on glowRadius {
       NumberAnimation {
-        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : Config.animation.duration_compact
+        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : (root.stateMode === "TRANSIENT" ? Config.animation.duration_transient : Config.animation.duration_compact)
         easing.type: Easing.OutCubic
       }
     }
@@ -909,7 +996,7 @@ Item {
 
     Behavior on glowRadius {
       NumberAnimation {
-        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : Config.animation.duration_compact
+        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : (root.stateMode === "TRANSIENT" ? Config.animation.duration_transient : Config.animation.duration_compact)
         easing.type: Easing.OutCubic
       }
     }
@@ -932,7 +1019,7 @@ Item {
 
     Behavior on radius {
       NumberAnimation {
-        duration: Config.animation.duration_compact
+        duration: root.stateMode === "EXPANDED" ? Config.animation.duration_expanded : (root.stateMode === "TRANSIENT" ? Config.animation.duration_transient : Config.animation.duration_compact)
         easing.type: Easing.OutCubic
       }
     }
@@ -973,11 +1060,16 @@ Item {
   }
 
   // Left-Click Gesture: If transient notification, activates app with tactile pulse animation & dismisses
+  // If recording is active in non-expanded mode, stops the recording
   TapHandler {
     acceptedButtons: Qt.LeftButton
     onTapped: {
       if (root.stateMode === "TRANSIENT") {
         root.dismissFront(true)
+        return
+      }
+      if (root.ipc && root.ipc.isRecording && root.stateMode !== "EXPANDED") {
+        root.ipc.stopRecording()
       }
     }
   }
@@ -1028,11 +1120,11 @@ Item {
       anchors.rightMargin: 16
       anchors.topMargin: 4
       anchors.bottomMargin: 4
-      opacity: (root.stateMode === "IDLE" || root.stateMode === "HOVER") ? 1.0 : 0.0
+      opacity: ((root.stateMode === "IDLE" || root.stateMode === "HOVER") && (!root.ipc || !root.ipc.isRecording)) ? 1.0 : 0.0
       visible: opacity > 0.0
 
       Behavior on opacity {
-        NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
       }
 
       // Left Slot: MPRIS Media Status (Fades & Scales smoothly on hover)
@@ -1104,6 +1196,114 @@ Item {
     }
 
     // ==========================================
+    // Layer 1.5: Live Recording Pill (RECORDING state overrides IDLE/HOVER)
+    // Pulsing red dot + live mm:ss timer + mic icon + hover stop button
+    // ==========================================
+    Item {
+      id: recordingLayer
+      anchors.fill: parent
+      anchors.leftMargin: 14
+      anchors.rightMargin: 14
+      anchors.topMargin: 4
+      anchors.bottomMargin: 4
+      opacity: (root.ipc && root.ipc.isRecording && root.stateMode !== "EXPANDED" && root.stateMode !== "TRANSIENT") ? 1.0 : 0.0
+      visible: opacity > 0.0
+
+      Behavior on opacity {
+        NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
+      }
+
+      Row {
+        anchors.centerIn: parent
+        spacing: 8
+
+        // Pulsing red recording dot
+        Rectangle {
+          width: 10
+          height: 10
+          radius: 5
+          color: "#ed4245"
+          anchors.verticalCenter: parent.verticalCenter
+
+          SequentialAnimation on opacity {
+            loops: Animation.Infinite
+            running: recordingLayer.visible
+            NumberAnimation { from: 1.0; to: 0.3; duration: 600; easing.type: Easing.InOutSine }
+            NumberAnimation { from: 0.3; to: 1.0; duration: 600; easing.type: Easing.InOutSine }
+          }
+        }
+
+        // Live timer counter (mm:ss)
+        Text {
+          text: {
+            let secs = (root.ipc && root.ipc.recordingDuration) ? root.ipc.recordingDuration : 0
+            let m = Math.floor(secs / 60)
+            let s = secs % 60
+            return (m < 10 ? "0" + m : "" + m) + ":" + (s < 10 ? "0" + s : "" + s)
+          }
+          color: "#ed4245"
+          font.family: Style.fontMono || Style.fontText
+          font.pixelSize: 13
+          font.weight: Font.Bold
+          anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Microphone icon
+        Text {
+          text: "🎙"
+          font.pixelSize: 12
+          anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Hover-revealed stop button
+        Rectangle {
+          width: stopBtnRow.implicitWidth + 14
+          height: 22
+          radius: 11
+          color: stopBtnMouse.containsMouse ? Qt.rgba(237/255, 66/255, 69/255, 0.35) : Qt.rgba(237/255, 66/255, 69/255, 0.15)
+          border.color: "#ed4245"
+          border.width: 1
+          visible: root.isIslandHovered
+          anchors.verticalCenter: parent.verticalCenter
+
+          Row {
+            id: stopBtnRow
+            anchors.centerIn: parent
+            spacing: 4
+
+            Text {
+              text: "⏹"
+              font.pixelSize: 11
+              color: "#ed4245"
+              anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Text {
+              text: "Kaydı Bitir"
+              color: "#ed4245"
+              font.family: Style.fontText
+              font.pixelSize: 11
+              font.weight: Font.DemiBold
+              anchors.verticalCenter: parent.verticalCenter
+            }
+          }
+
+          MouseArea {
+            id: stopBtnMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              if (root.ipc && root.ipc.stopRecording) {
+                root.ipc.stopRecording();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // ==========================================
     // Layer 2: Transient Notification View
     // ==========================================
     Item {
@@ -1118,7 +1318,7 @@ Item {
       visible: opacity > 0.0
 
       Behavior on opacity {
-        NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
       }
 
       // Primary (Active / Outgoing) Notification Card Container
@@ -1143,6 +1343,10 @@ Item {
           icon: root.transientIcon
           remainingStackCount: Math.max(0, root.notificationCount - 1)
           isTransitioning: root.isTransitioning
+          notificationType: root.transientType
+          thumbnail: root.transientThumbnail
+          filePath: root.transientFilePath
+          openAction: root.transientAction
         }
       }
 
@@ -1169,6 +1373,10 @@ Item {
           icon: root.incomingNotification ? (root.incomingNotification.icon || "") : ""
           remainingStackCount: Math.max(0, root.notificationCount - 2)
           isTransitioning: true
+          notificationType: root.incomingNotification ? (root.incomingNotification.type || "normal") : "normal"
+          thumbnail: root.incomingNotification ? (root.incomingNotification.thumbnail || "") : ""
+          filePath: root.incomingNotification ? (root.incomingNotification.filePath || "") : ""
+          openAction: root.incomingNotification ? (root.incomingNotification.action || null) : null
         }
       }
     }
@@ -1185,7 +1393,7 @@ Item {
       visible: opacity > 0.0
 
       Behavior on opacity {
-        NumberAnimation { duration: 220; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
       }
 
       // Focused App 1: Clock App Suite (Lazy Loaded)
