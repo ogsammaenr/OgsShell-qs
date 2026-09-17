@@ -10,7 +10,9 @@ import (
 	"ogsShell/core/services/alarm"
 	"ogsShell/core/services/bluetooth"
 	"ogsShell/core/services/calendar"
+	"ogsShell/core/services/capture"
 	"ogsShell/core/services/clipboard"
+	"ogsShell/core/services/currency"
 	"ogsShell/core/services/keyboard"
 	"ogsShell/core/services/launcher"
 	"ogsShell/core/services/launcher/entry"
@@ -301,6 +303,50 @@ func main() {
 		})
 		launcherMgr.Start(ctx)
 		log.Info("Launcher servisi başarıyla başlatıldı")
+	}
+
+	// Kur Çevirici (Currency) servisini başlat
+	var currencyMgr currency.CurrencyManager
+	cMgr, err := currency.NewDefaultCurrencyManager()
+	if err != nil {
+		log.Error("Kur servisi başlatılamadı", "err", err)
+	} else {
+		defer cMgr.Close()
+		currencyMgr = cMgr
+		cMgr.SetUpdateCallback(func(rates *currency.CurrencyRates) {
+			payloadBytes, _ := json.Marshal(rates)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "currency_rates_update",
+				Payload: payloadBytes,
+			})
+		})
+		cMgr.Start(ctx)
+		log.Info("Kur çevirici servisi başarıyla başlatıldı")
+	}
+
+	// Ekran Yakalama, OCR ve Kayıt servisini başlat
+	var captureMgr capture.CaptureManager
+	cptMgr, err := capture.NewDefaultCaptureManager()
+	if err != nil {
+		log.Error("Ekran yakalama servisi başlatılamadı", "err", err)
+	} else {
+		defer cptMgr.Close()
+		captureMgr = cptMgr
+		cptMgr.SetRecordUpdateCallback(func(state capture.RecordState) {
+			payloadBytes, _ := json.Marshal(state)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "recording_state_update",
+				Payload: payloadBytes,
+			})
+		})
+		cptMgr.SetRecordFinishedCallback(func(result capture.RecordFinishedPayload) {
+			payloadBytes, _ := json.Marshal(result)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "recording_finished",
+				Payload: payloadBytes,
+			})
+		})
+		log.Info("Ekran yakalama, OCR ve kayıt servisi başarıyla başlatıldı")
 	}
 
 	// Socket üzerinden gelecek RPC komutlarını işleyecek Handler
@@ -1271,6 +1317,26 @@ func main() {
 			}
 			_ = json.Unmarshal(action.Args, &p)
 			log.Info("Uygulama tetikleme isteği alındı (toggle_app)", "app", p.App)
+			if p.App == "snipping" || p.App == "snip" || p.App == "capture" {
+				mode := p.Subview
+				if mode == "" {
+					mode = "SS"
+				}
+				go func() {
+					if captureMgr != nil {
+						res, err := captureMgr.FreezeScreen(mode)
+						if err != nil {
+							log.Error("Ekran dondurulamadı", "err", err)
+						}
+						payloadBytes, _ := json.Marshal(res)
+						_ = server.Broadcast(ipc.Event{
+							Type:    "screen_frozen",
+							Payload: payloadBytes,
+						})
+					}
+				}()
+				return nil
+			}
 			payloadBytes, _ := json.Marshal(p)
 			return server.Broadcast(ipc.Event{
 				Type:    "toggle_app",
@@ -1299,6 +1365,165 @@ func main() {
 				Type:    action.Name,
 				Payload: payloadBytes,
 			})
+
+		case "get_currency_rates":
+			if currencyMgr == nil {
+				return fmt.Errorf("kur servisi devrede değil")
+			}
+			rates := currencyMgr.GetRates()
+			payloadBytes, _ := json.Marshal(rates)
+			return server.Broadcast(ipc.Event{
+				Type:    "currency_rates_update",
+				Payload: payloadBytes,
+			})
+
+		case "sync_currency_rates":
+			if currencyMgr == nil {
+				return fmt.Errorf("kur servisi devrede değil")
+			}
+			go func() {
+				syncCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+				defer cancel()
+				if err := currencyMgr.SyncRates(syncCtx); err != nil {
+					log.Warn("Manuel kur senkronizasyon hatası", "err", err)
+				}
+			}()
+			return nil
+
+		case "reload_currency_config":
+			if currencyMgr == nil {
+				return fmt.Errorf("kur servisi devrede değil")
+			}
+			return currencyMgr.ReloadConfig()
+
+		case "freeze_screen":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			var p capture.FreezeScreenPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			mode := p.Mode
+			if mode == "" {
+				mode = "SS"
+			}
+			go func() {
+				res, err := captureMgr.FreezeScreen(mode)
+				if err != nil {
+					log.Error("Ekran dondurulamadı", "err", err)
+				}
+				payloadBytes, _ := json.Marshal(res)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "screen_frozen",
+					Payload: payloadBytes,
+				})
+			}()
+			return nil
+
+		case "capture_screenshot":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			var p capture.CaptureScreenshotPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			res, err := captureMgr.CaptureScreenshot(p)
+			payloadBytes, _ := json.Marshal(res)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "screenshot_captured",
+				Payload: payloadBytes,
+			})
+			return err
+
+		case "capture_ocr":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			var p capture.CaptureOCRPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			res, err := captureMgr.CaptureOCR(p)
+			payloadBytes, _ := json.Marshal(res)
+			_ = server.Broadcast(ipc.Event{
+				Type:    "ocr_completed",
+				Payload: payloadBytes,
+			})
+			return err
+
+		case "start_recording":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			var p capture.StartRecordingPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			state, err := captureMgr.StartRecording(p.Geometry)
+			if state != nil {
+				payloadBytes, _ := json.Marshal(state)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "recording_state_update",
+					Payload: payloadBytes,
+				})
+			}
+			return err
+
+		case "stop_recording":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			res, err := captureMgr.StopRecording()
+			if res != nil {
+				payloadBytes, _ := json.Marshal(res)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "recording_finished",
+					Payload: payloadBytes,
+				})
+			}
+			return err
+
+		case "toggle_recording":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			recState := captureMgr.GetRecordState()
+			if recState.IsRecording {
+				res, err := captureMgr.StopRecording()
+				if res != nil {
+					payloadBytes, _ := json.Marshal(res)
+					_ = server.Broadcast(ipc.Event{
+						Type:    "recording_finished",
+						Payload: payloadBytes,
+					})
+				}
+				return err
+			}
+			var p capture.StartRecordingPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			state, err := captureMgr.StartRecording(p.Geometry)
+			if state != nil {
+				payloadBytes, _ := json.Marshal(state)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "recording_state_update",
+					Payload: payloadBytes,
+				})
+			}
+			return err
+
+		case "open_annotator":
+			if captureMgr == nil {
+				return fmt.Errorf("ekran yakalama servisi devrede değil")
+			}
+			var p capture.OpenAnnotatorPayload
+			if len(action.Args) > 0 {
+				_ = json.Unmarshal(action.Args, &p)
+			}
+			return captureMgr.OpenAnnotator(p.FilePath)
 		}
 
 		return nil

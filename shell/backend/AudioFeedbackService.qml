@@ -114,4 +114,15 @@ Item {
     playProc.command = cmd
     playProc.running = true
   }
+
+  function playShutterSound() {
+    let bashScript = "if command -v canberra-gtk-play >/dev/null 2>&1; then " +
+      "canberra-gtk-play -i camera-shutter -d 'screen-capture' 2>/dev/null; " +
+      "elif [ -f /usr/share/sounds/freedesktop/stereo/camera-shutter.oga ]; then " +
+      "pw-play /usr/share/sounds/freedesktop/stereo/camera-shutter.oga 2>/dev/null; " +
+      "fi"
+    playProc.running = false
+    playProc.command = ["/usr/bin/bash", "-c", bashScript]
+    playProc.running = true
+  }
 }

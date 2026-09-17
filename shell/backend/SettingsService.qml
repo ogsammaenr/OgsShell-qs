@@ -24,16 +24,18 @@ Item {
     }
   }
 
-  function executeScript(scriptName, extraArgs) {
+  function executeCommand(subcommand, extraArgs) {
     let home = Quickshell.env("HOME") || "/home/excalibur"
-    let p1 = home + "/Workspace/projects/OgsShell-qs/scripts/" + scriptName
-    let p2 = "/home/excalibur/Workspace/projects/OgsShell-qs/scripts/" + scriptName
+    let pUser = home + "/.config/ogsShell/ogsshell.sh"
+    let p1 = home + "/Workspace/projects/OgsShell-qs/scripts/ogsshell.sh"
+    let p2 = "/home/excalibur/Workspace/projects/OgsShell-qs/scripts/ogsshell.sh"
     let extra = extraArgs ? (" " + extraArgs) : ""
-    let bashCmd = "if [ -f '" + p1 + "' ]; then bash '" + p1 + "'" + extra + "; " +
-      "elif [ -f '" + p2 + "' ]; then bash '" + p2 + "'" + extra + "; " +
-      "else echo '[SettingsService ERROR] Script not found: " + scriptName + "'; exit 1; fi"
+    let bashCmd = "if [ -x '" + pUser + "' ]; then '" + pUser + "' " + subcommand + extra + "; " +
+      "elif [ -x '" + p1 + "' ]; then '" + p1 + "' " + subcommand + extra + "; " +
+      "elif [ -x '" + p2 + "' ]; then '" + p2 + "' " + subcommand + extra + "; " +
+      "else echo '[SettingsService ERROR] ogsshell.sh not found'; exit 1; fi"
 
-    console.log("[SettingsService] Executing script: " + scriptName)
+    console.log("[SettingsService] Executing ogsshell command: " + subcommand)
     proc.running = false
     proc.command = ["/usr/bin/bash", "-c", bashCmd]
     proc.running = true
@@ -41,7 +43,7 @@ Item {
 
   function open(category) {
     console.log("[SettingsService] open() called with category:", category || "default")
-    executeScript("open_settings_app.sh")
+    executeCommand("open_settings")
   }
 
   function close() {
@@ -53,6 +55,6 @@ Item {
 
   function toggle(category) {
     console.log("[SettingsService] toggle() called with category:", category || "default")
-    executeScript("toggle_settings.sh")
+    executeCommand("toggle_settings")
   }
 }

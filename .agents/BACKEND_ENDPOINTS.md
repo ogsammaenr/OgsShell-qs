@@ -105,6 +105,16 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Launcher** | `toggle_launcher` | `{}` | `toggle_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar/kapatır |
 | **Launcher** | `open_launcher` | `{}` | `open_launcher` | Dynamic Island üzerinde App Launcher görünümünü açar |
 | **Launcher** | `close_launcher` | `{}` | `close_launcher` | Açık olan App Launcher görünümünü kapatır |
+| **Kur / Döviz** | `get_currency_rates` | `{}` | `currency_rates_update` | Aktif döviz ve kripto kurlarını döner |
+| **Kur / Döviz** | `sync_currency_rates` | `{}` | `currency_rates_update` | Canlı API'lerden anında kurları günceller ve kaydeder |
+| **Kur / Döviz** | `reload_currency_config` | `{}` | `{}` | config.json dosyasından kur yenileme aralığını ve varsayılan hedefi yeniden yükler |
+| **Yakalama / OCR** | `freeze_screen` | `{}` | `screen_frozen` | Snipping overlay için tam ekran dondurma karesi hazırlar |
+| **Yakalama / OCR** | `capture_screenshot` | `{"geometry": "x,y wxh"}` *(opsiyonel)* | `screenshot_captured` | Ekran görüntüsü alır, diske kaydeder ve panoya kopyalar |
+| **Yakalama / OCR** | `capture_ocr` | `{"geometry": "x,y wxh"}` *(opsiyonel)* | `ocr_completed` | Seçili bölgedeki metni tanır (Tesseract tur+eng), panoya kopyalar ve adaya iletir |
+| **Kayıt** | `start_recording` | `{"geometry": "x,y wxh"}` *(opsiyonel)* | `recording_state_update` | wf-recorder ile MP4 ekran kaydı başlatır ve 1 sn ticker yayını yapar |
+| **Kayıt** | `stop_recording` | `{}` | `recording_finished` + `recording_state_update` | Ekran kaydını SIGINT ile zarifçe durdurur ve MP4 moov atomunu tamamlar |
+| **Kayıt** | `toggle_recording` | `{"geometry": "x,y wxh"}` *(opsiyonel)* | `recording_state_update` veya `recording_finished` | Aktif kaydı durdurur veya yeni kayıt başlatır (Toggle) |
+| **Görsel Düzenleme** | `open_annotator` | `{"file_path": "..."}` *(opsiyonel)* | `{}` | Gradia görsel düzenleyicisini bağımsız süreç olarak açar |
 | **App Routing** | `open_app` | `{"app": "themes", "subview": "..."}` | `open_app` | Belirtilen uygulamayı Dynamic Island üzerinde odaklar ve açar |
 | **App Routing** | `toggle_app` | `{"app": "...", "subview": "..."}` | `toggle_app` | Belirtilen uygulamayı Dynamic Island üzerinde açar veya kapatır |
 | **Kısayollar** | `toggle_control_center` / `open_control_center` | `{}` | `toggle_control_center` | Kontrol Merkezi görünümünü açar/kapatır |
@@ -118,6 +128,7 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Kısayollar** | `toggle_wifi_view` / `open_wifi` | `{}` | `toggle_wifi_view` | Wi-Fi ayarları panelini açar/kapatır |
 | **Kısayollar** | `toggle_bluetooth_view` / `open_bluetooth` | `{}` | `toggle_bluetooth_view` | Bluetooth ayarları panelini açar/kapatır |
 | **Kısayollar** | `toggle_audio_mixer` / `open_audio_mixer` | `{}` | `toggle_audio_mixer` | Ses karıştırıcısı (uygulama sesleri ve çıkış aygıtları) panelini açar/kapatır |
+| **Kısayollar** | `toggle_bottom_notch` / `toggle_app` | `{"app": "bottom_notch"}` | `toggle_app` | Ters Çentik (Inverted Bottom Notch) ve komut paletini açar/kapatır |
 
 ---
 
@@ -159,6 +170,12 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `toggle_launcher` | `toggle_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açıp/kapatması için sinyal |
 | `open_launcher` | `open_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açması için sinyal |
 | `close_launcher` | `close_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu kapatması için sinyal |
+| `currency_rates_update` | Periyodik veya anlık kur güncellemesinde | `CurrencyRates` | Güncel döviz ve kripto para oranları tablosu |
+| `screen_frozen` | `freeze_screen` RPC komutuna yanıt | `FreezeResult` | Tam ekran donmuş görselin dosya yolu ve zaman damgası |
+| `screenshot_captured` | `capture_screenshot` RPC komutuna yanıt | `CaptureResult` | Ekran görüntüsü yolu, geometri, pano kopyalama ve başarı durumu |
+| `ocr_completed` | `capture_ocr` RPC komutuna yanıt | `OCRResult` | Tanınan tam metin, HUD özeti, karakter sayısı ve kopyalama durumu |
+| `recording_state_update` | Kayıt esnasında her 1 saniyede veya durum değişiminde | `RecordState` | Aktif kayıt durumu, geçen süre (saniye), dosya yolu ve geometri |
+| `recording_finished` | Kayıt durdurulduğunda (`stop_recording`) veya sonlandığında | `RecordFinishedPayload` | Tamamlanan kaydın MP4 yolu, toplam süresi ve başarı durumu |
 
 ---
 
@@ -1021,6 +1038,160 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 {
   "name": "reindex_apps",
   "args": {}
+}
+```
+
+---
+
+### 3.11. Ekran Yakalama, OCR ve Kayıt Servisi (`core/services/capture/`)
+
+* **Entegrasyon:** Wayland `grim`, `wf-recorder`, `tesseract`, `wl-clipboard`, `gradia`
+* **Dizinler:** Ekran görüntüleri `$HOME/Pictures/Screenshots/`, video kayıtları `$HOME/Videos/Recordings/`, geçici dondurma `/tmp/ogs_freeze.png`, OCR görseli `/tmp/ogs_ocr.png`
+
+#### A. Veri Modelleri
+
+1. **`FreezeResult`** (`screen_frozen` Event):
+```json
+{
+  "type": "screen_frozen",
+  "payload": {
+    "file_path": "/tmp/ogs_freeze.png",
+    "timestamp": 1786395000123,
+    "success": true
+  }
+}
+```
+
+2. **`CaptureResult`** (`screenshot_captured` Event):
+```json
+{
+  "type": "screenshot_captured",
+  "payload": {
+    "file_path": "/home/user/Pictures/Screenshots/screenshot_2026-09-16_17-30-00.png",
+    "geometry": "100,100 800x600",
+    "timestamp": 1786395000123,
+    "copied": true,
+    "success": true
+  }
+}
+```
+
+3. **`OCRResult`** (`ocr_completed` Event):
+```json
+{
+  "type": "ocr_completed",
+  "payload": {
+    "text": "Antigravity Agentic AI Engine",
+    "preview": "Antigravity Agentic AI Engine",
+    "char_count": 29,
+    "copied": true,
+    "success": true
+  }
+}
+```
+
+4. **`RecordState`** (`recording_state_update` Event):
+```json
+{
+  "type": "recording_state_update",
+  "payload": {
+    "is_recording": true,
+    "duration_seconds": 15,
+    "file_path": "/home/user/Videos/Recordings/recording_2026-09-16_17-30-00.mp4",
+    "geometry": "0,0 1920x1080"
+  }
+}
+```
+
+5. **`RecordFinishedPayload`** (`recording_finished` Event):
+```json
+{
+  "type": "recording_finished",
+  "payload": {
+    "file_path": "/home/user/Videos/Recordings/recording_2026-09-16_17-30-00.mp4",
+    "duration_seconds": 45,
+    "success": true
+  }
+}
+```
+
+#### B. RPC Komut Örnekleri
+
+* **Ekran Dondurma (Freeze Screen):**
+```json
+{
+  "name": "freeze_screen",
+  "args": {
+    "mode": "SS"
+  }
+}
+```
+
+* **Ekran Görüntüsü Alma (Bölgesel, Monitör Kırpma veya Tam Ekran):**
+```json
+{
+  "name": "capture_screenshot",
+  "args": {
+    "geometry": "100,100 800x600",
+    "monitor": "eDP-1",
+    "local_x": 100,
+    "local_y": 100,
+    "width": 800,
+    "height": 600
+  }
+}
+```
+
+* **OCR Metin Tanıma:**
+```json
+{
+  "name": "capture_ocr",
+  "args": {
+    "geometry": "200,200 400x150",
+    "monitor": "HDMI-A-1",
+    "local_x": 200,
+    "local_y": 200,
+    "width": 400,
+    "height": 150
+  }
+}
+```
+
+* **Ekran Kaydını Başlatma:**
+```json
+{
+  "name": "start_recording",
+  "args": {
+    "geometry": "0,0 1920x1080"
+  }
+}
+```
+
+* **Ekran Kaydını Durdurma:**
+```json
+{
+  "name": "stop_recording",
+  "args": {}
+}
+```
+
+* **Ekran Kaydını Başlatma / Durdurma (Toggle):**
+```json
+{
+  "name": "toggle_recording",
+  "args": {
+    "geometry": "0,0 1920x1080"
+  }
+}
+```
+
+* **Görsel Düzenleyiciyi (Gradia) Açma:**
+```json
+{
+  "name": "open_annotator",
+  "args": {
+    "file_path": "/home/user/Pictures/Screenshots/screenshot_2026-09-16_17-30-00.png"
+  }
 }
 ```
 

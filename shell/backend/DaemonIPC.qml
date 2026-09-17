@@ -61,6 +61,16 @@ Item {
   property var launcherSearchResults: []
   property string launcherLastQuery: ""
 
+  // Currency Converter Subsystem
+  property var currencyRates: null
+
+  // Screen Capture, OCR & Recording Subsystem
+  property bool isRecording: false
+  property int recordingDuration: 0
+  property string lastScreenshotPath: ""
+  property string lastOcrText: ""
+  property string frozenScreenPath: ""
+
   // High-Priority Signals
   signal alarmTriggered(var payload)
   signal calendarReminderTriggered(var payload)
@@ -72,6 +82,7 @@ Item {
   signal wallpapersUpdated(var payload)
   signal launcherResultsUpdated(var payload)
   signal appLaunched(var payload)
+  signal currencyRatesUpdated(var payload)
   signal networkDetailsUpdated(var payload)
   signal cleanupDuplicatesCompleted(var payload)
   signal wifiScanStarted()
@@ -82,6 +93,11 @@ Item {
   signal appToggleRequested(var payload)
   signal appOpenRequested(var payload)
   signal appCloseRequested(var payload)
+  signal screenFrozen(var payload)
+  signal screenshotCaptured(var payload)
+  signal ocrCompleted(var payload)
+  signal recordingStateUpdated(var payload)
+  signal recordingFinished(var payload)
 
   // Network & DNS Helpers
   function requestNetworkDetails(ssidOrUUID) {
@@ -429,6 +445,56 @@ Item {
     sendAction("close_launcher", {});
   }
 
+  // Currency Converter Helpers
+  function requestCurrencyRates() {
+    sendAction("get_currency_rates", {});
+  }
+
+  function syncCurrencyRates() {
+    sendAction("sync_currency_rates", {});
+  }
+
+  function reloadCurrencyConfig() {
+    sendAction("reload_currency_config", {});
+  }
+
+  // Screen Capture, OCR & Screen Recording Helpers
+  function freezeScreen(mode) {
+    sendAction("freeze_screen", { "mode": mode || "SS" });
+  }
+
+  function captureScreenshot(param) {
+    if (typeof param === "object" && param !== null) {
+      sendAction("capture_screenshot", param);
+    } else {
+      sendAction("capture_screenshot", { "geometry": param || "" });
+    }
+  }
+
+  function captureOCR(param) {
+    if (typeof param === "object" && param !== null) {
+      sendAction("capture_ocr", param);
+    } else {
+      sendAction("capture_ocr", { "geometry": param || "" });
+    }
+  }
+
+  function startRecording(geometry) {
+    sendAction("start_recording", { "geometry": geometry || "" });
+  }
+
+  function stopRecording() {
+    sendAction("stop_recording", {});
+  }
+
+  function toggleRecording(geometry) {
+    sendAction("toggle_recording", { "geometry": geometry || "" });
+  }
+
+  function openAnnotator(filePath) {
+    sendAction("open_annotator", { "file_path": filePath || "" });
+  }
+
   function triggerInitialSync() {
     console.log("[DaemonIPC] Triggering initial state sync from Go daemon...");
     let now = new Date();
@@ -445,6 +511,7 @@ Item {
     requestAvailableThemes();
     requestThemeWallpapers("");
     requestAppsList(50);
+    requestCurrencyRates();
     sendAction("get_active_wifi", {});
     sendAction("scan_wifi", {});
     sendAction("get_active_wifi", {});
@@ -601,6 +668,42 @@ Item {
             root.launcherApps = msg.payload || [];
           } else if (msg.type === "app_launched") {
             root.appLaunched(msg.payload);
+          } else if (msg.type === "currency_rates_update") {
+            root.currencyRates = msg.payload;
+            root.currencyRatesUpdated(msg.payload);
+          } else if (msg.type === "screen_frozen") {
+            if (msg.payload) {
+              if (msg.payload.file_path) {
+                root.frozenScreenPath = msg.payload.file_path;
+              }
+              root.screenFrozen(msg.payload);
+            }
+          } else if (msg.type === "screenshot_captured") {
+            if (msg.payload) {
+              if (msg.payload.file_path) {
+                root.lastScreenshotPath = msg.payload.file_path;
+              }
+              root.screenshotCaptured(msg.payload);
+            }
+          } else if (msg.type === "ocr_completed") {
+            if (msg.payload) {
+              if (msg.payload.text !== undefined && msg.payload.text !== null) {
+                root.lastOcrText = msg.payload.text;
+              }
+              root.ocrCompleted(msg.payload);
+            }
+          } else if (msg.type === "recording_state_update") {
+            if (msg.payload) {
+              root.isRecording = !!msg.payload.is_recording;
+              root.recordingDuration = msg.payload.duration_seconds || 0;
+              root.recordingStateUpdated(msg.payload);
+            }
+          } else if (msg.type === "recording_finished") {
+            if (msg.payload) {
+              root.isRecording = false;
+              root.recordingDuration = 0;
+              root.recordingFinished(msg.payload);
+            }
           } else if (msg.type === "toggle_launcher") {
             root.launcherToggled();
           } else if (msg.type === "open_launcher") {
