@@ -94,6 +94,14 @@ ensure_config() {
 }
 
 build_backend() {
+  local force="${1:-}"
+  if [ "${force}" != "--force" ] && [ -x "${CORE_BIN}" ]; then
+    local newer_src
+    newer_src="$(find "${REPO_ROOT}/core" -type f -name "*.go" -newer "${CORE_BIN}" 2>/dev/null | head -n 1 || true)"
+    if [ -z "${newer_src}" ]; then
+      return 0
+    fi
+  fi
   echo -e "${C_BLUE}[ogsShell]${C_RESET} Go backend derleniyor..."
   mkdir -p "${REPO_ROOT}/bin"
   export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
@@ -135,6 +143,11 @@ cmd_run() {
 
   build_backend
 
+  # Önceki log dosyasını yedekle (açılış analizini kolaylaştırmak için)
+  if [ -f "${LOG_FILE}" ]; then
+    mv -f "${LOG_FILE}" "/tmp/ogsshell-core.prev.log" 2>/dev/null || true
+  fi
+
   echo -e "${C_BLUE}[ogsShell]${C_RESET} Go backend başlatılıyor (PID kaydedildi)..."
   "${CORE_BIN}" > "${LOG_FILE}" 2>&1 &
   CORE_PID=$!
@@ -156,7 +169,7 @@ cmd_run() {
 
   echo -e "${C_BLUE}[ogsShell]${C_RESET} IPC soketinin hazır olması bekleniyor (${SOCK_PATH})..."
   READY=0
-  for i in {1..30}; do
+  for i in {1..100}; do
     if [ -S "${SOCK_PATH}" ]; then
       READY=1
       break
@@ -167,7 +180,7 @@ cmd_run() {
   if [ ${READY} -eq 1 ]; then
     echo -e "${C_GREEN}[ogsShell]${C_RESET} IPC Soketi hazır. Bağlantı kuruldu."
   else
-    echo -e "${C_RED}[ogsShell] UYARI:${C_RESET} IPC Soketi 3 saniye içinde açılamadı. Hatalar için '${LOG_FILE}' dosyasını kontrol edin."
+    echo -e "${C_RED}[ogsShell] UYARI:${C_RESET} IPC Soketi 10 saniye içinde açılamadı. Hatalar için '${LOG_FILE}' dosyasını kontrol edin."
   fi
 
   echo -e "${C_BLUE}[ogsShell]${C_RESET} Quickshell Dynamic Island başlatılıyor..."
@@ -423,6 +436,21 @@ cmd_record() {
   esac
 }
 
+cmd_inspect() {
+  local mode="${1:---toggle}"
+  case "${mode}" in
+    --start|-s|start|open)
+      send_ipc_action "open_app" '{"app":"inspector"}'
+      ;;
+    --stop|-k|stop|close)
+      send_ipc_action "close_app" '{"app":"inspector"}'
+      ;;
+    --toggle|-t|toggle|*)
+      send_ipc_action "toggle_app" '{"app":"inspector"}'
+      ;;
+  esac
+}
+
 cmd_completion() {
   local target="${1:-install}"
   local zsh_custom_dir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/custom"
@@ -499,6 +527,7 @@ cmd_help() {
   echo -e "  ${C_CYAN}screenshot${C_RESET} [--region | --full]   Ekran görüntüsü alır (bölge dondurma veya tam ekran)"
   echo -e "  ${C_CYAN}ocr${C_RESET} [--region]                   Seçilen bölgedeki metni tanır (OCR) ve panoya kopyalar"
   echo -e "  ${C_CYAN}record${C_RESET} [--start | --stop | --toggle] Ekran kaydı başlatır / bitirir / tersine çevirir"
+  echo -e "  ${C_CYAN}inspect${C_RESET} [--start | --stop | --toggle] Pencere sınıfı/ID denetçisini açar/kapatır (Super+Alt)"
   echo -e "  ${C_CYAN}open_app${C_RESET} <app> [subview]          Genel uygulama/alt görünüm tetikler"
   echo ""
   echo -e "${C_BOLD}🛠️  Araçlar, Tamamlama & Önizleme:${C_RESET}"
@@ -547,6 +576,7 @@ if [ -z "${ACTION}" ]; then
     screenshot.sh|snip.sh) ACTION="screenshot" ;;
     ocr.sh) ACTION="ocr" ;;
     record.sh) ACTION="record" ;;
+    inspect.sh|inspector.sh) ACTION="inspect" ;;
     *) ACTION="run" ;;
   esac
   ARGS=()
@@ -639,6 +669,9 @@ case "${ACTION}" in
     ;;
   record)
     cmd_record "${ARGS[@]}"
+    ;;
+  inspect|inspector|inspect_window|window_inspector)
+    cmd_inspect "${ARGS[@]}"
     ;;
   open_app|toggle_app|app)
     if [ -z "${ARGS[0]:-}" ]; then

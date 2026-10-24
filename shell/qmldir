@@ -6,6 +6,7 @@ singleton PowerService 1.0 backend/PowerService.qml
 singleton SettingsService 1.0 backend/SettingsService.qml
 singleton BottomNotchService 1.0 backend/BottomNotchService.qml
 singleton SnippingService 1.0 backend/SnippingService.qml
+singleton WindowInspectorService 1.0 backend/WindowInspectorService.qml
 AudioFeedbackService 1.0 backend/AudioFeedbackService.qml
 DaemonIPC 1.0 backend/DaemonIPC.qml
 CornerHUDService 1.0 components/corners/CornerHUDService.qml
@@ -14,3 +15,4 @@ ScreenCorners 1.0 components/corners/ScreenCorners.qml
 TopRightTrayHUD 1.0 components/corners/TopRightTrayHUD.qml
 BottomCommandNotch 1.0 components/bottomnotch/BottomCommandNotch.qml
 SnippingOverlay 1.0 components/capture/SnippingOverlay.qml
+WindowInspectorOverlay 1.0 components/inspector/WindowInspectorOverlay.qml

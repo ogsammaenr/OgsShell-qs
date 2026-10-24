@@ -65,6 +65,8 @@ _ogsshell() {
     'snip:Ekran dondurmalı bölge kırpma aracını açar'
     'ocr:Bölgeden metin tanıma (OCR) yapar ve panoya kopyalar'
     'record:Ekran kaydını başlatır, durdurur veya tersine çevirir'
+    'inspect:Pencere sınıfı denetçisini açar/kapatır (Super+Alt)'
+    'inspector:Pencere sınıfı denetçisini açar/kapatır (Super+Alt)'
     'open_app:Genel uygulama veya alt görünüm tetikler'
     'preview_starship:Starship prompt tema paletlerini önizler'
     'starship:Starship prompt tema paletlerini önizler'
@@ -116,6 +118,15 @@ _ogsshell() {
             '--region:İnteraktif bölge seçerek kayıt başlat'
           )
           _describe -t rec_args 'Kayıt eylemi' rec_args
+          ;;
+        inspect|inspector)
+          local -a inspect_args
+          inspect_args=(
+            '--toggle:Denetçiyi aç veya kapat'
+            '--start:Denetçiyi başlat (Hold)'
+            '--stop:Denetçiyi durdur (Release)'
+          )
+          _describe -t inspect_args 'Denetçi modu' inspect_args
           ;;
         preview_starship|starship)
           local -a starship_themes

@@ -9,6 +9,7 @@ import "components/widgets/controlcenter"
 import "components/corners"
 import "components/bottomnotch"
 import "components/capture"
+import "components/inspector"
 
 Scope {
   id: rootScope
@@ -31,7 +32,7 @@ Scope {
     id: ipcService
   }
 
-  // Bottom Notch, Snipping & App IPC Signals Listener
+  // Bottom Notch, Snipping, Window Inspector & App IPC Signals Listener
   Connections {
     target: ipcService
     function onAppToggleRequested(payload) {
@@ -43,6 +44,8 @@ Scope {
         } else {
           ipcService.freezeScreen(payload.subview || "SS");
         }
+      } else if (payload && (payload.app === "inspector" || payload.app === "window_inspector")) {
+        WindowInspectorService.toggle();
       }
     }
     function onAppOpenRequested(payload) {
@@ -50,6 +53,8 @@ Scope {
         BottomNotchService.open(payload.subview || "");
       } else if (payload && (payload.app === "snipping" || payload.app === "snip" || payload.app === "capture")) {
         ipcService.freezeScreen(payload.subview || "SS");
+      } else if (payload && (payload.app === "inspector" || payload.app === "window_inspector")) {
+        WindowInspectorService.open();
       }
     }
     function onAppCloseRequested(payload) {
@@ -57,6 +62,8 @@ Scope {
         BottomNotchService.close();
       } else if (payload && (payload.app === "snipping" || payload.app === "snip" || payload.app === "capture")) {
         SnippingService.close();
+      } else if (payload && (payload.app === "inspector" || payload.app === "window_inspector")) {
+        WindowInspectorService.close();
       }
     }
     function onScreenFrozen(payload) {
@@ -420,7 +427,7 @@ Scope {
         screen: screenScope.modelData
         visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0)
         color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.layer: (screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
         anchors {
@@ -436,6 +443,7 @@ Scope {
         mask: Region {}
 
         ScreenCorners {
+          id: screenCorners
           anchors.fill: parent
           screen: screenScope.modelData
           hyprMonitor: screenScope.hyprMonitor
@@ -567,6 +575,18 @@ Scope {
       // =========================================================================
       SnippingOverlay {
         id: snippingOverlayWindow
+        screen: screenScope.modelData
+        monitorName: screenScope.modelData.name
+        hyprMonitor: screenScope.hyprMonitor
+        ipc: ipcService
+        isFocusedScreen: screenScope.isFocusedMonitor
+      }
+
+      // =========================================================================
+      // Window Inspector Overlay: Fast Class Identifier & Clipboard Copy
+      // =========================================================================
+      WindowInspectorOverlay {
+        id: inspectorOverlayWindow
         screen: screenScope.modelData
         monitorName: screenScope.modelData.name
         hyprMonitor: screenScope.hyprMonitor
