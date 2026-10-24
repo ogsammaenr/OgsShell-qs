@@ -50,7 +50,7 @@ Item {
   property var availableKeyboardLayouts: []
 
   // Theme Management & Multi-App Dispatcher
-  property var currentTheme: ({ "id": "everforest", "name": "Everforest Dark", "colors": {} })
+  property var currentTheme: ({ "id": (Style.activeThemeId || "everforest"), "name": (Style.activeThemeName || "Everforest Dark"), "colors": {} })
   property var availableThemes: []
   property var enabledThemeAdapters: ({})
   property var themeWallpapers: []
@@ -70,6 +70,10 @@ Item {
   property string lastScreenshotPath: ""
   property string lastOcrText: ""
   property string frozenScreenPath: ""
+
+  // Hyprland Subsystem (Profiles, Borders & Bezier Physics)
+  property var hyprState: null
+  property string hyprPreviewOutput: ""
 
   // High-Priority Signals
   signal alarmTriggered(var payload)
@@ -98,6 +102,8 @@ Item {
   signal ocrCompleted(var payload)
   signal recordingStateUpdated(var payload)
   signal recordingFinished(var payload)
+  signal hyprStateReceived(var payload)
+  signal hyprPreviewResult(var payload)
 
   // Network & DNS Helpers
   function requestNetworkDetails(ssidOrUUID) {
@@ -125,6 +131,35 @@ Item {
     });
   }
 
+  // Hyprland Subsystem Helpers
+  function getHyprState() {
+    sendAction("get_hypr_state", {});
+  }
+
+  function setHyprProfile(category, name) {
+    sendAction("set_hypr_profile", {
+      "category": category || "",
+      "name": name || ""
+    });
+  }
+
+  function previewHyprEval(luaCode) {
+    sendAction("preview_hypr_eval", {
+      "lua": luaCode || ""
+    });
+  }
+
+  function saveCustomCurve(name, points) {
+    sendAction("save_custom_curve", {
+      "name": name || "",
+      "points": points || []
+    });
+  }
+
+  function saveCustomBorder(config) {
+    sendAction("save_custom_border", config || {});
+  }
+
   function requestSavedWifiProfiles() {
     sendAction("get_saved_wifi_profiles", {});
   }
@@ -148,7 +183,7 @@ Item {
 
   // Send JSON RPC Action to daemon
   function sendAction(name, args) {
-    if (!socket.connected) {
+    if (!socket || !socket.connected) {
       console.log("[DaemonIPC] Warning: Socket not connected. Cannot send action:", name);
       return;
     }
@@ -365,18 +400,23 @@ Item {
   }
 
   function setActiveTheme(themeId) {
+    if (!themeId) return;
+    let normId = themeId.toLowerCase().trim();
     if (availableThemes && availableThemes.length > 0) {
       for (let i = 0; i < availableThemes.length; i++) {
-        if (availableThemes[i].id === themeId) {
+        if (availableThemes[i].id === normId) {
           root.currentTheme = availableThemes[i];
           Style.applyTheme(availableThemes[i]);
           break;
         }
       }
     } else {
-      Style.applyThemeById(themeId);
+      Style.applyThemeById(normId);
     }
-    sendAction("set_active_theme", { "theme_id": themeId });
+    if (Config.theme !== normId) {
+      Config.updateTheme(normId);
+    }
+    sendAction("set_active_theme", { "theme_id": normId });
   }
 
   function saveCustomTheme(palette) {
@@ -519,31 +559,42 @@ Item {
     sendAction("get_network_details", {});
     sendAction("get_saved_wifi_profiles", {});
     sendAction("get_bluetooth_state", {});
+    sendAction("get_hypr_state", {});
   }
+
+  readonly property var socket: socketLoader.item
+  readonly property bool isConnected: socket ? socket.connected : false
 
   // Initial fetch when loaded
   Component.onCompleted: {
-    if (socket.connected) {
+    if (root.isConnected) {
       triggerInitialSync();
     }
   }
 
   Timer {
     id: reconnectTimer
-    interval: 1000
+    interval: 1500
     repeat: true
-    running: !socket.connected
+    running: !root.isConnected
     onTriggered: {
-      if (!socket.connected) {
-        socket.connected = true;
+      if (!root.isConnected) {
+        // C++ QLocalSocket ServerNotFoundError aldığında aynı nesne üzerinden
+        // tekrar bağlanamadığı için Loader ile soket nesnesi sıfırdan oluşturulur.
+        socketLoader.active = false;
+        socketLoader.active = true;
       }
     }
   }
 
-  Socket {
-    id: socket
-    path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ogs_shell.sock"
-    connected: true
+  Loader {
+    id: socketLoader
+    active: true
+    sourceComponent: Component {
+      Socket {
+        id: socketInstance
+        path: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/ogs_shell.sock"
+        connected: true
 
     onConnectedChanged: {
       if (connected) {
@@ -647,6 +698,9 @@ Item {
               root.currentTheme = msg.payload.active_theme;
               Style.applyTheme(msg.payload.active_theme);
               root.requestThemeWallpapers(msg.payload.active_theme.id);
+              if (Config.theme !== msg.payload.active_theme.id) {
+                Config.updateTheme(msg.payload.active_theme.id);
+              }
             }
             if (msg.payload.available_themes) {
               root.availableThemes = msg.payload.available_themes;
@@ -704,6 +758,12 @@ Item {
               root.recordingDuration = 0;
               root.recordingFinished(msg.payload);
             }
+          } else if (msg.type === "hypr_state_update") {
+            root.hyprState = msg.payload || null;
+            root.hyprStateReceived(msg.payload || {});
+          } else if (msg.type === "hypr_preview_result") {
+            root.hyprPreviewOutput = (msg.payload && msg.payload.output) ? msg.payload.output : "";
+            root.hyprPreviewResult(msg.payload || {});
           } else if (msg.type === "toggle_launcher") {
             root.launcherToggled();
           } else if (msg.type === "open_launcher") {
@@ -712,6 +772,8 @@ Item {
             root.launcherClosed();
           } else if (msg.type === "open_app") {
             root.appOpenRequested(msg.payload || {});
+          } else if (msg.type === "close_app") {
+            root.appCloseRequested(msg.payload || {});
           } else if (msg.type === "toggle_app") {
             root.appToggleRequested(msg.payload || {});
           } else if (msg.type === "toggle_control_center") {
@@ -770,6 +832,8 @@ Item {
         } catch (e) {
           console.warn("[DaemonIPC] JSON parse hatası: ", e, "Gelen ham veri:", data);
         }
+      }
+    }
       }
     }
   }

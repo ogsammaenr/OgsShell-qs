@@ -7,7 +7,7 @@ tags:
   - unix-socket
   - reactive-state
 created: 2026-08-09
-updated: 2026-09-16
+updated: 2026-09-18
 status: active
 related_notes:
   - "[[IPC-Socket-Schema]]"
@@ -20,7 +20,7 @@ related_notes:
 # Daemon IPC Client Component
 
 > [!NOTE]
-> `shell/backend/DaemonIPC.qml` connects to the Go daemon's Unix Domain Socket (`$XDG_RUNTIME_DIR/ogs_shell.sock`) via `Quickshell.Io.Socket` and parses incoming NDJSON metrics, state updates, and command responses into reactive QML properties and signals.
+> `shell/backend/DaemonIPC.qml` connects to the Go daemon's Unix Domain Socket (`$XDG_RUNTIME_DIR/ogs_shell.sock`) via `Quickshell.Io.Socket` wrapped inside a dynamic `Loader`, parsing incoming NDJSON metrics, state updates, and command responses into reactive QML properties and signals.
 
 ---
 
@@ -28,8 +28,8 @@ related_notes:
 
 ```mermaid
 graph LR
-    SOCK["ogs_shell.sock"] --> QMSOCK["Quickshell.Io.Socket"]
-    QMSOCK --> SPLIT["SplitParser (Delimiter: '\n')"]
+    LOADER["Loader (Auto-Recreate on Fail)"] --> SOCK["Quickshell.Io.Socket"]
+    SOCK --> SPLIT["SplitParser (Delimiter: '\n')"]
     SPLIT --> PARSE["JSON.parse(data)"]
     PARSE --> PROPS["Reactive Properties:<br/>cpu, ram, wifi, capture, etc."]
     PARSE --> SIGS["High-Priority Signals:<br/>screenFrozen, screenshotCaptured, etc."]
@@ -86,9 +86,10 @@ function openAnnotator(filePath) {
 
 ## 3. Key Design Choices
 
-1. **`SplitParser` Stream Handling:** Buffers and separates incoming bytes by newline characters, guaranteeing that `JSON.parse` is only fed complete JSON objects.
-2. **Defensive Parsing:** Wraps JSON parsing in `try/catch` and performs null-safety checks on all payload properties to isolate network glitches from crashing QML render passes.
-3. **Reactive Property Expositions:** Widgets can simply bind to `DaemonIPC.isRecording`, `DaemonIPC.recordingDuration`, or `DaemonIPC.lastScreenshotPath` and update automatically.
+1. **Dynamic `Loader` Socket Lifecycle:** When Quickshell starts before the daemon socket is created, Qt's C++ `QLocalSocket` throws `ServerNotFoundError` and refuses in-place property re-connections. Wrapping `Socket` in a `Loader` allows `DaemonIPC.qml` to cleanly cycle `socketLoader.active = false; socketLoader.active = true;` every 1500ms when disconnected, guaranteeing immediate connection once the Go daemon IPC socket becomes available.
+2. **`SplitParser` Stream Handling:** Buffers and separates incoming bytes by newline characters, guaranteeing that `JSON.parse` is only fed complete JSON objects.
+3. **Defensive Parsing:** Wraps JSON parsing in `try/catch` and performs null-safety checks on all payload properties to isolate network glitches from crashing QML render passes.
+4. **Reactive Property Expositions:** Widgets can simply bind to `DaemonIPC.isRecording`, `DaemonIPC.recordingDuration`, or `DaemonIPC.lastScreenshotPath` and update automatically.
 
 ---
 

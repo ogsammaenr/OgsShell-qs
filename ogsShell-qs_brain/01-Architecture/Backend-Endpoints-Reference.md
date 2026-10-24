@@ -24,6 +24,7 @@ related_notes:
   - "[[Clipboard-Service]]"
   - "[[Keyboard-Service]]"
   - "[[Theme-Service]]"
+  - "[[Hyprland-Profile-Service]]"
   - "[[SysMetrics-Service]]"
   - "[[Agent-Workflow-Directives]]"
 ---
@@ -129,6 +130,11 @@ sequenceDiagram
 | **Tema** | `save_custom_theme` | `{"theme": {...}}` | `theme_update` | `[[Theme-Service]]` |
 | **Tema** | `delete_custom_theme` | `{"theme_id": "..."}` | `theme_update` | `[[Theme-Service]]` |
 | **Tema** | `toggle_theme_adapter` | `{"adapter_id": "kitty", "enabled": bool}` | `theme_update` | `[[Theme-Service]]` |
+| **Hyprland** | `get_hypr_state` | `{}` | `hypr_state_update` | `[[Hyprland-Profile-Service]]` |
+| **Hyprland** | `set_hypr_profile` | `{"border_profile": "...", "animation_profile": "..."}` | `hypr_state_update` | `[[Hyprland-Profile-Service]]` |
+| **Hyprland** | `preview_hypr_eval` | `{"lua_code": "..."}` | `hypr_preview_result` | `[[Hyprland-Profile-Service]]` |
+| **Hyprland** | `save_custom_curve` | `{"name": "...", "points": [x1, y1, x2, y2]}` | `hypr_state_update` | `[[Hyprland-Profile-Service]]` |
+| **Hyprland** | `save_custom_border` | `{"profile_name": "...", "border_size": 2, ...}` | `hypr_state_update` | `[[Hyprland-Profile-Service]]` |
 
 ---
 
@@ -161,6 +167,8 @@ sequenceDiagram
 | `available_layouts_data` | `get_available_system_layouts` yanıtı | `[]AvailableLayout` | `[[Keyboard-Service]]` |
 | `theme_update` | Tema değiştiğinde veya adaptör güncellendiğinde | `ThemeState` | `[[Theme-Service]]` |
 | `available_themes_data` | `get_available_themes` yanıtı | `[]ThemePalette` | `[[Theme-Service]]` |
+| `hypr_state_update` | Inode dosya izleme veya profil/kenarlık değişimi | `HyprStatePayload` | `[[Hyprland-Profile-Service]]` |
+| `hypr_preview_result` | `preview_hypr_eval` komutunun yürütülme yanıtı | `HyprPreviewPayload` | `[[Hyprland-Profile-Service]]` |
 
 ---
 
@@ -223,6 +231,12 @@ Yayınlayan: `[[Calendar-Service]]`
 * `CalendarEvent`: `{"id": "evt_1", "title": "Toplantı", "description": "", "date": "2026-08-15", "time": "14:30", "all_day": false, "color": "#89b4fa", "completed": false, "notify_before_minutes": 15, "notified": false}`
 * `MonthData`: `{"year": 2026, "month": 8, "holidays": [...], "events": [...]}`
 * `CalendarReminderTriggeredPayload`: `{"id": "evt_1", "title": "Toplantı", "date": "2026-08-15", "time": "14:30", "minutes_until": 15}`
+
+### 3.6. Hyprland Profil ve Bezier Servisi
+Yayınlayan: `[[Hyprland-Profile-Service]]`
+
+* `HyprStatePayload`: `{"active_border": "default", "active_animation": "snappy", "border_profiles": ["default", "borderless", ...], "animation_profiles": ["snappy", "smooth_float", ...], "curves": {"snappyEase": [0.25, 0.1, 0.25, 1.0], ...}}`
+* `HyprPreviewPayload`: `{"status": "ok", "output": "ok"}`
 
 ---
 

@@ -5,6 +5,7 @@ Text {
   id: root
 
   property string titleText: ""
+  property alias title: root.titleText
   text: titleText.toUpperCase()
 
   font.pixelSize: 11

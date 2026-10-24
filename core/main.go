@@ -13,6 +13,7 @@ import (
 	"ogsShell/core/services/capture"
 	"ogsShell/core/services/clipboard"
 	"ogsShell/core/services/currency"
+	"ogsShell/core/services/hyprland"
 	"ogsShell/core/services/keyboard"
 	"ogsShell/core/services/launcher"
 	"ogsShell/core/services/launcher/entry"
@@ -348,6 +349,18 @@ func main() {
 		})
 		log.Info("Ekran yakalama, OCR ve kayıt servisi başarıyla başlatıldı")
 	}
+
+	// Hyprland profil ve efekt yöneticisini başlat
+	hyprMgr := hyprland.NewManager()
+	hyprMgr.SetOnStateChange(func(state *hyprland.HyprState) {
+		payloadBytes, _ := json.Marshal(state)
+		_ = server.Broadcast(ipc.Event{
+			Type:    "hypr_state_update",
+			Payload: payloadBytes,
+		})
+	})
+	go hyprMgr.Watch(ctx)
+	log.Info("Hyprland profil ve efekt yöneticisi başarıyla başlatıldı")
 
 	// Socket üzerinden gelecek RPC komutlarını işleyecek Handler
 	server.SetActionHandler(func(action ipc.Action) error {
@@ -1310,6 +1323,19 @@ func main() {
 				Payload: payloadBytes,
 			})
 
+		case "close_app":
+			var p struct {
+				App     string `json:"app"`
+				Subview string `json:"subview,omitempty"`
+			}
+			_ = json.Unmarshal(action.Args, &p)
+			log.Info("Uygulama kapatma isteği alındı (close_app)", "app", p.App)
+			payloadBytes, _ := json.Marshal(p)
+			return server.Broadcast(ipc.Event{
+				Type:    "close_app",
+				Payload: payloadBytes,
+			})
+
 		case "toggle_app":
 			var p struct {
 				App     string `json:"app"`
@@ -1524,6 +1550,92 @@ func main() {
 				_ = json.Unmarshal(action.Args, &p)
 			}
 			return captureMgr.OpenAnnotator(p.FilePath)
+
+		case "get_hypr_state":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			state, err := hyprMgr.GetState()
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "set_hypr_profile":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.SetProfilePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("set_hypr_profile args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.SetProfile(p.Category, p.Name)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "preview_hypr_eval":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.PreviewEvalPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("preview_hypr_eval args çözülemedi: %w", err)
+			}
+			out, err := hyprMgr.PreviewEval(p.Lua)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(map[string]string{"output": out})
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_preview_result",
+				Payload: payloadBytes,
+			})
+
+		case "save_custom_curve":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.SaveCustomCurvePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("save_custom_curve args çözülemedi: %w", err)
+			}
+			if err := hyprMgr.SaveCustomCurve(p.Name, p.Points); err != nil {
+				return err
+			}
+			state, _ := hyprMgr.GetState()
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "save_custom_border":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.SaveCustomBorderPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("save_custom_border args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.SaveCustomBorder(p)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
 		}
 
 		return nil

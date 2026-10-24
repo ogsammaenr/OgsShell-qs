@@ -33,10 +33,12 @@
 │  - reservedSpacerWindow (Top exclusive tiling spacer)  │
 │  - backdropWindow (Fullscreen click-outside dismiss)   │
 │  - islandWindow (Fixed 540x360 stable Wayland surface) │
+│  - screenCornersWindow (Dynamic Top/Overlay Bezel HUD) │
 │  - topRightTrayWindow (Fixed 420x80 stable Tray surface)│
 │  - TopRightTrayHUD (Mirrored Corner System Tray HUD)   │
 │  - bottomNotchWindow (Inverted Bottom Command Notch)   │
 │  - BottomCommandNotch (Mirrored G2 Bezier Shell Runner)│
+│  - inspectorOverlayWindow (Window Inspector & Class HUD)│
 │  - DynamicIsland (Island vs Notch presentation modes)  │
 │  - DaemonIPC (Socket & SplitParser JSON receiver)      │
 │  - Style.qml (Catppuccin & Pure OLED Black tokens)     │
@@ -125,6 +127,7 @@
   - **Tmux:** Multi-location `current-theme.conf` sync, `minimal-tmux-status` live reload and client refresh.
   - **Starship Prompt:** Dynamic synthesis of `~/.config/starship.toml` via template concatenation (`base.toml` + `palettes/<theme>.toml`) for instant zero-restart cross-shell prompt recoloring.
 * **Concurrent Error-Isolated Dispatcher:** Applies theme updates in parallel goroutines.
+* **Frontend Dual Persistence Sync:** When `set_active_theme` is dispatched, the shell synchronizes both `$XDG_CONFIG_HOME/ogsShell/theme_config.json` and `config.json` (`Config.updateTheme()`), ensuring zero cold-boot race conditions and keeping the active palette consistent from t=0ms across restarts.
 * **IPC Endpoints:** `get_theme_state`, `get_available_themes`, `set_active_theme`, `save_custom_theme`, `delete_custom_theme`, `toggle_theme_adapter`.
 
 ---
@@ -170,19 +173,30 @@
 
 ---
 
-## 13. Unified CLI Management Architecture (`ogsshell.sh`)
+## 13. Hyprland Profile, Decoration & Bezier Physics Engine (`core/services/hyprland/`)
 
-* **Single Consolidated Entrypoint:** All lifecycle management (`run`, `run_backend`, `run_frontend`, `reload`, `stop`, `status`), IPC triggers (`launcher`, `settings`, `bottom_notch`, `cc`, `wifi`, `bluetooth`, `mixer`, `calendar`, `clock`, `media`, `notif`, `power`, `themes`, `dnd`, `switch_layout`, `next_wallpaper`), and developer utilities (`preview_starship`) are consolidated into a single executable script (`scripts/ogsshell.sh`).
+* **Active State & Multi-Profile Synchronization:** Reads and dynamically synchronizes Hyprland state with `~/.config/hypr/lua/active_state.lua`, discovering profiles across `borders/`, `animations/` (workspaces, windows, layers), and `themes/`.
+* **Zero-Latency Runtime Preview:** Provides instant 0ms preview via `hyprctl eval` (`preview_hypr_eval`), executing Lua table assignments without file commits or window flicker.
+* **Custom Bezier Curve Registration:** Dynamically writes user-designed CSS Cubic Bezier coordinates to `~/.config/hypr/lua/profiles/animations/custom_curves.lua` and injects them live via `hl.curve(...)`.
+* **Atomic Custom Border Profiles:** Synthesizes `custom_<name>.lua` border definitions (gaps, squircle power, opacity, shadows) and updates `active_state.lua` atomically.
+* **Continuous Inode File Watcher:** Background `fsnotify` watcher monitors `lua/active_state.lua` and broadcasts `hypr_state_update` NDJSON events in real-time.
+* **IPC Endpoints:** `get_hypr_state`, `set_hypr_profile`, `preview_hypr_eval`, `save_custom_curve`, `save_custom_border`.
+
+---
+
+## 14. Unified CLI Management Architecture (`ogsshell.sh`)
+
+* **Single Consolidated Entrypoint:** All lifecycle management (`run`, `run_backend`, `run_frontend`, `reload`, `stop`, `status`), IPC triggers (`launcher`, `settings`, `bottom_notch`, `cc`, `wifi`, `bluetooth`, `mixer`, `calendar`, `clock`, `media`, `notif`, `power`, `themes`, `dnd`, `switch_layout`, `next_wallpaper`, `inspect`), and developer utilities (`preview_starship`) are consolidated into a single executable script (`scripts/ogsshell.sh`).
 * **Canonical Installation Location:** Deployed to `$XDG_CONFIG_HOME/ogsShell/ogsshell.sh` (`~/.config/ogsShell/ogsshell.sh`) with `ogs.sh` symlink and exposed system-wide via `~/.local/bin/ogsshell`.
-* **Dynamic Workspace Resolution:** Auto-resolves project root across custom `$OGSSHELL_REPO_ROOT`, local repo checkouts, and canonical home directories without hardcoded path dependencies.
+* **System Autostart & Socket Readiness Handshake:** `cmd_run` employs incremental Go compilation avoidance (skipping `go build` when `bin/ogsshell-core` is up to date), log rotation (`/tmp/ogsshell-core.prev.log`), and an extended 10-second IPC socket readiness polling loop before launching Quickshell, preventing cold-boot race conditions.
 * **Shell Auto-Completion Support:** Native context-aware Tab completion for both Zsh (`~/.config/zsh/custom/ogsshell.zsh`) and Bash (`~/.local/share/bash-completion/completions/ogsshell`), providing command and multi-argument subview completions for `ogsshell`, `ogsshell.sh`, `ogs`, and `ogs.sh`.
 
 ---
 
-## 14. Obsidian Brain Vault Reference Map
+## 15. Obsidian Brain Vault Reference Map
 
 * **`01-Architecture/`**: `[[System-Architecture]]`, `[[Project-Structure]]`, `[[Backend-Endpoints-Reference]]`, `[[IPC-Socket-Schema]]`, `[[Apple-Dynamic-Island-HIG]]`, `[[Apple-HIG-Minimal-Design-System]]`, `[[Dynamic-Notch-Design-Specification]]`, `[[Dynamic-Island-Physics-State-Machine]]`, `[[Configuration-System-Spec]]`, `[[Configuration-Themes-Spec]]`
-* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[Capture-Service]]`, `[[Currency-Service]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
-* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Bottom-Command-Notch]]`, `[[Snipping-Overlay-Component]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
+* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[Hyprland-Profile-Service]]`, `[[Capture-Service]]`, `[[Currency-Service]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
+* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Bottom-Command-Notch]]`, `[[Snipping-Overlay-Component]]`, `[[Window-Inspector-Overlay]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
 * **`04-Agent-Rules/`**: `[[Go-Coding-Style]]`, `[[QML-Best-Practices]]`, `[[Agent-Workflow-Directives]]`
 

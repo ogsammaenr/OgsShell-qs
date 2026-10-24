@@ -116,7 +116,9 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Kayıt** | `toggle_recording` | `{"geometry": "x,y wxh"}` *(opsiyonel)* | `recording_state_update` veya `recording_finished` | Aktif kaydı durdurur veya yeni kayıt başlatır (Toggle) |
 | **Görsel Düzenleme** | `open_annotator` | `{"file_path": "..."}` *(opsiyonel)* | `{}` | Gradia görsel düzenleyicisini bağımsız süreç olarak açar |
 | **App Routing** | `open_app` | `{"app": "themes", "subview": "..."}` | `open_app` | Belirtilen uygulamayı Dynamic Island üzerinde odaklar ve açar |
+| **App Routing** | `close_app` | `{"app": "...", "subview": "..."}` | `close_app` | Belirtilen uygulamayı/alt görünümü kapatır (Hold release vb.) |
 | **App Routing** | `toggle_app` | `{"app": "...", "subview": "..."}` | `toggle_app` | Belirtilen uygulamayı Dynamic Island üzerinde açar veya kapatır |
+| **Pencere Denetçisi** | `inspect` | `{"app": "inspector"}` | `open_app` / `close_app` / `toggle_app` | Pencere sınıfı/ID denetçisini açar, kapatır veya durumunu değiştirir |
 | **Kısayollar** | `toggle_control_center` / `open_control_center` | `{}` | `toggle_control_center` | Kontrol Merkezi görünümünü açar/kapatır |
 | **Kısayollar** | `toggle_themes` / `open_themes` | `{}` | `toggle_themes` | Tema galerisi ve ayarları görünümünü açar/kapatır |
 | **Kısayollar** | `toggle_notifications` / `open_notifications` | `{}` | `toggle_notifications` | Bildirim merkezi görünümünü açar/kapatır |
@@ -170,6 +172,9 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `toggle_launcher` | `toggle_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açıp/kapatması için sinyal |
 | `open_launcher` | `open_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu açması için sinyal |
 | `close_launcher` | `close_launcher` RPC komutuna yanıt | `{}` | Dynamic Island'ın launcher modunu kapatması için sinyal |
+| `open_app` | `open_app` RPC komutuna yanıt | `{"app": "...", "subview": "..."}` | Belirtilen uygulamanın/alt görünümün açılması için genel sinyal |
+| `close_app` | `close_app` RPC komutuna yanıt | `{"app": "...", "subview": "..."}` | Belirtilen uygulamanın/alt görünümün kapatılması için genel sinyal (Hold release vb.) |
+| `toggle_app` | `toggle_app` RPC komutuna yanıt | `{"app": "...", "subview": "..."}` | Belirtilen uygulamanın/alt görünümün durumunun değiştirilmesi için genel sinyal |
 | `currency_rates_update` | Periyodik veya anlık kur güncellemesinde | `CurrencyRates` | Güncel döviz ve kripto para oranları tablosu |
 | `screen_frozen` | `freeze_screen` RPC komutuna yanıt | `FreezeResult` | Tam ekran donmuş görselin dosya yolu ve zaman damgası |
 | `screenshot_captured` | `capture_screenshot` RPC komutuna yanıt | `CaptureResult` | Ekran görüntüsü yolu, geometri, pano kopyalama ve başarı durumu |

@@ -122,6 +122,7 @@ FloatingWindow {
               { "id": "bluetooth",     "title": "Bluetooth",          "icon": "󰂯" },
               { "id": "appearance",    "title": "Görünüm ve Tema",    "icon": "🎨" },
               { "id": "island",        "title": "Ada ve Çentik",      "icon": "🏝️" },
+              { "id": "hyprland",      "title": "Hyprland & Efektler","icon": "🪟" },
               { "id": "sound",         "title": "Ses ve Donanım",     "icon": "🔊" },
               { "id": "notifications", "title": "Bildirimler",        "icon": "🔔" },
               { "id": "keyboard",      "title": "Klavye ve Giriş",    "icon": "⌨️" },
@@ -199,6 +200,7 @@ FloatingWindow {
                   if (rootWindow.activeCategory === "bluetooth") return "Bluetooth"
                   if (rootWindow.activeCategory === "appearance") return "Görünüm ve Tema"
                   if (rootWindow.activeCategory === "island") return "Ada ve Çentik"
+                  if (rootWindow.activeCategory === "hyprland") return "Hyprland ve Efektler"
                   if (rootWindow.activeCategory === "sound") return "Ses ve Donanım"
                   if (rootWindow.activeCategory === "notifications") return "Bildirimler"
                   if (rootWindow.activeCategory === "keyboard") return "Klavye ve Giriş"
@@ -239,10 +241,17 @@ FloatingWindow {
               visible: rootWindow.activeCategory === "island"
             }
 
+            // Page 3: Hyprland Borders & Animations Page
+            HyprlandPage {
+              anchors.fill: parent
+              ipc: ipcService
+              visible: rootWindow.activeCategory === "hyprland"
+            }
+
             // Placeholder for other upcoming pages
             Item {
               anchors.fill: parent
-              visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island"
+              visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island" && rootWindow.activeCategory !== "hyprland"
 
               ColumnLayout {
                 anchors.centerIn: parent
