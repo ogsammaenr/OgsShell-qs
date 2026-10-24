@@ -159,6 +159,7 @@ Flickable {
   contentWidth: width
   contentHeight: mainColumn.implicitHeight + 40
   boundsBehavior: Flickable.StopAtBounds
+  acceptedButtons: Qt.NoButton
   clip: true
 
   ScrollBar.vertical: ScrollBar {

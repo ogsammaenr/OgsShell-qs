@@ -47,6 +47,7 @@ related_notes:
    - 󰂯 **Bluetooth** (`bluetooth`)
    - 🎨 **Görünüm ve Tema** (`appearance`)
    - 🏝️ **Ada ve Çentik** (`island`) — *Aktif*
+   - 🪟 **Hyprland ve Efektler** (`hyprland`) — *Aktif*
    - 🔊 **Ses ve Donanım** (`sound`)
    - 🔔 **Bildirimler** (`notifications`)
    - ⌨️ **Klavye ve Giriş** (`keyboard`)
@@ -60,6 +61,7 @@ related_notes:
    - `SettingsButton.qml`: Minimalist aksiyon butonu.
    - `SettingsDnsCard.qml`: DNS sağlayıcıları için radyo seçimli interaktif kart.
    - `SettingsSectionHeader.qml`: Sessiz ve zarif kategori üst başlığı.
+   - `CubicBezierEditor.qml`: CSS/Hyprland uyumlu, interaktif kontrol noktalarına ve canlı önizleme kutusuna sahip Bézier eğri jeneratörü.
 
 ---
 
@@ -87,10 +89,31 @@ related_notes:
 
 ---
 
-## 4. İlgili Bağlantılar
+## 4. Hyprland ve Efektler Yönetimi (`HyprlandPage.qml`)
 
+* **Hızlı Profil Seçimi (Presets):** Kenarlıklar (`default`, `borderless`, `cyberpunk`, `nordic`) ve animasyonlar (`snappy`, `smooth_float`, `bouncy`, `minimal_fast`) için hızlı tek tıkla geçiş çipleri.
+* **Kenarlık ve Geometri Stüdyosu:**
+  - Canlı reaktif mock pencere önizlemesi (Nord temalı başlık çubuğu, gradyan border, rounding ve drop shadow).
+  - Stepper kontrolleri: `border_size` (0-8px), `rounding` (0-28px), `rounding_power` (1.0-4.0 continuous squircle curvature), `gaps_in` (0-30px), `gaps_out` (0-40px), `active_opacity` (0.4-1.0), `inactive_opacity` (0.4-1.0), `drop_shadow` toggle, `shadow_range` (5-60px).
+  - Anında sıfır gecikmeli masaüstü canlı önizlemesi (`hyprctl eval` aracılığıyla).
+  - Kullanıcı tanımlı özel kenarlık profili kaydetme ve Lua durum dosyasına atomik yazım (`active_state.lua`).
+* **Modüler Animasyon Geçişleri (Animation Overrides):**
+  - Hedef bazlı eğri ve süre seçimi: `windows`, `windowsIn`, `windowsOut`, `windowsMove`, `workspaces`, `layers`.
+  - Hızlı eğri profilleri: `linear`, `snappyEase`, `smoothFloat`, `bouncyPop`, `customCurve`.
+* **Gömülü Cubic Bézier Stüdyosu (`CubicBezierEditor.qml`):**
+  - CSSPortal tarzı interaktif $P_1$ ve $P_2$ kontrol noktaları.
+  - Hyprland yay/sekme fiziği için genişletilmiş $Y$ aralığı: $[-0.5, 1.5]$.
+  - Canlı animasyon pisti ve gerçek Hyprland pencereleri üzerinde canlı test butonu.
+  - Lua sözdizimine uygun özel eğri kaydetme (`custom_curves.lua`).
+
+---
+
+## 5. İlgili Bağlantılar
+
+* Hyprland Profil Servisi (Go Daemon): `[[Hyprland-Profile-Service]]`
 * Konfigürasyon Spesifikasyonu: `[[Configuration-System-Spec]]`
 * Tasarım Token'ları: `[[Style-Design-Tokens]]`
+* Daemon IPC İletişimi: `[[Daemon-IPC-Client]]`
 * Dynamic Island: `[[Dynamic-Island-Component]]`
 * Dynamic Notch: `[[Dynamic-Notch-Design-Specification]]`
 * Düşünce Günlüğü: `[[Plan-Settings-App-Island-And-Notch-Tab]]`

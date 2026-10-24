@@ -8,7 +8,7 @@ tags:
   - multimonitor
   - dynamic-island
 created: 2026-08-14
-updated: 2026-09-11
+updated: 2026-10-07
 status: implemented
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -59,6 +59,18 @@ related_notes:
    * **Katman:** `WlrLayershell.layer: WlrLayer.Overlay`
    * **Odak:** `WlrKeyboardFocus.Exclusive`
    * Klavye ve fare odaklı OLED cam oturum modalı.
+
+5. **`screenCornersWindow` (Ekran Köşeleri & Sol-Üst Dynamic OSD Yüzeyi):**
+   * **Dinamik Katman:** `WlrLayershell.layer: (screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top`
+   * **Exclusion Mode:** `ExclusionMode.Ignore`
+   * **Girdi:** `mask: Region {}` (Sıfır tıklama engelleme).
+   * Normalde `WlrLayer.Top` katmanında yer alarak herhangi bir uygulama tam ekran yapıldığında diğer köşelerin (sol-üst, sol-alt, sağ-alt) tam ekran pencerenin altına düşmesini sağlar. Sol-üst köşe OSD bildirimi aktifken geçici olarak `WlrLayer.Overlay` katmanına yükselir.
+
+6. **`topRightTrayWindow` (Sağ-Üst Sistem Tepsisi HUD Yüzeyi):**
+   * **Dinamik Katman:** `WlrLayershell.layer: (topRightTrayHud && topRightTrayHud.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top`
+   * **Exclusion Mode:** `ExclusionMode.Ignore`
+   * **Girdi Maskesi:** `mask: Region { item: activeTrayInputEnvelope }`
+   * Normalde `WlrLayer.Top` katmanında durarak tam ekran uygulamalarda alta düşer; tıklandığında `Overlay` katmanına çıkarak tepsiyi açar.
 
 ```mermaid
 graph TD

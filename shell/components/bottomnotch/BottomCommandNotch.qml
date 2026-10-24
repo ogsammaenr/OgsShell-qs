@@ -326,14 +326,14 @@ FocusScope {
           suggestionsModel.append({
             "type": "theme",
             "title": t.name || t.id,
-            "subtitle": t.id === (ipc.currentTheme ? ipc.currentTheme.id : "") ? "Aktif Tema" : "Temayı Uygula",
+            "subtitle": t.id === ((ipc && ipc.currentTheme && ipc.currentTheme.id) ? ipc.currentTheme.id : Style.activeThemeId) ? "Aktif Tema" : "Temayı Uygula",
             "command": ":theme " + t.id,
             "themeId": t.id,
             "color1": cols[0],
             "color2": cols[1],
             "color3": cols[2],
             "color4": cols[3],
-            "isActive": t.id === (ipc.currentTheme ? ipc.currentTheme.id : ""),
+            "isActive": t.id === ((ipc && ipc.currentTheme && ipc.currentTheme.id) ? ipc.currentTheme.id : Style.activeThemeId),
             "thumb": ""
           })
         }

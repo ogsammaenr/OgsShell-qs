@@ -4,6 +4,7 @@
 
 # 1. Compiled C & Go Binaries & Daemon Executables
 /bin/
+/core/bin/
 /build/
 /monitor
 /workspaces

@@ -72,8 +72,8 @@ Item {
   ]
 
   readonly property var activeThemesList: (ipc && ipc.availableThemes && ipc.availableThemes.length > 0) ? ipc.availableThemes : fallbackThemes
-  readonly property string currentActiveThemeId: (ipc && ipc.currentTheme && ipc.currentTheme.id) ? ipc.currentTheme.id : "everforest"
-  readonly property string currentActiveThemeName: (ipc && ipc.currentTheme && ipc.currentTheme.name) ? ipc.currentTheme.name : "Everforest Dark"
+  readonly property string currentActiveThemeId: (ipc && ipc.currentTheme && ipc.currentTheme.id) ? ipc.currentTheme.id : (Style.activeThemeId || "everforest")
+  readonly property string currentActiveThemeName: (ipc && ipc.currentTheme && ipc.currentTheme.name) ? ipc.currentTheme.name : (Style.activeThemeName || "Everforest Dark")
   readonly property var activeWallpapersList: (ipc && ipc.themeWallpapers) ? ipc.themeWallpapers : []
   readonly property string activeWallpaperPath: (ipc && ipc.activeWallpaper) ? ipc.activeWallpaper : ""
 

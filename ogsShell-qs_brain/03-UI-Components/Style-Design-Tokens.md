@@ -8,7 +8,7 @@ tags:
   - ui/typography
   - animation/spring
 created: 2026-08-09
-updated: 2026-08-24
+updated: 2026-10-24
 status: active
 related_notes:
   - "[[System-Architecture]]"
@@ -18,6 +18,7 @@ related_notes:
   - "[[Daemon-IPC-Client]]"
   - "[[Control-Center-Widget]]"
   - "[[Clock-Manager]]"
+  - "[[Configuration-System-Spec]]"
   - "[[Plan-Typography-Scale-And-Readability-Optimization]]"
   - "[[Plan-Rose-Pine-Theme-Integration]]"
 ---
@@ -74,6 +75,8 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 | `accentCyan` | `activePalette.accentCyan` | Saat, Wi-Fi ve canlı durum vurguları |
 | `accentGreen` | `activePalette.accentGreen` | Kronometre, RAM ve aktif telemetri |
 | `accentOrange` | `activePalette.accentOrange` | Pomodoro, GPU ve uyarılar |
+| `accentYellow` | `activePalette.accentYellow` | Sarı uyarılar, bildirim ikonları ve ara durumlar |
+| `accentMagenta` | `activePalette.accentMagenta` | Pano bildirim rozeti (Clipboard HUD), özel toast vurguları |
 | `accentRed` | `activePalette.accentRed` | Alarm, iptal, silme ve tehlike aksiyonları |
 
 ---
@@ -90,7 +93,17 @@ Adanın ve ada içerisindeki tüm bileşenlerin tema mimarisi iki temel prensibe
 
 ---
 
-## 5. İlgili Bağlantılar
+## 5. Soğuk Başlangıç ve İki Yönlü Tema Senkronizasyonu (Cold Boot Theme Synchronization)
+
+Sistem ilk açıldığında (`cold boot`) kabuğun doğru tema ile açılmasını garanti altına alan mimari prensipler:
+
+1. **Öncelikli Kalıcı Yapılandırma (`theme_config.json`):** `Style.qml` singleton'ı, `XDG_CONFIG_HOME` ortam değişkeni tanımlı olmadığında doğrudan canonical `$HOME/.config/ogsShell/theme_config.json` yoluna düşen sağlam bir `FileView` izleyicisi barındırır.
+2. **Cold Boot Precedence:** Kabuk açılışında `theme_config.json` dosyasından okunan aktif tema (`active_theme_id`), `config.json` dosyasındaki olası eski tema değerinin (`theme`) adayı Catppuccin gibi varsayılanlara ezmesini engeller.
+3. **Çift Yönlü Eşitleme (`Config.updateTheme`):** Kullanıcı UI (`ThemesView.qml`, `BottomCommandNotch.qml`) veya IPC (`set_active_theme`) üzerinden tema değiştirdiğinde, `DaemonIPC` hem `theme_config.json`'ı hem de `config.json` (`shell/`, `~/.config/ogsShell/`, `shared/app_configs/shell/`) dosyalarını anında günceller.
+
+---
+
+## 6. İlgili Bağlantılar
 
 * Dynamic Island: `[[Dynamic-Island-Component]]`
 * Dynamic Notch: `[[Dynamic-Notch-Design-Specification]]`

@@ -7,7 +7,7 @@ tags:
   - wayland/layershell
   - dynamic-island/ui
 created: 2026-09-06
-updated: 2026-09-06
+updated: 2026-10-07
 status: active
 related_notes:
   - "[[Configuration-System-Spec]]"
@@ -25,7 +25,7 @@ related_notes:
 
 ## 1. Overview & Architecture
 
-* **Wayland Layer:** `PanelWindow` hosted on `WlrLayer.Overlay` with `exclusionMode: ExclusionMode.Ignore`.
+* **Wayland Layer:** `PanelWindow` (`screenCornersWindow`) barındırılır. Katman hiyerarşisi dinamik olarak `(screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top` şeklindedir (`exclusionMode: ExclusionMode.Ignore`). Normal/IDLE modda `WlrLayer.Top` olarak çalışır; böylece tam ekran (fullscreen) bir uygulama açıldığında diğer 3 köşe (veya tray kapalıysa 4 köşe de) tam ekran uygulamanın altına düşer. Yalnızca sol-üst köşe OSD bildirimi (`CornerIslandHUD`) aktif olduğunda geçici olarak `WlrLayer.Overlay` katmanına yükselir.
 * **Zero Click-Blocking (`mask: Region {}`):** Configured with an empty Wayland input region so that all mouse clicks, drag events, and scrolling pass 100% transparently to underlying tiling and floating applications.
 * **Hardware Anti-Aliasing:** Uses `QtQuick.Shapes` vector paths with `layer.samples: 4` and `layer.smooth: true` to prevent pixelation on high-DPI displays.
 * **Per-Corner Granularity:** Supports toggling individual corners (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`).

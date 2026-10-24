@@ -31,6 +31,8 @@ QtObject {
       "accentCyan": "#83c092",
       "accentGreen": "#a7c080",
       "accentOrange": "#e69875",
+      "accentYellow": "#dbbc7f",
+      "accentMagenta": "#d699b6",
       "accentRed": "#e67e80"
     },
     "catppuccin": {
@@ -45,6 +47,8 @@ QtObject {
       "accentCyan": "#8aadf4",
       "accentGreen": "#a6da95",
       "accentOrange": "#f5a97f",
+      "accentYellow": "#eed49f",
+      "accentMagenta": "#c6a0f6",
       "accentRed": "#ed8796"
     },
     "tokyonight": {
@@ -59,6 +63,8 @@ QtObject {
       "accentCyan": "#7dcfff",
       "accentGreen": "#9ece6a",
       "accentOrange": "#ff9e64",
+      "accentYellow": "#e0af68",
+      "accentMagenta": "#bb9af7",
       "accentRed": "#f7768e"
     },
     "nord": {
@@ -73,6 +79,8 @@ QtObject {
       "accentCyan": "#8fbcbb",
       "accentGreen": "#a3be8c",
       "accentOrange": "#ebcb8b",
+      "accentYellow": "#ebcb8b",
+      "accentMagenta": "#b48ead",
       "accentRed": "#bf616a"
     },
     "gruvbox": {
@@ -87,6 +95,8 @@ QtObject {
       "accentCyan": "#689d6a",
       "accentGreen": "#98971a",
       "accentOrange": "#d65d0e",
+      "accentYellow": "#fabd2f",
+      "accentMagenta": "#d3869b",
       "accentRed": "#cc241d"
     },
     "monochrome": {
@@ -101,6 +111,8 @@ QtObject {
       "accentCyan": "#ffffff",
       "accentGreen": "#d0d0d0",
       "accentOrange": "#b0b0b0",
+      "accentYellow": "#d0d0d0",
+      "accentMagenta": "#e0e0e0",
       "accentRed": "#ff6b6b"
     },
     "rosepine": {
@@ -115,6 +127,8 @@ QtObject {
       "accentCyan": "#9ccfd8",
       "accentGreen": "#31748f",
       "accentOrange": "#f6c177",
+      "accentYellow": "#f6c177",
+      "accentMagenta": "#c4a7e7",
       "accentRed": "#eb6f92"
     }
   })
@@ -137,6 +151,8 @@ QtObject {
         "accentCyan": customColors.cyan || customColors.accent || "#64d2ff",
         "accentGreen": customColors.green || customColors.accent || "#30d158",
         "accentOrange": customColors.orange || customColors.yellow || customColors.accent || "#ff9f0a",
+        "accentYellow": customColors.yellow || customColors.orange || "#ffd60a",
+        "accentMagenta": customColors.magenta || customColors.purple || customColors.accent_secondary || customColors.accent || "#c6a0f6",
         "accentRed": customColors.red || "#ff453a"
       }
     }
@@ -189,9 +205,9 @@ QtObject {
   property color accentCyan: activePalette.accentCyan ? activePalette.accentCyan : "#64d2ff"
   property color accentGreen: activePalette.accentGreen ? activePalette.accentGreen : "#30d158"
   property color accentOrange: activePalette.accentOrange ? activePalette.accentOrange : "#ff9f0a"
-  property color accentYellow: "#e5c890"
+  property color accentYellow: activePalette.accentYellow ? activePalette.accentYellow : "#e5c890"
   property color accentBlue: activePalette.accentSecondary ? activePalette.accentSecondary : "#0a84ff"
-  property color accentMagenta: "#ca9ee6"
+  property color accentMagenta: activePalette.accentMagenta ? activePalette.accentMagenta : (activePalette.accentSecondary ? activePalette.accentSecondary : activePalette.accent)
   property color accentRed: activePalette.accentRed ? activePalette.accentRed : "#ff453a"
   property color accentHover: Qt.lighter(accent, 1.15)
 
@@ -219,9 +235,19 @@ QtObject {
 
   // =========================================================================
   // Theme Config File Observer ($XDG_CONFIG_HOME/ogsShell/theme_config.json)
+  // Canonical fallback to ~/.config/ogsShell/theme_config.json when env is unset
   // =========================================================================
+  readonly property string themeConfigPath: {
+    let xdg = Quickshell.env("XDG_CONFIG_HOME")
+    if (xdg && xdg.trim().length > 0) return xdg.trim() + "/ogsShell/theme_config.json"
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    return home + "/.config/ogsShell/theme_config.json"
+  }
+
+  property bool themeConfigLoaded: false
+
   property var themeConfigFile: FileView {
-    path: Quickshell.env("XDG_CONFIG_HOME") ? (Quickshell.env("XDG_CONFIG_HOME") + "/ogsShell/theme_config.json") : ""
+    path: root.themeConfigPath
     preload: true
     printErrors: false
     onTextChanged: {
@@ -234,6 +260,7 @@ QtObject {
     try {
       let cfg = JSON.parse(jsonStr)
       if (cfg.active_theme_id) {
+        root.themeConfigLoaded = true
         root.applyThemeById(cfg.active_theme_id)
       }
     } catch (e) {
@@ -247,6 +274,10 @@ QtObject {
   function applyThemeById(themeId) {
     if (!themeId) return
     let normId = themeId.toLowerCase().trim()
+    let key = normId.replace(/[-_ ]/g, "")
+    if (builtinPalettes[key]) {
+      normId = key
+    }
     root.activeThemeId = normId
     if (builtinPalettes[normId]) {
       root.activeThemeName = builtinPalettes[normId].name

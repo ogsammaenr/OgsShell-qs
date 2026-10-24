@@ -16,6 +16,9 @@ Item {
   property bool bottomLeft: true
   property bool bottomRight: true
 
+  // Reflect corner HUD expanded state for dynamic Wayland layer-shell tiering
+  readonly property bool isExpanded: tlCornerHud ? tlCornerHud.isExpanded : false
+
   // Workspace Tracking Isolated to this Screen & Monitor
   readonly property int currentWsId: (hyprMonitor && hyprMonitor.activeWorkspace) ? hyprMonitor.activeWorkspace.id : -1
   property int lastWsId: -1

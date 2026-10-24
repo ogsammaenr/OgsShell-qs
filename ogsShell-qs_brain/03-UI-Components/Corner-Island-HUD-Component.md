@@ -64,7 +64,7 @@ Corner Island HUD sistemi üç ana katmandan oluşur:
 | `WORKSPACE` | `󱂬` | Monitöre özel çalışma alanı noktaları (`Repeater`, metinsiz) | Aktif nokta genişler (`18px`, `accentBlue`), pasif noktalar (`6px`). Noktalar arası `SpringAnimation` ve renk geçişi. |
 | `CAPSLOCK` | `󰪛` | Durum rozeti (`AÇIK` - Yeşil / `KAPALI` - Gri) | 1500 ms durum rozeti |
 | `MIC` | `󰍬`/`󰍭` | Mikrofon durum rozeti (`Açık` / `Sessiz`) | 1600 ms mute uyarısı |
-| `CLIPBOARD` | `󰅍` | "Pano Kopyalandı" başlığı, kırpılmış metin | 2000 ms metin toast bildirimi |
+| `CLIPBOARD` | `󰅍` | "Pano Kopyalandı" başlığı, kırpılmış metin | 2000 ms metin toast bildirimi (İkon, rozet ve başlık `Style.accentMagenta` üzerinden aktif temayla tam uyumlu dinamik renk alır) |
 
 ---
 

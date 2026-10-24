@@ -1,6 +1,8 @@
 {
   "form_factor": "notch",
-  "theme": "catppuccin",
+  "theme": "monochrome",
+  "show_pinned_system_metrics": true,
+  "focus_mode": false,
   "typography": {
     "font_display": "Noto Sans Display",
     "font_weight_display": "bold",
@@ -61,12 +63,6 @@
     "top_right": true,
     "bottom_left": true,
     "bottom_right": true
-  },
-  "corner_tray": {
-    "enabled": true,
-    "height": 34,
-    "trigger_mode": "click",
-    "timeout_ms": 0
   },
   "audio_feedback": {
     "enabled": true,

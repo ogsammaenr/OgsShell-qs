@@ -12,7 +12,8 @@ Item {
 
   // Active form-factor: "island" (floating pill) or "notch" (top-bezel attached)
   property string formFactor: "island"
-  property string theme: "catppuccin"
+  property string theme: (Style.activeThemeId && Style.activeThemeId.length > 0) ? Style.activeThemeId : "everforest"
+  property bool initialLoadDone: false
   property bool showPinnedSystemMetrics: false
   property bool focusMode: false
 
@@ -433,6 +434,15 @@ Item {
     root.configUpdated(full)
   }
 
+  function updateTheme(themeId) {
+    if (!themeId) return
+    let norm = themeId.toLowerCase().trim()
+    if (root.theme === norm && Style.activeThemeId === norm) return
+    root.theme = norm
+    Style.applyThemeById(norm)
+    saveConfig({ "theme": norm })
+  }
+
   // Content change hash trackers to avoid infinite write cycles
   property string lastLoadedWorkspaceHash: ""
   property string lastLoadedUserHash: ""
@@ -556,9 +566,22 @@ Item {
       let cfg = JSON.parse(jsonStr)
       if (cfg.form_factor !== undefined) root.formFactor = cfg.form_factor
       if (cfg.theme !== undefined) {
-        root.theme = cfg.theme
-        Style.applyThemeById(cfg.theme)
+        if (!root.initialLoadDone && Style.themeConfigLoaded && Style.activeThemeId && Style.activeThemeId.length > 0) {
+          // theme_config.json is the authoritative persistence store for active theme.
+          // Synchronize config.json to the last active theme on cold boot.
+          root.theme = Style.activeThemeId
+          if (cfg.theme !== Style.activeThemeId) {
+            cfg.theme = Style.activeThemeId
+            shouldSyncToUser = true
+          }
+        } else {
+          root.theme = cfg.theme
+          Style.applyThemeById(cfg.theme)
+        }
+      } else if (Style.activeThemeId) {
+        root.theme = Style.activeThemeId
       }
+      root.initialLoadDone = true
       if (cfg.show_pinned_system_metrics !== undefined) root.showPinnedSystemMetrics = cfg.show_pinned_system_metrics
       if (cfg.focus_mode !== undefined) root.focusMode = cfg.focus_mode
       if (cfg.island) root.island = Object.assign({}, root.island, cfg.island)

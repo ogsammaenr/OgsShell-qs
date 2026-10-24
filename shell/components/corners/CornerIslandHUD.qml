@@ -407,7 +407,7 @@ Item {
           font.family: Style.fontDisplay
           font.pixelSize: 10
           font.weight: Font.DemiBold
-          color: Style.accentMagenta
+          color: (activeEvent && activeEvent.badgeColor) ? activeEvent.badgeColor : Style.accentMagenta
         }
 
         Text {
