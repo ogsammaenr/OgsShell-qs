@@ -16,3 +16,4 @@ TopRightTrayHUD 1.0 components/corners/TopRightTrayHUD.qml
 BottomCommandNotch 1.0 components/bottomnotch/BottomCommandNotch.qml
 SnippingOverlay 1.0 components/capture/SnippingOverlay.qml
 WindowInspectorOverlay 1.0 components/inspector/WindowInspectorOverlay.qml
+KeyringPromptModal 1.0 components/widgets/keyring/KeyringPromptModal.qml

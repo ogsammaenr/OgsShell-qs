@@ -10,6 +10,7 @@ import "../widgets/calendar"
 import "../widgets/controlcenter"
 import "../widgets/launcher"
 import "../widgets/media"
+import "../widgets/keyring"
 
 Item {
   id: root
@@ -21,7 +22,7 @@ Item {
   // State Machine: "IDLE" | "HOVER" | "EXPANDED" | "TRANSIENT"
   property string stateMode: "IDLE"
   property string previousState: "IDLE"
-  property string expandedActiveTab: "CLOCK" // "CLOCK" | "CALENDAR" | "CONTROL_CENTER" | "LAUNCHER" | "MEDIA"
+  property string expandedActiveTab: "CLOCK" // "CLOCK" | "CALENDAR" | "CONTROL_CENTER" | "LAUNCHER" | "MEDIA" | "KEYRING"
   property string clockAppActiveTab: "WORLD" // "WORLD" | "POMODORO" | "STOPWATCH" | "ALARMS"
   readonly property bool isIslandHovered: islandHoverHandler.hovered
 
@@ -127,6 +128,22 @@ Item {
 
     function onLauncherClosed() {
       if (root.expandedActiveTab === "LAUNCHER") {
+        root.collapse();
+      }
+    }
+
+    function onKeyringPromptRequested(payload) {
+      if (!root.isScreenFocused) return;
+      root.previousState = root.stateMode;
+      root.expandedActiveTab = "KEYRING";
+      root.stateMode = "EXPANDED";
+      if (keyringPromptLoader.item && keyringPromptLoader.item.grabInputFocus) {
+        keyringPromptLoader.item.grabInputFocus();
+      }
+    }
+
+    function onKeyringPromptDismissed(payload) {
+      if (root.expandedActiveTab === "KEYRING") {
         root.collapse();
       }
     }
@@ -357,6 +374,9 @@ Item {
 
   // Collapse / Dismiss helper method
   function collapse() {
+    if (expandedActiveTab === "KEYRING" && ipc && ipc.activeKeyringPrompt) {
+      ipc.cancelKeyringPrompt(ipc.activeKeyringPrompt.id)
+    }
     if (stateMode === "TRANSIENT") {
       transientTimer.stop()
       root.notificationStack = []
@@ -768,6 +788,9 @@ Item {
         if (expandedActiveTab === "MEDIA") {
           return 390
         }
+        if (expandedActiveTab === "KEYRING") {
+          return 430
+        }
         return Config.isNotch ? Config.notchExpandedWidth : Config.islandExpandedWidth
       default:          return Config.isNotch ? Config.notchIdleWidth : Config.islandIdleWidth
     }
@@ -787,6 +810,9 @@ Item {
         }
         if (expandedActiveTab === "MEDIA") {
           return 170
+        }
+        if (expandedActiveTab === "KEYRING") {
+          return 220
         }
         return Config.isNotch ? Config.notchExpandedHeight : Config.islandExpandedHeight
       default:          return Config.isNotch ? Config.notchIdleHeight : Config.islandIdleHeight
@@ -1390,7 +1416,7 @@ Item {
       anchors.fill: parent
       anchors.margins: 14
       opacity: root.stateMode === "EXPANDED" ? 1.0 : 0.0
-      visible: opacity > 0.0
+      visible: root.stateMode === "EXPANDED" || opacity > 0.0
 
       Behavior on opacity {
         NumberAnimation { duration: Config.animation.duration_compact; easing.type: Easing.OutQuad }
@@ -1455,6 +1481,25 @@ Item {
           onUserActivity: root.resetInactivityTimer()
         }
       }
+
+      // Focused App 6: Keyring Authentication Modal (Lazy Loaded)
+      Loader {
+        id: keyringPromptLoader
+        anchors.fill: parent
+        active: root.stateMode === "EXPANDED" && root.expandedActiveTab === "KEYRING"
+        visible: active
+        focus: true
+        sourceComponent: KeyringPromptModal {
+          ipc: root.ipc
+          prompt: root.ipc ? root.ipc.activeKeyringPrompt : null
+          onCloseRequested: root.collapse()
+        }
+        onLoaded: {
+          if (item && item.grabInputFocus) {
+            item.grabInputFocus();
+          }
+        }
+      }
     }
   }
 
@@ -1481,7 +1526,7 @@ Item {
     interval: 5000
     repeat: false
     onTriggered: {
-      if (root.stateMode === "EXPANDED" && !islandHoverHandler.hovered) {
+      if (root.stateMode === "EXPANDED" && root.expandedActiveTab !== "KEYRING" && !islandHoverHandler.hovered) {
         root.collapse()
       }
     }

@@ -278,7 +278,7 @@ Scope {
         color: "transparent"
         WlrLayershell.layer: island.stateMode === "EXPANDED" ? WlrLayer.Overlay : WlrLayer.Top
         WlrLayershell.keyboardFocus: {
-          if (island.stateMode === "EXPANDED" && island.expandedActiveTab === "LAUNCHER") {
+          if (island.stateMode === "EXPANDED" && (island.expandedActiveTab === "LAUNCHER" || island.expandedActiveTab === "KEYRING")) {
             return WlrKeyboardFocus.Exclusive
           }
           if (island.stateMode === "EXPANDED") {

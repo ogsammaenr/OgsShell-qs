@@ -67,6 +67,8 @@ _ogsshell() {
     'record:Ekran kaydını başlatır, durdurur veya tersine çevirir'
     'inspect:Pencere sınıfı denetçisini açar/kapatır (Super+Alt)'
     'inspector:Pencere sınıfı denetçisini açar/kapatır (Super+Alt)'
+    'test_keyring:Keyring kilitleyip Dynamic Island kilit açma arayüzünü test eder'
+    'keyring:Keyring kilitleyip Dynamic Island kilit açma arayüzünü test eder'
     'open_app:Genel uygulama veya alt görünüm tetikler'
     'preview_starship:Starship prompt tema paletlerini önizler'
     'starship:Starship prompt tema paletlerini önizler'

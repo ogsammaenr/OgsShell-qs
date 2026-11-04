@@ -14,6 +14,7 @@ import (
 	"ogsShell/core/services/clipboard"
 	"ogsShell/core/services/currency"
 	"ogsShell/core/services/hyprland"
+	"ogsShell/core/services/keyring"
 	"ogsShell/core/services/keyboard"
 	"ogsShell/core/services/launcher"
 	"ogsShell/core/services/launcher/entry"
@@ -361,6 +362,25 @@ func main() {
 	})
 	go hyprMgr.Watch(ctx)
 	log.Info("Hyprland profil ve efekt yöneticisi başarıyla başlatıldı")
+
+	// Keyring kimlik doğrulama prompter yöneticisini başlat
+	keyringMgr := keyring.NewManager()
+	keyringMgr.SetOnPromptRequested(func(payload keyring.PromptRequestedPayload) {
+		payloadBytes, _ := json.Marshal(payload)
+		_ = server.Broadcast(ipc.Event{
+			Type:    "keyring_prompt_requested",
+			Payload: payloadBytes,
+		})
+	})
+	keyringMgr.SetOnPromptDismissed(func(payload keyring.PromptDismissedPayload) {
+		payloadBytes, _ := json.Marshal(payload)
+		_ = server.Broadcast(ipc.Event{
+			Type:    "keyring_prompt_dismissed",
+			Payload: payloadBytes,
+		})
+	})
+	go keyringMgr.Watch(ctx)
+	log.Info("Keyring prompter yöneticisi başarıyla başlatıldı")
 
 	// Socket üzerinden gelecek RPC komutlarını işleyecek Handler
 	server.SetActionHandler(func(action ipc.Action) error {
@@ -1636,6 +1656,36 @@ func main() {
 				Type:    "hypr_state_update",
 				Payload: payloadBytes,
 			})
+
+		case "keyring_submit_response":
+			if keyringMgr == nil {
+				return fmt.Errorf("keyring servisi devrede değil")
+			}
+			var p keyring.SubmitResponsePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("keyring_submit_response args çözülemedi: %w", err)
+			}
+			return keyringMgr.SubmitPassword(p.ID, p.Password, p.Remember)
+
+		case "keyring_confirm_response":
+			if keyringMgr == nil {
+				return fmt.Errorf("keyring servisi devrede değil")
+			}
+			var p keyring.ConfirmResponsePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("keyring_confirm_response args çözülemedi: %w", err)
+			}
+			return keyringMgr.ConfirmAction(p.ID, p.Confirmed, p.Remember)
+
+		case "keyring_cancel_response":
+			if keyringMgr == nil {
+				return fmt.Errorf("keyring servisi devrede değil")
+			}
+			var p keyring.CancelResponsePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("keyring_cancel_response args çözülemedi: %w", err)
+			}
+			return keyringMgr.CancelPrompt(p.ID)
 		}
 
 		return nil

@@ -56,6 +56,7 @@ find_repo_root() {
 
 REPO_ROOT="$(find_repo_root)"
 CORE_BIN="${REPO_ROOT}/bin/ogsshell-core"
+KEYRING_BIN="${REPO_ROOT}/bin/ogsshell-keyring-prompter"
 SHELL_DIR="${REPO_ROOT}/shell"
 SETTINGS_APP_DIR="${REPO_ROOT}/settings_app"
 SHARED_DIR="${REPO_ROOT}/shared"
@@ -95,17 +96,41 @@ ensure_config() {
 
 build_backend() {
   local force="${1:-}"
-  if [ "${force}" != "--force" ] && [ -x "${CORE_BIN}" ]; then
+  local need_core=0
+  local need_keyring=0
+
+  if [ "${force}" == "--force" ] || [ ! -x "${CORE_BIN}" ]; then
+    need_core=1
+  else
     local newer_src
     newer_src="$(find "${REPO_ROOT}/core" -type f -name "*.go" -newer "${CORE_BIN}" 2>/dev/null | head -n 1 || true)"
-    if [ -z "${newer_src}" ]; then
-      return 0
+    if [ -n "${newer_src}" ]; then
+      need_core=1
     fi
   fi
-  echo -e "${C_BLUE}[ogsShell]${C_RESET} Go backend derleniyor..."
+
+  if [ "${force}" == "--force" ] || [ ! -x "${KEYRING_BIN}" ]; then
+    need_keyring=1
+  else
+    local newer_keyring
+    newer_keyring="$(find "${REPO_ROOT}/services/keyring_prompter" -type f \( -name "*.c" -o -name "*.h" \) -newer "${KEYRING_BIN}" 2>/dev/null | head -n 1 || true)"
+    if [ -n "${newer_keyring}" ]; then
+      need_keyring=1
+    fi
+  fi
+
   mkdir -p "${REPO_ROOT}/bin"
-  export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
-  (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
+
+  if [ ${need_keyring} -eq 1 ]; then
+    echo -e "${C_BLUE}[ogsShell]${C_RESET} Keyring prompter ajanı derleniyor (C/GCR)..."
+    (cd "${REPO_ROOT}/services/keyring_prompter" && make)
+  fi
+
+  if [ ${need_core} -eq 1 ]; then
+    echo -e "${C_BLUE}[ogsShell]${C_RESET} Go backend derleniyor..."
+    export CGO_CFLAGS="${CGO_CFLAGS:-} -Wno-deprecated-declarations"
+    (cd "${REPO_ROOT}/core" && go build -o "${CORE_BIN}" .)
+  fi
 }
 
 get_settings_pid() {
@@ -451,6 +476,107 @@ cmd_inspect() {
   esac
 }
 
+cmd_test_keyring() {
+  echo -e "${C_BLUE}[ogsShell]${C_RESET} 🔒 Keyring kilitleniyor..."
+  python3 -c "
+import sys, gi
+from gi.repository import Gio, GLib
+
+bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
+# 1. Lock login collection
+try:
+    bus.call_sync(
+        'org.freedesktop.secrets',
+        '/org/freedesktop/secrets',
+        'org.freedesktop.Secret.Service',
+        'Lock',
+        GLib.Variant('(ao)', (['/org/freedesktop/secrets/collection/login'],)),
+        GLib.VariantType('(aoo)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        None
+    )
+except Exception:
+    pass
+
+# 2. Unlock login collection to get a Prompt
+try:
+    res = bus.call_sync(
+        'org.freedesktop.secrets',
+        '/org/freedesktop/secrets',
+        'org.freedesktop.Secret.Service',
+        'Unlock',
+        GLib.Variant('(ao)', (['/org/freedesktop/secrets/collection/login'],)),
+        GLib.VariantType('(aoo)'),
+        Gio.DBusCallFlags.NONE,
+        -1,
+        None
+    )
+    unlocked, prompt_path = res.unpack()
+except Exception as e:
+    print(f'Hata: Keyring unlock çağrısı başarısız: {e}', file=sys.stderr)
+    sys.exit(1)
+
+if not prompt_path or prompt_path == '/':
+    print('ℹ️ Keyring zaten açık veya parola koruması yok.')
+    sys.exit(0)
+
+print('\033[1;32m[ogsShell]\033[0m ✨ Dynamic Island üzerinde kilit açma arayüzü tetikleniyor...')
+print('\033[1;36m[ogsShell]\033[0m Şifrenizi adaya girip Enter\'a basabilirsiniz (veya Escape ile iptal edebilirsiniz).')
+
+loop = GLib.MainLoop()
+res_info = {'dismissed': False}
+
+def on_completed(conn, sender, path, iface, signal, params, user_data):
+    dismissed, result = params.unpack()
+    res_info['dismissed'] = dismissed
+    loop.quit()
+
+sub_id = bus.signal_subscribe(
+    None,
+    'org.freedesktop.Secret.Prompt',
+    'Completed',
+    prompt_path,
+    None,
+    Gio.DBusSignalFlags.NONE,
+    on_completed,
+    None
+)
+
+try:
+    bus.call_sync(
+        'org.freedesktop.secrets',
+        prompt_path,
+        'org.freedesktop.Secret.Prompt',
+        'Prompt',
+        GLib.Variant('(s)', ('',)),
+        None,
+        Gio.DBusCallFlags.NONE,
+        -1,
+        None
+    )
+except Exception as e:
+    print(f'Hata: Prompt başlatılamadı: {e}', file=sys.stderr)
+    sys.exit(1)
+
+# 60 saniyelik zaman aşımı koruması
+GLib.timeout_add_seconds(60, lambda: (print('\nZaman aşımı (60 saniye).'), loop.quit()))
+
+try:
+    loop.run()
+except KeyboardInterrupt:
+    pass
+
+bus.signal_unsubscribe(sub_id)
+
+if res_info['dismissed']:
+    print('\033[1;33m[ogsShell]\033[0m ⚠️ Kilit açma işlemi iptal edildi.')
+else:
+    print('\033[1;32m[ogsShell]\033[0m ✅ Keyring kilidi başarıyla açıldı!')
+"
+}
+
 cmd_completion() {
   local target="${1:-install}"
   local zsh_custom_dir="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/custom"
@@ -528,6 +654,7 @@ cmd_help() {
   echo -e "  ${C_CYAN}ocr${C_RESET} [--region]                   Seçilen bölgedeki metni tanır (OCR) ve panoya kopyalar"
   echo -e "  ${C_CYAN}record${C_RESET} [--start | --stop | --toggle] Ekran kaydı başlatır / bitirir / tersine çevirir"
   echo -e "  ${C_CYAN}inspect${C_RESET} [--start | --stop | --toggle] Pencere sınıfı/ID denetçisini açar/kapatır (Super+Alt)"
+  echo -e "  ${C_CYAN}test_keyring${C_RESET} | ${C_CYAN}keyring${C_RESET}          Keyring'i kilitleyip Dynamic Island kilit açma arayüzünü test eder"
   echo -e "  ${C_CYAN}open_app${C_RESET} <app> [subview]          Genel uygulama/alt görünüm tetikler"
   echo ""
   echo -e "${C_BOLD}🛠️  Araçlar, Tamamlama & Önizleme:${C_RESET}"
@@ -672,6 +799,9 @@ case "${ACTION}" in
     ;;
   inspect|inspector|inspect_window|window_inspector)
     cmd_inspect "${ARGS[@]}"
+    ;;
+  test_keyring|keyring|test-keyring)
+    cmd_test_keyring "${ARGS[@]}"
     ;;
   open_app|toggle_app|app)
     if [ -z "${ARGS[0]:-}" ]; then

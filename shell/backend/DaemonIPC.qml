@@ -75,6 +75,9 @@ Item {
   property var hyprState: null
   property string hyprPreviewOutput: ""
 
+  // Keyring Subsystem (Prompt requests & security modals)
+  property var activeKeyringPrompt: null
+
   // High-Priority Signals
   signal alarmTriggered(var payload)
   signal calendarReminderTriggered(var payload)
@@ -104,6 +107,8 @@ Item {
   signal recordingFinished(var payload)
   signal hyprStateReceived(var payload)
   signal hyprPreviewResult(var payload)
+  signal keyringPromptRequested(var payload)
+  signal keyringPromptDismissed(var payload)
 
   // Network & DNS Helpers
   function requestNetworkDetails(ssidOrUUID) {
@@ -158,6 +163,29 @@ Item {
 
   function saveCustomBorder(config) {
     sendAction("save_custom_border", config || {});
+  }
+
+  // Keyring Prompt Helpers
+  function submitKeyringPassword(id, password, remember) {
+    sendAction("keyring_submit_response", {
+      "id": id || "",
+      "password": password || "",
+      "remember": remember !== undefined ? remember : true
+    });
+  }
+
+  function confirmKeyringAction(id, confirmed, remember) {
+    sendAction("keyring_confirm_response", {
+      "id": id || "",
+      "confirmed": confirmed !== undefined ? confirmed : true,
+      "remember": remember !== undefined ? remember : true
+    });
+  }
+
+  function cancelKeyringPrompt(id) {
+    sendAction("keyring_cancel_response", {
+      "id": id || ""
+    });
   }
 
   function requestSavedWifiProfiles() {
@@ -764,6 +792,14 @@ Item {
           } else if (msg.type === "hypr_preview_result") {
             root.hyprPreviewOutput = (msg.payload && msg.payload.output) ? msg.payload.output : "";
             root.hyprPreviewResult(msg.payload || {});
+          } else if (msg.type === "keyring_prompt_requested") {
+            root.activeKeyringPrompt = msg.payload || null;
+            root.keyringPromptRequested(msg.payload || {});
+          } else if (msg.type === "keyring_prompt_dismissed") {
+            if (root.activeKeyringPrompt && (!msg.payload || !msg.payload.id || root.activeKeyringPrompt.id === msg.payload.id)) {
+              root.activeKeyringPrompt = null;
+            }
+            root.keyringPromptDismissed(msg.payload || {});
           } else if (msg.type === "toggle_launcher") {
             root.launcherToggled();
           } else if (msg.type === "open_launcher") {
