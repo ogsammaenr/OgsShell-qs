@@ -1,9 +1,12 @@
 {
   "form_factor": "notch",
-  "theme": "catppuccin",
+  "theme": "monochrome",
   "show_pinned_system_metrics": true,
   "focus_mode": false,
   "typography": {
+    "font_display": "Noto Sans Display",
+    "font_weight_display": "bold",
+    "font_text": "Noto Sans Display",
     "clock_idle_size": 18,
     "clock_hover_size": 22,
     "date_hover_size": 14,
@@ -32,7 +35,7 @@
   "notch": {
     "top_margin": 0,
     "idle_width": 190,
-    "idle_height": 34,
+    "idle_height": 28,
     "hover_width": 500,
     "hover_height": 74,
     "transient_width": 350,
@@ -51,5 +54,50 @@
     "duration_transient": 280,
     "duration_expanded": 320,
     "overshoot_factor": 1.12
+  },
+  "screen_corners": {
+    "enabled": true,
+    "radius": 14,
+    "color": "#000000",
+    "top_left": true,
+    "top_right": true,
+    "bottom_left": true,
+    "bottom_right": true
+  },
+  "audio_feedback": {
+    "enabled": true,
+    "volume_change_sound": true,
+    "throttle_ms": 100,
+    "custom_sound_path": ""
+  },
+  "corner_hud": {
+    "enabled": true,
+    "volume_enabled": true,
+    "workspace_enabled": true,
+    "capslock_enabled": true,
+    "mic_enabled": true,
+    "clipboard_enabled": true,
+    "timeout_ms": 1200,
+    "height": 34
+  },
+  "shadows": {
+    "enabled": true,
+    "island_shadow": true,
+    "notch_shadow": true,
+    "corner_hud_shadow": true,
+    "pinned_metrics_shadow": true,
+    "blur_radius": 24,
+    "spread": 0.12,
+    "opacity": 0.55,
+    "color": "#000000",
+    "vertical_offset": 6,
+    "expanded_blur_radius": 36,
+    "expanded_opacity": 0.65,
+    "expanded_vertical_offset": 10
+  },
+  "currency": {
+    "enabled": true,
+    "sync_interval_min": 30,
+    "default_target": "TRY"
   }
 }
