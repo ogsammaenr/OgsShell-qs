@@ -80,6 +80,42 @@ function stopRecording() {
 function openAnnotator(filePath) {
   sendAction("open_annotator", { "file_path": filePath || "" });
 }
+
+function submitKeyringPassword(id, password, remember) {
+  sendAction("keyring_submit_response", {
+    "id": id || "",
+    "password": password || "",
+    "remember": remember !== undefined ? remember : true
+  });
+}
+
+function cancelKeyringPrompt(id) {
+  sendAction("keyring_cancel_response", { "id": id || "" });
+}
+
+// Network, Wi-Fi & Wired DNS Helpers
+function requestNetworkDetails(ssidOrUUID) {
+  sendAction("get_network_details", { "ssid_or_uuid": ssidOrUUID || "" });
+}
+
+function requestWiredConnections() {
+  sendAction("get_wired_connections", {});
+}
+
+function setConnectionDNS(ssidOrUUID, dnsArray, ignoreAuto) {
+  sendAction("set_connection_dns", {
+    "ssid_or_uuid": ssidOrUUID || "",
+    "dns": dnsArray || [],
+    "ignore_auto_dns": !!ignoreAuto
+  });
+}
+
+function setConnectionIPv6(ssidOrUUID, disabled) {
+  sendAction("set_connection_ipv6", {
+    "ssid_or_uuid": ssidOrUUID || "",
+    "disabled": !!disabled
+  });
+}
 ```
 
 ---
@@ -95,6 +131,8 @@ function openAnnotator(filePath) {
 
 ## 4. Related Links
 
+* Keyring Prompter: `[[Keyring-Prompter-Service]]`
+* Keyring Prompt Modal: `[[Keyring-Prompt-Modal]]`
 * Capture Service: `[[Capture-Service]]`
 * Socket Protocol: `[[IPC-Socket-Schema]]`
 * Backend Socket Server: `[[IPC-Server-Service]]`

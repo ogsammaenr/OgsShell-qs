@@ -34,8 +34,8 @@
 │  - backdropWindow (Fullscreen click-outside dismiss)   │
 │  - islandWindow (Fixed 540x360 stable Wayland surface) │
 │  - screenCornersWindow (Dynamic Top/Overlay Bezel HUD) │
-│  - topRightTrayWindow (Fixed 420x80 stable Tray surface)│
-│  - TopRightTrayHUD (Mirrored Corner System Tray HUD)   │
+│  - topRightTrayWindow (Fixed 420x130 stable Tray surface)│
+│  - TopRightTrayHUD (Mirrored System Tray HUD & Close Popover)│
 │  - bottomNotchWindow (Inverted Bottom Command Notch)   │
 │  - BottomCommandNotch (Mirrored G2 Bezier Shell Runner)│
 │  - inspectorOverlayWindow (Window Inspector & Class HUD)│
@@ -47,12 +47,13 @@
 
 ---
 
-## 2. WiFi & Secrets Management Service (`core/services/wifi/`)
+## 2. WiFi, Ethernet & Network Management Service (`core/services/wifi/`)
 
-* **Interface-Driven:** `wifi.WifiManager` interface abstracts NetworkManager D-Bus and Mock implementations.
+* **Interface-Driven:** `wifi.WifiManager` interface abstracts NetworkManager D-Bus and Mock implementations for both Wi-Fi and Ethernet (kablolu ağ).
 * **Embedded Authentication & KDED Suppression:** In-process headless `SecretAgent` answers credential queries directly from memory and returns `UserCanceled` upon missing cache rather than `NoSecrets`, strictly suppressing external desktop/KDE dialogs (`kded6` / `plasma-nm`).
 * **Secrets Management:** `GetProfileSecrets` (`Settings.Connection.GetSecrets`) reads stored WPA passwords/keys; `UpdateProfileSecrets` updates stored credentials with `psk-flags: 0` (`NM_SETTING_SECRET_FLAG_NONE`).
-* **IPC Endpoints:** `scan_wifi`, `get_saved_wifi_profiles`, `get_wifi_secrets`, `connect_wifi`, `update_wifi_secrets`, `delete_wifi_profile`, `set_wifi_enabled`, `get_active_wifi`.
+* **Wired & DNS Management:** `GetWiredConnections` inspects Ethernet hardware devices (`DeviceType == 1`), carrier states, link speeds, and NetworkManager profiles (`802-3-ethernet`); `SetConnectionDNS` and `SetConnectionIPv6` persist DNS/IPv6 settings and reapply them live to both Wi-Fi and Ethernet active connections.
+* **IPC Endpoints:** `scan_wifi`, `get_saved_wifi_profiles`, `get_wifi_secrets`, `connect_wifi`, `update_wifi_secrets`, `delete_wifi_profile`, `set_wifi_enabled`, `get_active_wifi`, `get_network_details`, `get_wired_connections`, `set_connection_dns`, `set_connection_ipv6`, `cleanup_duplicate_profiles`.
 
 ---
 
@@ -184,19 +185,29 @@
 
 ---
 
-## 14. Unified CLI Management Architecture (`ogsshell.sh`)
+## 14. GNOME Keyring Prompter & Security Modal Subsystem (`services/keyring_prompter/` & `core/services/keyring/`)
 
-* **Single Consolidated Entrypoint:** All lifecycle management (`run`, `run_backend`, `run_frontend`, `reload`, `stop`, `status`), IPC triggers (`launcher`, `settings`, `bottom_notch`, `cc`, `wifi`, `bluetooth`, `mixer`, `calendar`, `clock`, `media`, `notif`, `power`, `themes`, `dnd`, `switch_layout`, `next_wallpaper`, `inspect`), and developer utilities (`preview_starship`) are consolidated into a single executable script (`scripts/ogsshell.sh`).
+* **Standalone C Helper Agent (`bin/ogsshell-keyring-prompter`):** Built with `libgcr-3` (`GcrSystemPrompter` & `GcrPromptIface`) and `json-glib-1.0`. Claims session D-Bus names `org.gnome.keyring.SystemPrompter` and `org.gnome.keyring.PrivatePrompter`, strictly suppressing external GTK dialogs (`/usr/lib/gcr-prompter`).
+* **Zero-Cgo Supervised IPC Bridge:** Go daemon supervises the C prompter as a child process over standard I/O pipes (stdin/stdout), reading prompt requests and writing responses without Cgo overhead or memory contamination.
+* **Diffie-Hellman Secret Exchange:** Password transmissions to `gnome-keyring-daemon` utilize GNOME's encrypted `GcrSecretExchange` transport protocol across the D-Bus boundary.
+* **Native Dynamic Island Security Modal (`KeyringPromptModal.qml`):** Upon prompt request, Dynamic Island morphs via `SpringAnimation` into a security prompt with `WlrKeyboardFocus.Exclusive`, multi-stage zero-click input auto-focus (`grabInputFocus` with compositor retry timer), password masking, show/hide toggle, caps lock warning, and auto-remember toggles.
+* **IPC Endpoints:** `keyring_submit_response`, `keyring_confirm_response`, `keyring_cancel_response` Actions; `keyring_prompt_requested`, `keyring_prompt_dismissed` Broadcast Events.
+
+---
+
+## 15. Unified CLI Management Architecture (`ogsshell.sh`)
+
+* **Single Consolidated Entrypoint:** All lifecycle management (`run`, `run_backend`, `run_frontend`, `reload`, `stop`, `status`), IPC triggers (`launcher`, `settings`, `bottom_notch`, `cc`, `wifi`, `bluetooth`, `mixer`, `calendar`, `clock`, `media`, `notif`, `power`, `themes`, `dnd`, `switch_layout`, `next_wallpaper`, `inspect`, `tray_close`), and developer utilities (`preview_starship`) are consolidated into a single executable script (`scripts/ogsshell.sh`).
 * **Canonical Installation Location:** Deployed to `$XDG_CONFIG_HOME/ogsShell/ogsshell.sh` (`~/.config/ogsShell/ogsshell.sh`) with `ogs.sh` symlink and exposed system-wide via `~/.local/bin/ogsshell`.
 * **System Autostart & Socket Readiness Handshake:** `cmd_run` employs incremental Go compilation avoidance (skipping `go build` when `bin/ogsshell-core` is up to date), log rotation (`/tmp/ogsshell-core.prev.log`), and an extended 10-second IPC socket readiness polling loop before launching Quickshell, preventing cold-boot race conditions.
 * **Shell Auto-Completion Support:** Native context-aware Tab completion for both Zsh (`~/.config/zsh/custom/ogsshell.zsh`) and Bash (`~/.local/share/bash-completion/completions/ogsshell`), providing command and multi-argument subview completions for `ogsshell`, `ogsshell.sh`, `ogs`, and `ogs.sh`.
 
 ---
 
-## 15. Obsidian Brain Vault Reference Map
+## 16. Obsidian Brain Vault Reference Map
 
 * **`01-Architecture/`**: `[[System-Architecture]]`, `[[Project-Structure]]`, `[[Backend-Endpoints-Reference]]`, `[[IPC-Socket-Schema]]`, `[[Apple-Dynamic-Island-HIG]]`, `[[Apple-HIG-Minimal-Design-System]]`, `[[Dynamic-Notch-Design-Specification]]`, `[[Dynamic-Island-Physics-State-Machine]]`, `[[Configuration-System-Spec]]`, `[[Configuration-Themes-Spec]]`
-* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[Hyprland-Profile-Service]]`, `[[Capture-Service]]`, `[[Currency-Service]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
-* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Bottom-Command-Notch]]`, `[[Snipping-Overlay-Component]]`, `[[Window-Inspector-Overlay]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
+* **`02-Services/`**: `[[Go-Daemon-Core]]`, `[[Keyring-Prompter-Service]]`, `[[Hyprland-Profile-Service]]`, `[[Capture-Service]]`, `[[Currency-Service]]`, `[[App-Launcher-Service]]`, `[[Theme-Service]]`, `[[Keyboard-Service]]`, `[[Clipboard-Service]]`, `[[Notification-Service]]`, `[[Wifi-Client-Service]]`, `[[Bluetooth-Service]]`, `[[Alarm-Service]]`, `[[Calendar-Service]]`, `[[Audio-Feedback-Service]]`, `[[SysMetrics-Service]]`, `[[CPU-Monitor-Service]]`, `[[RAM-Monitor-Service]]`, `[[GPU-Monitor-Service]]`, `[[Network-Monitor-Service]]`, `[[Logger-Service]]`, `[[IPC-Server-Service]]`
+* **`03-UI-Components/`**: `[[Shell-Root-PanelWindow]]`, `[[Dynamic-Island-Component]]`, `[[Keyring-Prompt-Modal]]`, `[[Bottom-Command-Notch]]`, `[[Snipping-Overlay-Component]]`, `[[Window-Inspector-Overlay]]`, `[[Notification-Card-View]]`, `[[Notification-Deck-Background]]`, `[[Screen-Corners-Component]]`, `[[Corner-Island-HUD-Component]]`, `[[Top-Right-Tray-HUD-Component]]`, `[[App-Launcher-Widget]]`, `[[Power-Overlay-Component]]`, `[[Clock-Widget]]`, `[[Clock-Suite-View]]`, `[[Clock-Manager]]`, `[[Calendar-Widget]]`, `[[Time-Picker-Component]]`, `[[Media-Widget]]`, `[[Media-Player-View]]`, `[[Audio-Mixer-View]]`, `[[Connectivity-Status-Widget]]`, `[[Control-Center-Widget]]`, `[[Pinned-Metrics-Widget]]`, `[[Settings-Application-Component]]`, `[[Style-Design-Tokens]]`, `[[Daemon-IPC-Client]]`
 * **`04-Agent-Rules/`**: `[[Go-Coding-Style]]`, `[[QML-Best-Practices]]`, `[[Agent-Workflow-Directives]]`
 

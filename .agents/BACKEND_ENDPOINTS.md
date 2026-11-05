@@ -45,8 +45,9 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Wi-Fi** | `set_wifi_enabled` | `{"enabled": true/false}` | `wifi_update` | Wi-Fi donanımını açar / kapatır |
 | **Wi-Fi** | `get_active_wifi` | `{}` | `active_wifi_info` | Aktif bağlantının detaylı telemetrisini döner |
 | **Wi-Fi & Ağ** | `get_network_details` | `{"ssid_or_uuid": "..."}` | `network_details` | Detaylı IP, Ağ Geçidi, DNS ve IPv6 yapılandırmasını döner |
-| **Wi-Fi & Ağ** | `set_connection_dns` | `{"ssid_or_uuid": "...", "dns": ["1.1.1.1", ...], "ignore_auto_dns": true}` | `network_details` | Profile kalıcı DNS yazar ve anında uygular |
-| **Wi-Fi & Ağ** | `set_connection_ipv6`| `{"ssid_or_uuid": "...", "disabled": true/false}` | `network_details` | Bağlantıda IPv6'yı açar/kapatır |
+| **Kablolu Ağ** | `get_wired_connections` | `{}` | `wired_connections_update` | Sistemdeki tüm Ethernet aygıtlarını ve kablolu bağlantı profillerini listeler |
+| **Wi-Fi & Ağ** | `set_connection_dns` | `{"ssid_or_uuid": "...", "dns": ["1.1.1.1", ...], "ignore_auto_dns": true}` | `network_details` + `wired_connections_update` | Profile kalıcı DNS yazar ve anında uygular |
+| **Wi-Fi & Ağ** | `set_connection_ipv6`| `{"ssid_or_uuid": "...", "disabled": true/false}` | `network_details` + `wired_connections_update` | Bağlantıda IPv6'yı açar/kapatır |
 | **Wi-Fi & Ağ** | `cleanup_duplicate_profiles` | `{"ssid": "..."}` *(opsiyonel)* | `cleanup_duplicates_result` + `saved_wifi_profiles` | Aynı SSID'ye ait eski kopya NetworkManager profillerini temizler |
 | **Bluetooth** | `toggle_bluetooth` | `{"enabled": true/false}` *(opsiyonel)* | `bluetooth_update` | Bluetooth gücünü açar, kapatır veya tersine çevirir |
 | **Bluetooth** | `connect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | MAC adresi verilen cihaza bağlanır |
@@ -131,6 +132,9 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Kısayollar** | `toggle_bluetooth_view` / `open_bluetooth` | `{}` | `toggle_bluetooth_view` | Bluetooth ayarları panelini açar/kapatır |
 | **Kısayollar** | `toggle_audio_mixer` / `open_audio_mixer` | `{}` | `toggle_audio_mixer` | Ses karıştırıcısı (uygulama sesleri ve çıkış aygıtları) panelini açar/kapatır |
 | **Kısayollar** | `toggle_bottom_notch` / `toggle_app` | `{"app": "bottom_notch"}` | `toggle_app` | Ters Çentik (Inverted Bottom Notch) ve komut paletini açar/kapatır |
+| **Keyring** | `keyring_submit_response` | `{"id": "...", "password": "...", "remember": true}` | `keyring_prompt_dismissed` | Anahtarlık kilit açma parolasını C ajanına iletir |
+| **Keyring** | `keyring_confirm_response`| `{"id": "...", "confirmed": true, "remember": true}` | `keyring_prompt_dismissed` | Onay/izin istemi sonucunu C ajanına iletir |
+| **Keyring** | `keyring_cancel_response` | `{"id": "..."}` | `keyring_prompt_dismissed` | Kilit açma işlemini iptal eder |
 
 ---
 
@@ -145,6 +149,7 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `wifi_secrets` | `get_wifi_secrets` RPC komutuna yanıt | `WifiSecrets` | Wi-Fi profiline ait WPA parolası ve anahtar yönetimi |
 | `active_wifi_info` | `get_active_wifi` RPC komutuna yanıt | `ActiveWifiInfo` | Aktif bağlı ağın IP, Gateway, DNS, Sinyal, Hız detayları |
 | `network_details` | `get_network_details` / `set_connection_dns` / `set_connection_ipv6` | `NetworkDetails` | Ağa ait detaylı IP, Gateway, DNS sunucuları ve IPv6 ayarları |
+| `wired_connections_update` | `get_wired_connections` / DNS / IPv6 güncellemelerinde | `[]WiredConnection` | Sistemdeki tüm Ethernet aygıtları, taşıyıcı (carrier) ve profiller listesi |
 | `cleanup_duplicates_result` | `cleanup_duplicate_profiles` | `CleanupDuplicatesResponse` | Silinen kopya profil sayısı ve UUID listesi |
 | `bluetooth_update` | D-Bus sinyal odaklı (500ms debounce) | `BluetoothState` | Adaptör durumu, tarama durumu ve cihaz listesi |
 | `alarms_update` | Alarm CRUD veya durum değişimlerinde | `[]Alarm` | Kayıtlı tüm alarmların güncel listesi |
@@ -181,6 +186,8 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | `ocr_completed` | `capture_ocr` RPC komutuna yanıt | `OCRResult` | Tanınan tam metin, HUD özeti, karakter sayısı ve kopyalama durumu |
 | `recording_state_update` | Kayıt esnasında her 1 saniyede veya durum değişiminde | `RecordState` | Aktif kayıt durumu, geçen süre (saniye), dosya yolu ve geometri |
 | `recording_finished` | Kayıt durdurulduğunda (`stop_recording`) veya sonlandığında | `RecordFinishedPayload` | Tamamlanan kaydın MP4 yolu, toplam süresi ve başarı durumu |
+| `keyring_prompt_requested` | GCR D-Bus arayüzü tetiklendiğinde | `PromptRequestedPayload` | Yeni parola / kimlik doğrulama istemi detayları |
+| `keyring_prompt_dismissed` | Prompt yanıtlandığında veya kapandığında | `PromptDismissedPayload` | Kapanan prompt ID bilgisi |
 
 ---
 
@@ -290,6 +297,26 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
   "uuid": "7c152a55-8c3b-48bb-a877-f279b90c1020",
   "password": "secretpassword123",
   "key_mgmt": "wpa-psk"
+}
+```
+
+5. **`WiredConnection`** (Kablolu Ağ Bağlantısı / Ethernet Profil & Donanım):
+```json
+{
+  "uuid": "df8ffbe1-89c0-3ab7-a975-7528cd6620e8",
+  "name": "Wired connection 1",
+  "interface": "enp6s0",
+  "hw_address": "C0:18:50:FB:67:43",
+  "is_connected": true,
+  "carrier": true,
+  "speed_mbps": 1000,
+  "ip_address": "192.168.1.150",
+  "prefix": 24,
+  "gateway": "192.168.1.1",
+  "dns": ["1.1.1.1", "1.0.0.1"],
+  "ignore_auto_dns": true,
+  "ipv6_method": "auto",
+  "ipv6_disabled": false
 }
 ```
 

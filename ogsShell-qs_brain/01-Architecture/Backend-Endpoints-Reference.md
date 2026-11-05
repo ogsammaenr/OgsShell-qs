@@ -83,6 +83,11 @@ sequenceDiagram
 | **Wi-Fi** | `delete_wifi_profile` / `forget_wifi` | `{"ssid_or_uuid": "..."}` | `saved_wifi_profiles` | `[[Wifi-Client-Service]]` |
 | **Wi-Fi** | `set_wifi_enabled` | `{"enabled": true/false}` | `wifi_update` | `[[Wifi-Client-Service]]` |
 | **Wi-Fi** | `get_active_wifi` | `{}` | `active_wifi_info` | `[[Wifi-Client-Service]]` |
+| **Wi-Fi & Ağ** | `get_network_details` | `{"ssid_or_uuid": "..."}` | `network_details` | `[[Wifi-Client-Service]]` |
+| **Kablolu Ağ** | `get_wired_connections` | `{}` | `wired_connections_update` | `[[Wifi-Client-Service]]` |
+| **Wi-Fi & Ağ** | `set_connection_dns` | `{"ssid_or_uuid": "...", "dns": ["1.1.1.1", ...], "ignore_auto_dns": true}` | `network_details` + `wired_connections_update` | `[[Wifi-Client-Service]]` |
+| **Wi-Fi & Ağ** | `set_connection_ipv6`| `{"ssid_or_uuid": "...", "disabled": true/false}` | `network_details` + `wired_connections_update` | `[[Wifi-Client-Service]]` |
+| **Wi-Fi & Ağ** | `cleanup_duplicate_profiles` | `{"ssid": "..."}` *(opsiyonel)* | `cleanup_duplicates_result` + `saved_wifi_profiles` | `[[Wifi-Client-Service]]` |
 | **Bluetooth** | `toggle_bluetooth` | `{"enabled": true/false}` *(opsiyonel)* | `bluetooth_update` | `[[Bluetooth-Service]]` |
 | **Bluetooth** | `connect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | `[[Bluetooth-Service]]` |
 | **Bluetooth** | `disconnect_bluetooth` | `{"mac": "XX:XX:XX:XX:XX:XX"}` | `bluetooth_update` | `[[Bluetooth-Service]]` |
@@ -148,6 +153,8 @@ sequenceDiagram
 | `saved_wifi_profiles` | Profil listeleme / silme | `[]WifiProfile` | `[[Wifi-Client-Service]]` |
 | `wifi_secrets` | `get_wifi_secrets` RPC yanıtı | `WifiSecrets` | `[[Wifi-Client-Service]]` |
 | `active_wifi_info` | `get_active_wifi` RPC yanıtı | `ActiveWifiInfo` | `[[Wifi-Client-Service]]` |
+| `network_details` | `get_network_details` / DNS / IPv6 güncellemeleri | `NetworkDetails` | `[[Wifi-Client-Service]]` |
+| `wired_connections_update` | `get_wired_connections` / DNS / IPv6 güncellemeleri | `[]WiredConnection` | `[[Wifi-Client-Service]]` |
 | `bluetooth_update` | D-Bus sinyal odaklı (500ms debounce) | `BluetoothState` | `[[Bluetooth-Service]]` |
 | `alarms_update` | Alarm CRUD veya durum değişimleri | `[]Alarm` | `[[Alarm-Service]]` |
 | `alarm_triggered` | Alarm çalma vakti geldiğinde | `AlarmTriggeredPayload` | `[[Alarm-Service]]` |
@@ -237,6 +244,16 @@ Yayınlayan: `[[Hyprland-Profile-Service]]`
 
 * `HyprStatePayload`: `{"active_border": "default", "active_animation": "snappy", "border_profiles": ["default", "borderless", ...], "animation_profiles": ["snappy", "smooth_float", ...], "curves": {"snappyEase": [0.25, 0.1, 0.25, 1.0], ...}}`
 * `HyprPreviewPayload`: `{"status": "ok", "output": "ok"}`
+
+### 3.7. Keyring Prompter ve Güvenlik İstemi Servisi
+Yayınlayan: `[[Keyring-Prompter-Service]]`
+UI Bileşeni: `[[Keyring-Prompt-Modal]]`
+
+* `keyring_submit_response`: `{"id": "prompt_1", "password": "...", "remember": true}`
+* `keyring_confirm_response`: `{"id": "prompt_1", "confirmed": true, "remember": true}`
+* `keyring_cancel_response`: `{"id": "prompt_1"}`
+* `PromptRequestedPayload`: `{"id": "prompt_1", "is_password": true, "title": "...", "description": "...", "continue_label": "...", "cancel_label": "..."}`
+* `PromptDismissedPayload`: `{"id": "prompt_1"}`
 
 ---
 
