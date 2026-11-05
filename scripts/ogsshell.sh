@@ -476,6 +476,19 @@ cmd_inspect() {
   esac
 }
 
+cmd_tray_close() {
+  local repo_root="$(find_repo_root)"
+  local script="${repo_root}/scripts/close_tray_app.sh"
+  if [ -x "${script}" ]; then
+    "${script}" "$@"
+  elif [ -x "${HOME}/.config/ogsShell/scripts/close_tray_app.sh" ]; then
+    "${HOME}/.config/ogsShell/scripts/close_tray_app.sh" "$@"
+  else
+    echo -e "${C_RED}[ogsShell] Error:${C_RESET} close_tray_app.sh script not found" >&2
+    return 1
+  fi
+}
+
 cmd_test_keyring() {
   echo -e "${C_BLUE}[ogsShell]${C_RESET} 🔒 Keyring kilitleniyor..."
   python3 -c "
@@ -721,8 +734,13 @@ case "${ACTION}" in
   run_frontend|frontend|shell|ui)
     cmd_run_frontend "${ARGS[@]}"
     ;;
-  reload|restart)
+  reload)
     cmd_reload "${ARGS[@]}"
+    ;;
+  restart)
+    cmd_stop "${ARGS[@]}"
+    sleep 0.5
+    cmd_run "${ARGS[@]}"
     ;;
   stop|kill)
     cmd_stop "${ARGS[@]}"
@@ -799,6 +817,9 @@ case "${ACTION}" in
     ;;
   inspect|inspector|inspect_window|window_inspector)
     cmd_inspect "${ARGS[@]}"
+    ;;
+  tray_close|close_tray|tray-close)
+    cmd_tray_close "${ARGS[@]}"
     ;;
   test_keyring|keyring|test-keyring)
     cmd_test_keyring "${ARGS[@]}"

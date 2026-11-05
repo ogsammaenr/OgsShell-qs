@@ -260,7 +260,11 @@ Scope {
           onClicked: {
             island.collapse()
             if (topRightTrayHud && topRightTrayHud.isExpanded) {
-              topRightTrayHud.collapse()
+              if (topRightTrayHud.isMenuOpen) {
+                topRightTrayHud.closeMenu()
+              } else {
+                topRightTrayHud.collapse()
+              }
             }
             if (BottomNotchService.isOpen) {
               BottomNotchService.close()
@@ -477,7 +481,7 @@ Scope {
 
         // Fixed canvas preventing Wayland surface reconfiguration stutter during animation
         implicitWidth: 420
-        implicitHeight: 80
+        implicitHeight: 130
 
         // Precision Wayland input mask strictly conforms to tray HUD bounds
         mask: Region {
@@ -488,8 +492,8 @@ Scope {
           id: activeTrayInputEnvelope
           anchors.top: parent.top
           anchors.right: parent.right
-          width: topRightTrayHud ? (topRightTrayHud.isExpanded ? topRightTrayHud.width : Math.max(topRightTrayHud.radius + 12, 28)) : 28
-          height: topRightTrayHud ? (topRightTrayHud.isExpanded ? topRightTrayHud.height : Math.max(topRightTrayHud.radius + 12, 28)) : 28
+          width: topRightTrayHud ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? Math.max(topRightTrayHud.width, 155) : topRightTrayHud.width) : Math.max(topRightTrayHud.radius + 12, 28)) : 28
+          height: topRightTrayHud ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? (topRightTrayHud.height + 72) : topRightTrayHud.height) : Math.max(topRightTrayHud.radius + 12, 28)) : 28
         }
 
         TopRightTrayHUD {

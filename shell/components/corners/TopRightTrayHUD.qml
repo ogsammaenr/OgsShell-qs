@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Shapes
 import Qt5Compat.GraphicalEffects
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.SystemTray
 import "../.."
 import "../../theme"
@@ -14,13 +15,15 @@ Item {
   property int radius: Config.screenCornersRadius || 14
   property color cornerColor: Config.screenCornersColor || "#000000"
   property bool isExpanded: false
+  property var activeContextMenuApp: null
+  readonly property bool isMenuOpen: activeContextMenuApp !== null
 
   // Reactive access to SystemTray items
   readonly property var trayItems: (SystemTray.items && SystemTray.items.values) ? SystemTray.items.values : []
   readonly property int trayCount: Math.max(trayRepeater.count, trayItems.length)
 
   // Auto-calculated expanded width matching CornerIslandHUD proportions
-  readonly property real targetWidth: isExpanded ? Math.max(trayCount === 0 ? 135 : 95, Math.min((trayCount * 30) + 36, 360)) : root.radius
+  readonly property real targetWidth: isExpanded ? Math.max(trayCount === 0 ? 135 : (isMenuOpen ? 145 : 95), Math.min((trayCount * 30) + 36, 360)) : root.radius
   readonly property real targetHeight: isExpanded ? (Config.cornerTrayHeight || Config.cornerHudHeight || 34) : root.radius
 
   property real animWidth: root.radius
@@ -53,8 +56,16 @@ Item {
   width: animWidth + earW
   height: animHeight + rightEarH
 
+  function closeMenu() {
+    activeContextMenuApp = null
+  }
+
   function toggle() {
-    isExpanded = !isExpanded
+    if (isExpanded) {
+      collapse()
+    } else {
+      expand()
+    }
   }
 
   function expand() {
@@ -62,7 +73,29 @@ Item {
   }
 
   function collapse() {
+    closeMenu()
     isExpanded = false
+  }
+
+  Process {
+    id: appCloseProc
+  }
+
+  function closeApp(target) {
+    if (!target) return
+    let id = target.id || ""
+    let title = target.title || ""
+    let tooltip = target.tooltip || ""
+    console.log("[TopRightTrayHUD] Requesting close for tray application:", id, title, tooltip)
+
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    let scriptPath = home + "/Workspace/projects/OgsShell-qs/scripts/close_tray_app.sh"
+    let userScriptPath = home + "/.config/ogsShell/scripts/close_tray_app.sh"
+
+    let cmd = "if [ -x '" + scriptPath + "' ]; then '" + scriptPath + "' '" + id + "' '" + title + "' '" + tooltip + "'; elif [ -x '" + userScriptPath + "' ]; then '" + userScriptPath + "' '" + id + "' '" + title + "' '" + tooltip + "'; fi"
+
+    appCloseProc.command = ["bash", "-c", cmd]
+    appCloseProc.running = true
   }
 
   // =========================================================================
@@ -297,11 +330,14 @@ Item {
           id: itemPill
           required property var modelData
           readonly property var trayItem: modelData
+          readonly property bool isSelectedForMenu: root.activeContextMenuApp && root.activeContextMenuApp.id === ((trayItem && trayItem.id) ? ("" + trayItem.id) : itemPill.itemTitle)
 
           width: 24
           height: 24
           radius: 6
-          color: itemMouseArea.containsMouse ? Style.surfaceHover : "transparent"
+          color: isSelectedForMenu ? Qt.rgba(237/255, 135/255, 150/255, 0.24) : (itemMouseArea.containsMouse ? Style.surfaceHover : "transparent")
+          border.width: isSelectedForMenu ? 1 : 0
+          border.color: isSelectedForMenu ? Qt.rgba(237/255, 135/255, 150/255, 0.7) : "transparent"
 
           readonly property string itemIcon: (trayItem && trayItem.icon) ? ("" + trayItem.icon) : ""
           readonly property string itemTitle: (trayItem && trayItem.title) ? ("" + trayItem.title) : (trayItem && trayItem.id ? ("" + trayItem.id) : "App")
@@ -354,20 +390,172 @@ Item {
 
             onClicked: mouse => {
               if (mouse.button === Qt.LeftButton) {
+                if (root.isMenuOpen) {
+                  root.closeMenu()
+                }
                 if (trayItem && typeof trayItem.activate === "function") {
                   trayItem.activate()
                 }
               } else if (mouse.button === Qt.RightButton) {
-                if (trayItem && typeof trayItem.display === "function") {
-                  let win = root.parentWindow || root
-                  trayItem.display(win, Math.round(mouse.x), Math.round(mouse.y))
-                } else if (trayItem && typeof trayItem.secondaryActivate === "function") {
-                  trayItem.secondaryActivate()
+                let thisId = (trayItem && trayItem.id) ? ("" + trayItem.id) : itemPill.itemTitle
+                if (root.activeContextMenuApp && root.activeContextMenuApp.id === thisId) {
+                  root.closeMenu()
+                } else {
+                  let globalPos = itemPill.mapToItem(root, itemPill.width / 2, itemPill.height)
+                  root.activeContextMenuApp = {
+                    id: thisId,
+                    title: itemPill.itemTitle,
+                    tooltip: itemPill.itemTooltip,
+                    iconSource: itemPill.resolvedSource,
+                    centerX: globalPos.x,
+                    bottomY: globalPos.y
+                  }
                 }
               } else if (mouse.button === Qt.MiddleButton) {
                 if (trayItem && typeof trayItem.secondaryActivate === "function") {
                   trayItem.secondaryActivate()
                 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // 4. Context Menu / Close Button Popover
+  // Appears below the right-clicked tray icon with animated reveal
+  // =========================================================================
+  Item {
+    id: closeMenuContainer
+    anchors.top: parent.top
+    anchors.right: parent.right
+    width: root.width
+    height: root.animHeight + 72
+    visible: root.isExpanded && root.isMenuOpen && (closeMenuCard.opacity > 0.01)
+
+    // Backdrop dismissal inside the tray HUD bounds
+    MouseArea {
+      anchors.fill: parent
+      z: 0
+      onClicked: root.closeMenu()
+    }
+
+    Rectangle {
+      id: closeMenuCard
+      z: 10
+      width: 136
+      height: 60
+      radius: 9
+      color: "#0a0b10"
+      border.width: 1
+      border.color: Qt.rgba(255, 255, 255, 0.14)
+
+      // Calculate x position centered on the right-clicked icon, clamped nicely inside root bounds
+      readonly property real targetX: root.activeContextMenuApp ? (root.activeContextMenuApp.centerX - width / 2) : (root.width - width - 8)
+      x: Math.max(8, Math.min(targetX, root.width - width - 8))
+      y: root.animHeight + 6
+
+      opacity: (root.isExpanded && root.isMenuOpen) ? 1.0 : 0.0
+      scale: (root.isExpanded && root.isMenuOpen) ? 1.0 : 0.88
+      transformOrigin: Item.Top
+
+      Behavior on opacity {
+        NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+      }
+
+      Behavior on scale {
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+      }
+
+      Behavior on x {
+        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+      }
+
+      ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 6
+        spacing: 4
+
+        // App Header Row (Title & Icon)
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: 6
+
+          Image {
+            Layout.preferredWidth: 13
+            Layout.preferredHeight: 13
+            source: root.activeContextMenuApp ? (root.activeContextMenuApp.iconSource || "") : ""
+            fillMode: Image.PreserveAspectFit
+            smooth: true
+            visible: status === Image.Ready && source !== ""
+          }
+
+          Text {
+            Layout.fillWidth: true
+            text: root.activeContextMenuApp ? (root.activeContextMenuApp.title || root.activeContextMenuApp.tooltip || "Uygulama") : ""
+            font.family: Style.fontDisplay
+            font.pixelSize: 10
+            font.weight: Style.fontWeightDisplay
+            color: Style.textMuted
+            elide: Text.ElideRight
+            maximumLineCount: 1
+          }
+        }
+
+        // Close Action Button
+        Rectangle {
+          id: closeBtn
+          Layout.fillWidth: true
+          Layout.preferredHeight: 26
+          radius: 6
+          color: closeBtnMouse.pressed
+                 ? Qt.rgba(237/255, 135/255, 150/255, 0.45)
+                 : (closeBtnMouse.containsMouse
+                    ? Qt.rgba(237/255, 135/255, 150/255, 0.28)
+                    : Qt.rgba(237/255, 135/255, 150/255, 0.14))
+          border.width: 1
+          border.color: closeBtnMouse.containsMouse
+                        ? Style.accentRed
+                        : Qt.rgba(237/255, 135/255, 150/255, 0.35)
+
+          Behavior on color {
+            ColorAnimation { duration: 120 }
+          }
+          Behavior on border.color {
+            ColorAnimation { duration: 120 }
+          }
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: 6
+
+            Text {
+              text: "󰅖"
+              font.pixelSize: 12
+              color: Style.accentRed
+            }
+
+            Text {
+              text: "Kapat"
+              font.family: Style.fontDisplay
+              font.pixelSize: 11
+              font.weight: Font.DemiBold
+              color: closeBtnMouse.containsMouse ? "#ffffff" : Style.accentRed
+            }
+          }
+
+          MouseArea {
+            id: closeBtnMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: {
+              if (root.activeContextMenuApp) {
+                root.closeApp(root.activeContextMenuApp)
+                root.closeMenu()
               }
             }
           }
