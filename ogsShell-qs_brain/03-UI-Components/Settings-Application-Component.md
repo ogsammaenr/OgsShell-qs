@@ -81,11 +81,18 @@ related_notes:
 
 ## 3. Ağ ve Güvenli DNS Yönetimi (`NetworkPage.qml`)
 
-* **Aktif Bağlantı Telemetrisi:** Wi-Fi güç switch'i, bağlı SSID, yeşil durum rozeti, IP Adresi, Ağ Geçidi ve Sinyal gücü (`%`).
-* **Güvenli DNS ve DPI Bypass (Zapret) Seçici:** Cloudflare, Quad9, AdGuard, Google DNS, Otomatik DHCP ve Özel DNS desteği.
-* **IPv6 Sızıntı Koruması:** `ipv6.method: disabled` tek dokunuşla sansür ve sızıntı önleme.
-* **Kullanılabilir Ağlar Listesi:** Çevredeki Wi-Fi ağlarının canlı sinyal ve güvenlik durumuyla taranması.
-* **Ağ Bakımı & Kopya Temizleyici:** Diskte birikmiş aynı adlı `.nmconnection` dosyalarını temizleyen araç.
+* **Çift Modlu Ağ Seçici (Segmented Tab Bar):** `Wi-Fi (Kablosuz)` ve `Kablolu Ağ (Ethernet)` modları arasında kesintisiz geçiş; aktif bağlantı tipine göre akıllı otomatik sekme seçimi.
+* **Kablolu Ağ & Ethernet Yönetimi:**
+  - **Arayüz ve Profil Seçimi:** Birden fazla fiziksel ethernet kartı (`enp6s0`, `enp0s20f0u4` vb.) veya kayıtlı bağlantı profili varsa interaktif mini kart çiplerinden seçim yapabilme.
+  - **Canlı Donanım Durumu:** Taşıyıcı sinyali (`carrier` / kablo takılı), bağlantı hızı (`1000 Mbps`), MAC adresi, IP adresi ve Ağ Geçidi göstergesi.
+  - **Kablolu Güvenli DNS (DPI Bypass / Zapret):** Cloudflare (`1.1.1.1`), Quad9 (`9.9.9.9`), AdGuard (`94.140.14.14`), Google (`8.8.8.8`), Otomatik DHCP ve Manuel IP girişi; anında `SetConnectionDNS` ile profile yazılıp canlı olarak uygulanır.
+  - **Kablolu IPv6 Koruması:** Kablolu hatta sansür ve DNS sızıntılarını önlemek için tek tıkla `ipv6.method: disabled` toggle kontrolü.
+* **Wi-Fi & Kablosuz Ağ Yönetimi:**
+  - **Aktif Bağlantı Telemetrisi:** Wi-Fi güç switch'i, bağlı SSID, yeşil durum rozeti, IP Adresi, Ağ Geçidi ve Sinyal gücü (`%`).
+  - **Güvenli DNS ve DPI Bypass (Zapret) Seçici:** Wi-Fi profili için Cloudflare, Quad9, AdGuard, Google DNS, Otomatik DHCP ve Özel DNS desteği.
+  - **IPv6 Sızıntı Koruması:** Wi-Fi için `ipv6.method: disabled` tek dokunuşla sansür ve sızıntı önleme.
+  - **Kullanılabilir Ağlar Listesi:** Çevredeki Wi-Fi ağlarının canlı sinyal ve güvenlik durumuyla taranması.
+  - **Ağ Bakımı & Kopya Temizleyici:** Diskte birikmiş aynı adlı `.nmconnection` dosyalarını temizleyen araç.
 
 ---
 

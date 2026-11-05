@@ -17,6 +17,7 @@ Item {
   property bool isScanningWifi: false
   property var networkDetails: null
   property var savedWifiProfiles: []
+  property var wiredConnections: []
   property var bluetooth: ({ "adapter_powered": false, "discovering": false, "devices": [] })
 
   // Alarms
@@ -91,6 +92,7 @@ Item {
   signal appLaunched(var payload)
   signal currencyRatesUpdated(var payload)
   signal networkDetailsUpdated(var payload)
+  signal wiredConnectionsUpdated(var payload)
   signal cleanupDuplicatesCompleted(var payload)
   signal wifiScanStarted()
   signal wifiScanCompleted(var payload)
@@ -113,6 +115,10 @@ Item {
   // Network & DNS Helpers
   function requestNetworkDetails(ssidOrUUID) {
     sendAction("get_network_details", { "ssid_or_uuid": ssidOrUUID || "" });
+  }
+
+  function requestWiredConnections() {
+    sendAction("get_wired_connections", {});
   }
 
   function setConnectionDNS(ssidOrUUID, dnsArray, ignoreAuto) {
@@ -585,6 +591,7 @@ Item {
     sendAction("get_active_wifi", {});
     sendAction("scan_wifi", {});
     sendAction("get_network_details", {});
+    sendAction("get_wired_connections", {});
     sendAction("get_saved_wifi_profiles", {});
     sendAction("get_bluetooth_state", {});
     sendAction("get_hypr_state", {});
@@ -679,6 +686,9 @@ Item {
           } else if (msg.type === "network_details") {
             root.networkDetails = msg.payload;
             root.networkDetailsUpdated(msg.payload);
+          } else if (msg.type === "wired_connections_update" || msg.type === "wired_connections_data") {
+            root.wiredConnections = msg.payload || [];
+            root.wiredConnectionsUpdated(msg.payload);
           } else if (msg.type === "saved_wifi_profiles") {
             root.savedWifiProfiles = msg.payload || [];
           } else if (msg.type === "cleanup_duplicates_result") {

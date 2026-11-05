@@ -269,16 +269,35 @@ func TestDBusClient_LiveHardwareIntegration(t *testing.T) {
 		t.Logf("Profile: %-25s | UUID: %s | AutoConnect: %v", p.SSID, p.UUID, p.AutoConnect)
 	}
 
-	// Test SetConnectionDNS on SUPERONLINE_WiFi_0744 (the exact user test case!)
-	err = client.SetConnectionDNS(ctx, wifi.SetConnectionDNSRequest{
-		SSIDOrUUID:    "SUPERONLINE_WiFi_0744",
-		DNS:           []string{"94.140.14.14", "94.140.15.15"},
-		IgnoreAutoDNS: true,
-	})
+	// Test GetWiredConnections over D-Bus
+	wiredConns, err := client.GetWiredConnections(ctx)
 	if err != nil {
-		t.Fatalf("SetConnectionDNS failed for SUPERONLINE_WiFi_0744: %v", err)
+		t.Fatalf("failed to query wired connections over D-Bus: %v", err)
 	}
-	t.Log("SetConnectionDNS succeeded with zero errors!")
+	t.Logf("Found %d wired connections/devices on host system", len(wiredConns))
+	for _, w := range wiredConns {
+		t.Logf("Wired: %-20s | Iface: %-10s | Connected: %-5v | Carrier: %-5v | DNS: %v", w.Name, w.Interface, w.IsConnected, w.Carrier, w.DNS)
+	}
+
+	// Test SetConnectionDNS on an available saved profile or wired connection
+	testTarget := ""
+	if len(savedProfiles) > 0 {
+		testTarget = savedProfiles[0].UUID
+	} else if len(wiredConns) > 0 && wiredConns[0].UUID != "" {
+		testTarget = wiredConns[0].UUID
+	}
+
+	if testTarget != "" {
+		err = client.SetConnectionDNS(ctx, wifi.SetConnectionDNSRequest{
+			SSIDOrUUID:    testTarget,
+			DNS:           []string{"94.140.14.14", "94.140.15.15"},
+			IgnoreAutoDNS: true,
+		})
+		if err != nil {
+			t.Fatalf("SetConnectionDNS failed for %s: %v", testTarget, err)
+		}
+		t.Logf("SetConnectionDNS succeeded for %s with zero errors!", testTarget)
+	}
 }
 
 // TestSanitizeSettingsForUpdate tests D-Bus tuple and legacy array cleanup to prevent NM Update errors.

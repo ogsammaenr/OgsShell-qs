@@ -298,6 +298,30 @@ func (m *MockWifiClient) SetConnectionIPv6(ctx context.Context, req SetConnectio
 	return nil
 }
 
+func (m *MockWifiClient) GetWiredConnections(ctx context.Context) ([]WiredConnection, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	return []WiredConnection{
+		{
+			UUID:          "mock-wired-uuid-1",
+			Name:          "Kablolu Bağlantı 1",
+			Interface:     "eth0",
+			HwAddress:     "00:11:22:33:44:55",
+			IsConnected:   true,
+			Carrier:       true,
+			SpeedMbps:     1000,
+			IPAddress:     "192.168.1.150",
+			Prefix:        24,
+			Gateway:       "192.168.1.1",
+			DNS:           []string{"1.1.1.1", "1.0.0.1"},
+			IgnoreAutoDNS: true,
+			IPv6Method:    "auto",
+			IPv6Disabled:  false,
+		},
+	}, nil
+}
+
 func (m *MockWifiClient) CleanupDuplicateProfiles(ctx context.Context, targetSSID ...string) (*CleanupDuplicatesResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

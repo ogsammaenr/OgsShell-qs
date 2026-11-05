@@ -3,6 +3,7 @@ package wifi
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/godbus/dbus/v5"
@@ -523,15 +524,426 @@ func (c *DBusWifiClient) Disconnect(ctx context.Context) error {
 	return devObj.Call("org.freedesktop.NetworkManager.Device.Disconnect", 0).Err
 }
 
+// reactivateIfActive checks if the given connection (by connObj and settings) is currently active,
+// and if so, re-activates it with its corresponding device to apply DNS/IPv6 changes immediately.
+func (c *DBusWifiClient) reactivateIfActive(connObj dbus.BusObject, settings map[string]map[string]dbus.Variant) {
+	uuid := ""
+	id := ""
+	isWireless := false
+	ssid := ""
+	if meta, ok := settings["connection"]; ok {
+		if u, ok := meta["uuid"].Value().(string); ok {
+			uuid = u
+		}
+		if name, ok := meta["id"].Value().(string); ok {
+			id = name
+		}
+	}
+	if wireless, ok := settings["802-11-wireless"]; ok {
+		isWireless = true
+		if b, ok := wireless["ssid"].Value().([]byte); ok {
+			ssid = string(b)
+		}
+	}
+
+	nmObj := c.conn.Object(nmBusName, nmPath)
+	var activePaths []dbus.ObjectPath
+	if val, err := nmObj.GetProperty("org.freedesktop.NetworkManager.ActiveConnections"); err == nil {
+		if paths, ok := val.Value().([]dbus.ObjectPath); ok {
+			activePaths = paths
+		}
+	}
+
+	for _, aPath := range activePaths {
+		acObj := c.conn.Object(nmBusName, aPath)
+		var acProps map[string]dbus.Variant
+		if err := acObj.Call("org.freedesktop.DBus.Properties.GetAll", 0, "org.freedesktop.NetworkManager.Connection.Active").Store(&acProps); err == nil {
+			acUUID, _ := acProps["Uuid"].Value().(string)
+			acId, _ := acProps["Id"].Value().(string)
+			acConnPath, _ := acProps["Connection"].Value().(dbus.ObjectPath)
+
+			match := (acConnPath == connObj.Path()) ||
+				(uuid != "" && strings.EqualFold(acUUID, uuid)) ||
+				(id != "" && acId == id) ||
+				(ssid != "" && acId == ssid)
+
+			if match {
+				var devPath dbus.ObjectPath = "/"
+				if devs, ok := acProps["Devices"].Value().([]dbus.ObjectPath); ok && len(devs) > 0 {
+					devPath = devs[0]
+				}
+
+				if isWireless {
+					apPath, _ := c.findAccessPointPath(ssid)
+					var activeConnPath dbus.ObjectPath
+					_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), devPath, apPath).Store(&activeConnPath)
+				} else {
+					var activeConnPath dbus.ObjectPath
+					_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), devPath, dbus.ObjectPath("/")).Store(&activeConnPath)
+				}
+				return
+			}
+		}
+	}
+}
+
+// GetWiredConnections returns all Ethernet devices and connection profiles.
+func (c *DBusWifiClient) GetWiredConnections(ctx context.Context) ([]WiredConnection, error) {
+	nmObj := c.conn.Object(nmBusName, nmPath)
+
+	type activeConnInfo struct {
+		id        string
+		uuid      string
+		connPath  dbus.ObjectPath
+		devPath   dbus.ObjectPath
+		ip4Path   dbus.ObjectPath
+		connType  string
+		ipAddress string
+		prefix    int
+		gateway   string
+		dnsList   []string
+	}
+
+	activeConns := make(map[string]*activeConnInfo)
+	activeByDev := make(map[string]*activeConnInfo)
+
+	if val, err := nmObj.GetProperty("org.freedesktop.NetworkManager.ActiveConnections"); err == nil {
+		if paths, ok := val.Value().([]dbus.ObjectPath); ok {
+			for _, aPath := range paths {
+				acObj := c.conn.Object(nmBusName, aPath)
+				var acProps map[string]dbus.Variant
+				if err := acObj.Call("org.freedesktop.DBus.Properties.GetAll", 0, "org.freedesktop.NetworkManager.Connection.Active").Store(&acProps); err == nil {
+					u, _ := acProps["Uuid"].Value().(string)
+					name, _ := acProps["Id"].Value().(string)
+					cPath, _ := acProps["Connection"].Value().(dbus.ObjectPath)
+					cType, _ := acProps["Type"].Value().(string)
+					ip4, _ := acProps["Ip4Config"].Value().(dbus.ObjectPath)
+
+					var devPath dbus.ObjectPath = "/"
+					if devs, ok := acProps["Devices"].Value().([]dbus.ObjectPath); ok && len(devs) > 0 {
+						devPath = devs[0]
+					}
+
+					info := &activeConnInfo{
+						id:       name,
+						uuid:     u,
+						connPath: cPath,
+						devPath:  devPath,
+						ip4Path:  ip4,
+						connType: cType,
+						prefix:   24,
+					}
+
+					if ip4 != "/" && ip4 != "" {
+						ip4Obj := c.conn.Object(nmBusName, ip4)
+						if addrDataVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.AddressData"); err == nil {
+							if addrData, ok := addrDataVal.Value().([]map[string]dbus.Variant); ok && len(addrData) > 0 {
+								if a, ok := addrData[0]["address"].Value().(string); ok {
+									info.ipAddress = a
+								}
+								if p, ok := addrData[0]["prefix"].Value().(uint32); ok {
+									info.prefix = int(p)
+								}
+							}
+						}
+						if gwVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Gateway"); err == nil {
+							if g, ok := gwVal.Value().(string); ok {
+								info.gateway = g
+							}
+						}
+						if nsVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Nameservers"); err == nil {
+							if nsList, ok := nsVal.Value().([]uint32); ok {
+								for _, ns := range nsList {
+									info.dnsList = append(info.dnsList, Uint32ToIP(ns))
+								}
+							}
+						}
+					}
+
+					if u != "" {
+						activeConns[strings.ToLower(u)] = info
+					}
+					if name != "" {
+						activeConns[strings.ToLower(name)] = info
+					}
+					if cPath != "/" && cPath != "" {
+						activeConns[string(cPath)] = info
+					}
+					if devPath != "/" && devPath != "" {
+						activeByDev[string(devPath)] = info
+					}
+				}
+			}
+		}
+	}
+
+	type ethDeviceInfo struct {
+		path      dbus.ObjectPath
+		iface     string
+		hwAddress string
+		state     uint32
+		carrier   bool
+		speed     int
+		acPath    dbus.ObjectPath
+	}
+
+	var ethDevices []ethDeviceInfo
+	if val, err := nmObj.GetProperty("org.freedesktop.NetworkManager.AllDevices"); err == nil {
+		if devPaths, ok := val.Value().([]dbus.ObjectPath); ok {
+			for _, dPath := range devPaths {
+				devObj := c.conn.Object(nmBusName, dPath)
+				typeVal, errType := devObj.GetProperty("org.freedesktop.NetworkManager.Device.DeviceType")
+				if errType != nil {
+					continue
+				}
+				devType, ok := typeVal.Value().(uint32)
+				if !ok || devType != 1 { // 1 = NM_DEVICE_TYPE_ETHERNET
+					continue
+				}
+
+				iface := ""
+				if ifaceVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Interface"); err == nil {
+					iface, _ = ifaceVal.Value().(string)
+				}
+				hw := ""
+				if hwVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.HwAddress"); err == nil {
+					hw, _ = hwVal.Value().(string)
+				}
+				state := uint32(0)
+				if stateVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.State"); err == nil {
+					state, _ = stateVal.Value().(uint32)
+				}
+				carrier := false
+				if carrierVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Wired.Carrier"); err == nil {
+					if b, ok := carrierVal.Value().(bool); ok {
+						carrier = b
+					}
+				}
+				speed := 0
+				if speedVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Wired.Speed"); err == nil {
+					if s, ok := speedVal.Value().(uint32); ok {
+						speed = int(s)
+					}
+				}
+				var acPath dbus.ObjectPath
+				if acVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.ActiveConnection"); err == nil {
+					acPath, _ = acVal.Value().(dbus.ObjectPath)
+				}
+
+				ethDevices = append(ethDevices, ethDeviceInfo{
+					path:      dPath,
+					iface:     iface,
+					hwAddress: hw,
+					state:     state,
+					carrier:   carrier,
+					speed:     speed,
+					acPath:    acPath,
+				})
+			}
+		}
+	}
+
+	settingsObj := c.conn.Object(nmBusName, nmSettingsPath)
+	var connPaths []dbus.ObjectPath
+	_ = settingsObj.Call("org.freedesktop.NetworkManager.Settings.ListConnections", 0).Store(&connPaths)
+
+	var results []WiredConnection
+	claimedDevs := make(map[string]bool)
+
+	for _, cPath := range connPaths {
+		connObj := c.conn.Object(nmBusName, cPath)
+		var settings map[string]map[string]dbus.Variant
+		if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.GetSettings", 0).Store(&settings); err == nil {
+			connMeta, ok := settings["connection"]
+			if !ok {
+				continue
+			}
+			cType, _ := connMeta["type"].Value().(string)
+			if cType != "802-3-ethernet" {
+				if _, hasEther := settings["802-3-ethernet"]; !hasEther {
+					continue
+				}
+			}
+
+			uuid, _ := connMeta["uuid"].Value().(string)
+			name, _ := connMeta["id"].Value().(string)
+			boundIface, _ := connMeta["interface-name"].Value().(string)
+
+			var dnsList []string
+			ignoreAutoDNS := false
+			if ipv4Meta, ok := settings["ipv4"]; ok {
+				if ig, ok := ipv4Meta["ignore-auto-dns"].Value().(bool); ok {
+					ignoreAutoDNS = ig
+				}
+				if dnsVal, ok := ipv4Meta["dns"]; ok {
+					if dnsUint32, ok := dnsVal.Value().([]uint32); ok {
+						for _, u := range dnsUint32 {
+							dnsList = append(dnsList, Uint32ToIP(u))
+						}
+					}
+				}
+			}
+
+			ipv6Method := "auto"
+			if ipv6Meta, ok := settings["ipv6"]; ok {
+				if m, ok := ipv6Meta["method"].Value().(string); ok {
+					ipv6Method = m
+				}
+			}
+			ipv6Disabled := (ipv6Method == "disabled" || ipv6Method == "ignore")
+
+			var active *activeConnInfo
+			if a, ok := activeConns[strings.ToLower(uuid)]; ok {
+				active = a
+			} else if a, ok := activeConns[string(cPath)]; ok {
+				active = a
+			} else if a, ok := activeConns[strings.ToLower(name)]; ok {
+				active = a
+			}
+
+			isConnected := active != nil
+			ipAddr := ""
+			prefix := 24
+			gateway := ""
+			if active != nil {
+				ipAddr = active.ipAddress
+				prefix = active.prefix
+				gateway = active.gateway
+				if len(active.dnsList) > 0 {
+					dnsList = active.dnsList
+				}
+			}
+
+			matchedIface := boundIface
+			hwAddr := ""
+			carrier := false
+			speed := 0
+
+			for _, dev := range ethDevices {
+				isThisDev := false
+				if active != nil && active.devPath == dev.path {
+					isThisDev = true
+				} else if boundIface != "" && dev.iface == boundIface {
+					isThisDev = true
+				} else if !claimedDevs[dev.iface] && (matchedIface == "" || matchedIface == dev.iface) {
+					isThisDev = true
+				}
+
+				if isThisDev {
+					matchedIface = dev.iface
+					hwAddr = dev.hwAddress
+					carrier = dev.carrier
+					speed = dev.speed
+					if isConnected {
+						claimedDevs[dev.iface] = true
+					}
+					break
+				}
+			}
+
+			results = append(results, WiredConnection{
+				UUID:          uuid,
+				Name:          name,
+				Interface:     matchedIface,
+				HwAddress:     hwAddr,
+				IsConnected:   isConnected,
+				Carrier:       carrier,
+				SpeedMbps:     speed,
+				IPAddress:     ipAddr,
+				Prefix:        prefix,
+				Gateway:       gateway,
+				DNS:           dnsList,
+				IgnoreAutoDNS: ignoreAutoDNS,
+				IPv6Method:    ipv6Method,
+				IPv6Disabled:  ipv6Disabled,
+			})
+		}
+	}
+
+	for _, dev := range ethDevices {
+		if claimedDevs[dev.iface] {
+			continue
+		}
+		alreadyListed := false
+		for _, r := range results {
+			if r.Interface == dev.iface {
+				alreadyListed = true
+				break
+			}
+		}
+		if alreadyListed {
+			continue
+		}
+
+		active := activeByDev[string(dev.path)]
+		isConnected := active != nil || dev.state == 100
+		ipAddr := ""
+		prefix := 24
+		gateway := ""
+		var dnsList []string
+		if active != nil {
+			ipAddr = active.ipAddress
+			prefix = active.prefix
+			gateway = active.gateway
+			dnsList = active.dnsList
+		}
+
+		results = append(results, WiredConnection{
+			UUID:          "",
+			Name:          fmt.Sprintf("Kablolu Ağ (%s)", dev.iface),
+			Interface:     dev.iface,
+			HwAddress:     dev.hwAddress,
+			IsConnected:   isConnected,
+			Carrier:       dev.carrier,
+			SpeedMbps:     dev.speed,
+			IPAddress:     ipAddr,
+			Prefix:        prefix,
+			Gateway:       gateway,
+			DNS:           dnsList,
+			IgnoreAutoDNS: false,
+			IPv6Method:    "auto",
+			IPv6Disabled:  false,
+		})
+	}
+
+	sort.SliceStable(results, func(i, j int) bool {
+		if results[i].IsConnected != results[j].IsConnected {
+			return results[i].IsConnected
+		}
+		if results[i].Carrier != results[j].Carrier {
+			return results[i].Carrier
+		}
+		return results[i].Name < results[j].Name
+	})
+
+	return results, nil
+}
+
 // GetNetworkDetails retrieves detailed IP/DNS/IPv6 configuration for a connection or the active network.
 func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID string) (*NetworkDetails, error) {
 	activeInfo, _ := c.GetActiveConnection(ctx)
 
 	if ssidOrUUID == "" {
-		if activeInfo == nil {
+		if activeInfo != nil {
+			ssidOrUUID = activeInfo.SSID
+		} else {
+			// Wi-Fi is not active; fallback to any active wired connection
+			wiredList, errWired := c.GetWiredConnections(ctx)
+			if errWired == nil {
+				for _, w := range wiredList {
+					if w.IsConnected {
+						ssidOrUUID = w.UUID
+						if ssidOrUUID == "" {
+							ssidOrUUID = w.Name
+						}
+						break
+					}
+				}
+			}
+		}
+		if ssidOrUUID == "" {
 			return nil, fmt.Errorf("no active connection and no SSID/UUID provided")
 		}
-		ssidOrUUID = activeInfo.SSID
 	}
 
 	connObj, settings, err := c.findConnectionObject(ssidOrUUID)
@@ -554,6 +966,7 @@ func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID strin
 	uuid := ""
 	id := ""
 	ssid := ""
+	isWireless := false
 	if connMeta, ok := settings["connection"]; ok {
 		if u, ok := connMeta["uuid"].Value().(string); ok {
 			uuid = u
@@ -563,6 +976,7 @@ func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID strin
 		}
 	}
 	if wireless, ok := settings["802-11-wireless"]; ok {
+		isWireless = true
 		if ssidBytes, ok := wireless["ssid"].Value().([]byte); ok {
 			ssid = string(ssidBytes)
 		}
@@ -608,50 +1022,95 @@ func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID strin
 
 	isConnected := false
 	signal := uint8(0)
-	if activeInfo != nil && (activeInfo.SSID == ssid || (uuid != "" && activeInfo.SSID == id) || activeInfo.SSID == id) {
-		isConnected = true
-		signal = activeInfo.Signal
-		if activeInfo.IPAddress != "" {
-			ipAddr = activeInfo.IPAddress
-		}
-		if activeInfo.Gateway != "" {
-			gateway = activeInfo.Gateway
-		}
-		if len(dnsList) == 0 && len(activeInfo.DNS) > 0 {
-			dnsList = activeInfo.DNS
+	devIface := c.iface
+	if !isWireless {
+		devIface = ""
+		if connMeta, ok := settings["connection"]; ok {
+			if ifName, ok := connMeta["interface-name"].Value().(string); ok {
+				devIface = ifName
+			}
 		}
 	}
 
-	// Query active IP4Config from device if connected
-	if isConnected {
-		devObj := c.conn.Object(nmBusName, c.wifiPath)
-		if ip4PathVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Ip4Config"); err == nil {
-			if ip4Path, ok := ip4PathVal.Value().(dbus.ObjectPath); ok && ip4Path != "/" && ip4Path != "" {
-				ip4Obj := c.conn.Object(nmBusName, ip4Path)
-				if addrDataVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.AddressData"); err == nil {
-					if addrData, ok := addrDataVal.Value().([]map[string]dbus.Variant); ok && len(addrData) > 0 {
-						if a, ok := addrData[0]["address"].Value().(string); ok {
-							ipAddr = a
-						}
-						if p, ok := addrData[0]["prefix"].Value().(uint32); ok {
-							prefix = int(p)
+	// Look up active connection across all active connections on NetworkManager
+	nmObj := c.conn.Object(nmBusName, nmPath)
+	var activePaths []dbus.ObjectPath
+	if val, err := nmObj.GetProperty("org.freedesktop.NetworkManager.ActiveConnections"); err == nil {
+		if paths, ok := val.Value().([]dbus.ObjectPath); ok {
+			activePaths = paths
+		}
+	}
+
+	for _, aPath := range activePaths {
+		acObj := c.conn.Object(nmBusName, aPath)
+		var acProps map[string]dbus.Variant
+		if err := acObj.Call("org.freedesktop.DBus.Properties.GetAll", 0, "org.freedesktop.NetworkManager.Connection.Active").Store(&acProps); err == nil {
+			acUUID, _ := acProps["Uuid"].Value().(string)
+			acId, _ := acProps["Id"].Value().(string)
+			acConnPath, _ := acProps["Connection"].Value().(dbus.ObjectPath)
+
+			match := (acConnPath == connObj.Path()) ||
+				(uuid != "" && strings.EqualFold(acUUID, uuid)) ||
+				(id != "" && acId == id) ||
+				(ssid != "" && acId == ssid)
+
+			if match {
+				isConnected = true
+				if isWireless {
+					if activeInfo != nil {
+						signal = activeInfo.Signal
+					} else {
+						signal = 80
+					}
+				} else {
+					signal = 100
+				}
+
+				if devs, ok := acProps["Devices"].Value().([]dbus.ObjectPath); ok && len(devs) > 0 {
+					devObj := c.conn.Object(nmBusName, devs[0])
+					if ifVal, err := devObj.GetProperty("org.freedesktop.NetworkManager.Device.Interface"); err == nil {
+						if ifName, ok := ifVal.Value().(string); ok && ifName != "" {
+							devIface = ifName
 						}
 					}
 				}
-				if gwVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Gateway"); err == nil {
-					if g, ok := gwVal.Value().(string); ok && g != "" {
-						gateway = g
+
+				if ip4Path, ok := acProps["Ip4Config"].Value().(dbus.ObjectPath); ok && ip4Path != "/" && ip4Path != "" {
+					ip4Obj := c.conn.Object(nmBusName, ip4Path)
+					if addrDataVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.AddressData"); err == nil {
+						if addrData, ok := addrDataVal.Value().([]map[string]dbus.Variant); ok && len(addrData) > 0 {
+							if a, ok := addrData[0]["address"].Value().(string); ok {
+								ipAddr = a
+							}
+							if p, ok := addrData[0]["prefix"].Value().(uint32); ok {
+								prefix = int(p)
+							}
+						}
 					}
-				}
-				if len(dnsList) == 0 {
+					if gwVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Gateway"); err == nil {
+						if g, ok := gwVal.Value().(string); ok && g != "" {
+							gateway = g
+						}
+					}
 					if nsVal, err := ip4Obj.GetProperty("org.freedesktop.NetworkManager.IP4Config.Nameservers"); err == nil {
-						if nsList, ok := nsVal.Value().([]uint32); ok {
+						if nsList, ok := nsVal.Value().([]uint32); ok && len(nsList) > 0 {
+							dnsList = nil
 							for _, ns := range nsList {
 								dnsList = append(dnsList, Uint32ToIP(ns))
 							}
 						}
 					}
 				}
+				break
+			}
+		}
+	}
+
+	if !isConnected && devIface == "" {
+		// Fallback to first available ethernet device if wired
+		if !isWireless {
+			if wiredList, errWired := c.GetWiredConnections(ctx); errWired == nil && len(wiredList) > 0 {
+				devIface = wiredList[0].Interface
 			}
 		}
 	}
@@ -661,7 +1120,7 @@ func (c *DBusWifiClient) GetNetworkDetails(ctx context.Context, ssidOrUUID strin
 		UUID:          uuid,
 		Name:          id,
 		SSID:          ssid,
-		Device:        c.iface,
+		Device:        devIface,
 		IPAddress:     ipAddr,
 		Prefix:        prefix,
 		Gateway:       gateway,
@@ -702,7 +1161,8 @@ func (c *DBusWifiClient) SetConnectionDNS(ctx context.Context, req SetConnection
 		settings["ipv4"]["dns"] = dbus.MakeVariant(dnsUint32)
 		settings["ipv4"]["ignore-auto-dns"] = dbus.MakeVariant(req.IgnoreAutoDNS)
 	} else {
-		delete(settings["ipv4"], "dns")
+		settings["ipv4"]["dns"] = dbus.MakeVariant([]uint32{})
+		delete(settings["ipv4"], "dns-data")
 		settings["ipv4"]["ignore-auto-dns"] = dbus.MakeVariant(false)
 	}
 
@@ -713,26 +1173,7 @@ func (c *DBusWifiClient) SetConnectionDNS(ctx context.Context, req SetConnection
 	}
 
 	// If currently active, reactivate connection to apply DNS changes immediately
-	if activeInfo, _ := c.GetActiveConnection(ctx); activeInfo != nil {
-		ssid := ""
-		if wireless, ok := settings["802-11-wireless"]; ok {
-			if b, ok := wireless["ssid"].Value().([]byte); ok {
-				ssid = string(b)
-			}
-		}
-		id := ""
-		if meta, ok := settings["connection"]; ok {
-			if s, ok := meta["id"].Value().(string); ok {
-				id = s
-			}
-		}
-		if activeInfo.SSID == ssid || activeInfo.SSID == id || req.SSIDOrUUID == ssid || req.SSIDOrUUID == id {
-			apPath, _ := c.findAccessPointPath(activeInfo.SSID)
-			nmObj := c.conn.Object(nmBusName, nmPath)
-			var activeConnPath dbus.ObjectPath
-			_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), c.wifiPath, apPath).Store(&activeConnPath)
-		}
-	}
+	c.reactivateIfActive(connObj, settings)
 
 	return nil
 }
@@ -761,20 +1202,7 @@ func (c *DBusWifiClient) SetConnectionIPv6(ctx context.Context, req SetConnectio
 	}
 
 	// If currently active, reactivate to apply immediately
-	if activeInfo, _ := c.GetActiveConnection(ctx); activeInfo != nil {
-		id := ""
-		if meta, ok := settings["connection"]; ok {
-			if s, ok := meta["id"].Value().(string); ok {
-				id = s
-			}
-		}
-		if activeInfo.SSID == id || req.SSIDOrUUID == id {
-			apPath, _ := c.findAccessPointPath(activeInfo.SSID)
-			nmObj := c.conn.Object(nmBusName, nmPath)
-			var activeConnPath dbus.ObjectPath
-			_ = nmObj.Call("org.freedesktop.NetworkManager.ActivateConnection", 0, connObj.Path(), c.wifiPath, apPath).Store(&activeConnPath)
-		}
-	}
+	c.reactivateIfActive(connObj, settings)
 
 	return nil
 }

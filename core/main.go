@@ -736,6 +736,17 @@ func main() {
 				Payload: payloadBytes,
 			})
 
+		case "get_wired_connections":
+			connections, err := wifiMgr.GetWiredConnections(ctx)
+			if err != nil {
+				return fmt.Errorf("kablolu bağlantılar okunamadı: %w", err)
+			}
+			payloadBytes, _ := json.Marshal(connections)
+			return server.Broadcast(ipc.Event{
+				Type:    "wired_connections_update",
+				Payload: payloadBytes,
+			})
+
 		case "set_connection_dns":
 			var p SetConnectionDNSPayload
 			if err := json.Unmarshal(action.Args, &p); err != nil {
@@ -754,6 +765,13 @@ func main() {
 				_ = server.Broadcast(ipc.Event{
 					Type:    "network_details",
 					Payload: pBytes,
+				})
+			}
+			if wiredConns, err := wifiMgr.GetWiredConnections(ctx); err == nil {
+				wBytes, _ := json.Marshal(wiredConns)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "wired_connections_update",
+					Payload: wBytes,
 				})
 			}
 			return nil
@@ -775,6 +793,13 @@ func main() {
 				_ = server.Broadcast(ipc.Event{
 					Type:    "network_details",
 					Payload: pBytes,
+				})
+			}
+			if wiredConns, err := wifiMgr.GetWiredConnections(ctx); err == nil {
+				wBytes, _ := json.Marshal(wiredConns)
+				_ = server.Broadcast(ipc.Event{
+					Type:    "wired_connections_update",
+					Payload: wBytes,
 				})
 			}
 			return nil

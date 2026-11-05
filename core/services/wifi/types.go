@@ -38,6 +38,24 @@ type WifiProfile struct {
 	HasPassword  bool         `json:"has_password"`
 }
 
+// WiredConnection represents an Ethernet network interface or connection profile configuration.
+type WiredConnection struct {
+	UUID          string   `json:"uuid"`
+	Name          string   `json:"name"`
+	Interface     string   `json:"interface"`
+	HwAddress     string   `json:"hw_address"`
+	IsConnected   bool     `json:"is_connected"`
+	Carrier       bool     `json:"carrier"`
+	SpeedMbps     int      `json:"speed_mbps"`
+	IPAddress     string   `json:"ip_address"`
+	Prefix        int      `json:"prefix"`
+	Gateway       string   `json:"gateway"`
+	DNS           []string `json:"dns"`
+	IgnoreAutoDNS bool     `json:"ignore_auto_dns"`
+	IPv6Method    string   `json:"ipv6_method"`
+	IPv6Disabled  bool     `json:"ipv6_disabled"`
+}
+
 // WifiSecrets represents sensitive credentials associated with a Wi-Fi profile
 type WifiSecrets struct {
 	SSID     string `json:"ssid"`

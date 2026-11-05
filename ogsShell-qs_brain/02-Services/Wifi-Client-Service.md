@@ -51,9 +51,11 @@ To prevent desktop environments (such as KDE Plasma / `kded` or GNOME Keyring) f
 
 ## 3. DNS, IPv6 & Profile Lifecycle Architecture
 
-* **Kalıcı DNS Yapılandırması (`SetConnectionDNS`):** NetworkManager D-Bus `ipv4.dns` (uint32 Little/Big-Endian) ve `ipv4.ignore-auto-dns` ayarlarını diske yazar; bağlantı aktifse `ActivateConnection` ile `/etc/resolv.conf`'u anında günceller.
+* **Kalıcı DNS Yapılandırması (`SetConnectionDNS`):** NetworkManager D-Bus `ipv4.dns` (uint32 Little/Big-Endian) ve `ipv4.ignore-auto-dns` ayarlarını diske yazar; bağlantı aktifse `ActivateConnection` ile `/etc/resolv.conf`'u anında günceller. Boş DNS iletildiğinde `dns` array'ini ve `dns-data` alanını tamamen temizleyerek DHCP varsayılanına döner.
+* **Kablolu Ağ Yönetimi (`GetWiredConnections`):** NetworkManager üzerinden tüm Ethernet arayüzlerini (`DeviceType == 1`), donanım MAC adreslerini, taşıyıcı (carrier/kablo takılı) durumunu, link hızlarını (Mbps) ve kayıtlı `802-3-ethernet` profillerini harmanlayarak `[]WiredConnection` listesi döner.
+* **Evrensel Canlı Yeniden Uygulama (`reactivateIfActive`):** DNS veya IPv6 ayarı değiştirildiğinde profilin Wi-Fi veya Ethernet olmasına bakılmaksızın aktif bağlantı tespit edilir; Wi-Fi ise erişim noktasıyla, kablolu ise donanım aygıtıyla kesintisiz şekilde `ActivateConnection` çağrılarak canlı hot-reload sağlanır.
 * **D-Bus Ayar Sanitizasyonu (`SanitizeSettingsForUpdate`):** `GetSettings` ile okunan profillerin `Update` edilirken `ipv6.addresses` veya `ipv4.addresses` tuple tip uyumsuzluğu (`a(ayuay)` vs `aav`) vermemesi için boş veya `auto`/`disabled` metoduna sahip eski adres dizilerini temizler.
-* **IPv6 Kontrolü (`SetConnectionIPv6`):** DPI Bypass (Zapret) sızıntılarını önlemek için tek hamlede `ipv6.method: disabled` veya `auto` ataması yapar.
+* **IPv6 Kontrolü (`SetConnectionIPv6`):** DPI Bypass (Zapret) sızıntılarını önlemek için hem kablosuz hem kablolu bağlantılarda tek hamlede `ipv6.method: disabled` veya `auto` ataması yapar.
 * **Kopya Profil Temizliği (`CleanupDuplicateProfiles`):** Aynı SSID için birikmiş redundant `.nmconnection` klonlarını tespit eder, özel DNS'e sahip olanı veya aktif olanı koruyup diğerlerini siler.
 * **Akıllı Bağlantı (`Connect`):** Ağ profili zaten mevcutsa `AddAndActivateConnection` çağırmaz, mevcut profili aktive ederek özel ayarların ezilmesini önler.
 

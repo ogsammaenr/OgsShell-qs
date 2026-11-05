@@ -43,6 +43,9 @@ type WifiManager interface {
 	// GetNetworkDetails retrieves detailed IP/DNS/IPv6 configuration for a connection or the active network.
 	GetNetworkDetails(ctx context.Context, ssidOrUUID string) (*NetworkDetails, error)
 
+	// GetWiredConnections returns all Ethernet devices and connection profiles.
+	GetWiredConnections(ctx context.Context) ([]WiredConnection, error)
+
 	// SetConnectionDNS configures custom DNS and automatic DNS ignore flag on a connection profile.
 	SetConnectionDNS(ctx context.Context, req SetConnectionDNSRequest) error
 
