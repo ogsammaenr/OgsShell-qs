@@ -8,42 +8,42 @@ Item {
   property bool enabled: true
   signal toggled(bool isChecked)
 
-  implicitWidth: 42
-  implicitHeight: 24
+  implicitWidth: 38
+  implicitHeight: 22
 
   Rectangle {
     id: track
     anchors.fill: parent
-    radius: 12
-    color: root.checked ? Style.accentCyan : Style.surfaceVariant
-    border.color: root.checked ? Style.accentCyan : Style.border
+    radius: 11
+    color: root.checked ? Style.accent : Style.surfaceVariant
+    border.color: root.checked ? Style.accent : Style.appBorder
     border.width: 1
 
     Behavior on color {
-      ColorAnimation { duration: 180; easing.type: Easing.OutQuad }
+      ColorAnimation { duration: 160; easing.type: Easing.OutQuad }
     }
     Behavior on border.color {
-      ColorAnimation { duration: 180; easing.type: Easing.OutQuad }
+      ColorAnimation { duration: 160; easing.type: Easing.OutQuad }
     }
 
     Rectangle {
       id: thumb
-      width: 18
-      height: 18
-      radius: 9
+      width: 16
+      height: 16
+      radius: 8
       y: 2
       x: root.checked ? (parent.width - width - 3) : 3
-      color: root.checked ? "#11111B" : Style.textPrimary
+      color: root.checked ? Style.bgPrimary : Style.textPrimary
 
       Behavior on x {
         NumberAnimation {
-          duration: 200
+          duration: 180
           easing.type: Easing.OutCubic
         }
       }
 
       Behavior on color {
-        ColorAnimation { duration: 180; easing.type: Easing.OutQuad }
+        ColorAnimation { duration: 160; easing.type: Easing.OutQuad }
       }
     }
   }

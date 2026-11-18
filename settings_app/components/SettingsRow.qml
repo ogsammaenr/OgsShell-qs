@@ -6,7 +6,7 @@ Rectangle {
   id: root
 
   property string iconText: ""
-  property color iconColor: Style.accentCyan
+  property color iconColor: Style.textSecondary
   property string title: ""
   property string subtitle: ""
   property bool showDivider: true
@@ -16,7 +16,7 @@ Rectangle {
   default property alias content: rightSlot.data
 
   Layout.fillWidth: true
-  implicitHeight: subtitle !== "" ? 56 : 48
+  implicitHeight: subtitle !== "" ? 54 : 44
 
   color: clickable && mouseArea.containsMouse ? Style.surfaceHover : "transparent"
 
@@ -35,16 +35,16 @@ Rectangle {
     anchors.rightMargin: 14
     spacing: 12
 
-    // Optional Left Glyph Icon
     Text {
       visible: root.iconText !== ""
       text: root.iconText
-      font.pixelSize: 17
+      font.pixelSize: 15
       color: root.iconColor
+      Layout.preferredWidth: 18
+      horizontalAlignment: Text.AlignHCenter
       Layout.alignment: Qt.AlignVCenter
     }
 
-    // Title & Subtitle Column
     ColumnLayout {
       Layout.fillWidth: true
       Layout.alignment: Qt.AlignVCenter
@@ -52,6 +52,7 @@ Rectangle {
 
       Text {
         text: root.title
+        font.family: Style.fontText
         font.pixelSize: 13
         font.weight: Font.Medium
         color: Style.textPrimary
@@ -62,6 +63,7 @@ Rectangle {
       Text {
         visible: root.subtitle !== ""
         text: root.subtitle
+        font.family: Style.fontText
         font.pixelSize: 11
         color: Style.textMuted
         Layout.fillWidth: true
@@ -69,7 +71,6 @@ Rectangle {
       }
     }
 
-    // Right Slot Container (for Toggles, Badges, Buttons, Dropdowns)
     RowLayout {
       id: rightSlot
       Layout.alignment: Qt.AlignVCenter
@@ -77,16 +78,15 @@ Rectangle {
     }
   }
 
-  // Subtle bottom divider
   Rectangle {
     anchors.bottom: parent.bottom
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.leftMargin: root.iconText !== "" ? 42 : 14
+    anchors.leftMargin: root.iconText !== "" ? 44 : 14
     anchors.rightMargin: 14
     height: 1
-    color: Style.border
-    opacity: 0.6
+    color: Style.appBorder
+    opacity: 0.7
     visible: root.showDivider
   }
 }

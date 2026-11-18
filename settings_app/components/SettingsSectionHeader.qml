@@ -8,10 +8,11 @@ Text {
   property alias title: root.titleText
   text: titleText.toUpperCase()
 
+  font.family: Style.fontText
   font.pixelSize: 11
   font.weight: Font.DemiBold
-  font.letterSpacing: 0.6
+  font.letterSpacing: 0.7
   color: Style.textMuted
-  leftPadding: 4
+  leftPadding: 2
   bottomPadding: 2
 }

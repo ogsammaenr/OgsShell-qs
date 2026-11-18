@@ -14,14 +14,14 @@ Rectangle {
 
   Layout.fillWidth: true
   implicitHeight: cardLayout.implicitHeight + 24
-  radius: 12
+  radius: 10
 
-  color: isSelected ? Qt.rgba(0.53, 0.77, 0.98, 0.08) : (mouseArea.containsMouse ? Style.surfaceHover : Style.appCard)
-  border.color: isSelected ? Style.accentCyan : (mouseArea.containsMouse ? Style.accentBlue : Style.appBorder)
-  border.width: isSelected ? 2 : 1
+  color: isSelected ? Qt.alpha(Style.accent, 0.10) : (mouseArea.containsMouse ? Style.surfaceHover : Style.appCard)
+  border.color: isSelected ? Style.accent : (mouseArea.containsMouse ? Style.borderHover : Style.appBorder)
+  border.width: 1
 
-  Behavior on color { ColorAnimation { duration: 150 } }
-  Behavior on border.color { ColorAnimation { duration: 150 } }
+  Behavior on color { ColorAnimation { duration: 140 } }
+  Behavior on border.color { ColorAnimation { duration: 140 } }
 
   MouseArea {
     id: mouseArea
@@ -34,30 +34,26 @@ Rectangle {
   RowLayout {
     id: cardLayout
     anchors.fill: parent
-    anchors.margins: 14
-    spacing: 14
+    anchors.margins: 12
+    spacing: 12
 
-    // Left Icon Container
     Rectangle {
-      width: 42
-      height: 42
-      radius: 10
-      color: root.isSelected ? Qt.rgba(0.53, 0.77, 0.98, 0.18) : Style.surfaceVariant
-      border.color: root.isSelected ? Style.accentCyan : "transparent"
-      border.width: 1
+      width: 36
+      height: 36
+      radius: 8
+      color: root.isSelected ? Qt.alpha(Style.accent, 0.18) : Style.surfaceVariant
 
       Text {
         anchors.centerIn: parent
         text: root.iconText
-        font.pixelSize: 20
-        color: root.isSelected ? Style.accentCyan : Style.textPrimary
+        font.pixelSize: 16
+        color: root.isSelected ? Style.accent : Style.textSecondary
       }
     }
 
-    // Texts Column
     ColumnLayout {
       Layout.fillWidth: true
-      spacing: 3
+      spacing: 2
 
       RowLayout {
         Layout.fillWidth: true
@@ -65,33 +61,34 @@ Rectangle {
 
         Text {
           text: root.title
+          font.family: Style.fontText
           font.pixelSize: 13
-          font.weight: Font.Bold
-          color: root.isSelected ? Style.accentCyan : Style.textPrimary
+          font.weight: Font.DemiBold
+          color: root.isSelected ? Style.accent : Style.textPrimary
         }
 
         Rectangle {
           visible: root.badgeText !== ""
           implicitWidth: badgeTextItem.implicitWidth + 10
-          implicitHeight: 18
-          radius: 9
-          color: root.isSelected ? Qt.rgba(0.53, 0.77, 0.98, 0.2) : Style.surfaceVariant
-          border.color: root.isSelected ? Style.accentCyan : Style.appBorder
-          border.width: 1
+          implicitHeight: 17
+          radius: 4
+          color: root.isSelected ? Qt.alpha(Style.accent, 0.16) : Style.surfaceVariant
 
           Text {
             id: badgeTextItem
             anchors.centerIn: parent
             text: root.badgeText
+            font.family: Style.fontText
             font.pixelSize: 10
             font.weight: Font.Medium
-            color: root.isSelected ? Style.accentCyan : Style.textMuted
+            color: root.isSelected ? Style.accent : Style.textMuted
           }
         }
       }
 
       Text {
         text: root.subtitle
+        font.family: Style.fontText
         font.pixelSize: 11
         color: Style.textMuted
         Layout.fillWidth: true
@@ -99,21 +96,20 @@ Rectangle {
       }
     }
 
-    // Selection Radio Indicator
     Rectangle {
-      width: 20
-      height: 20
-      radius: 10
+      width: 16
+      height: 16
+      radius: 8
       color: "transparent"
-      border.color: root.isSelected ? Style.accentCyan : Style.textMuted
-      border.width: root.isSelected ? 2 : 1
+      border.color: root.isSelected ? Style.accent : Style.textMuted
+      border.width: root.isSelected ? 1.5 : 1
 
       Rectangle {
         anchors.centerIn: parent
-        width: 10
-        height: 10
-        radius: 5
-        color: Style.accentCyan
+        width: 8
+        height: 8
+        radius: 4
+        color: Style.accent
         visible: root.isSelected
       }
     }

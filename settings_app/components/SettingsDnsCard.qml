@@ -11,43 +11,41 @@ Rectangle {
   signal clicked()
 
   Layout.fillWidth: true
-  implicitHeight: 52
+  implicitHeight: 50
   radius: 10
 
-  color: isSelected ? Style.surfaceActive : (mouseArea.containsMouse ? Style.surfaceHover : Style.appCard)
-  border.color: isSelected ? Style.accentCyan : Style.appBorder
-  border.width: isSelected ? 1.5 : 1
+  color: isSelected ? Qt.alpha(Style.accent, 0.10) : (mouseArea.containsMouse ? Style.surfaceHover : Style.appCard)
+  border.color: isSelected ? Style.accent : (mouseArea.containsMouse ? Style.borderHover : Style.appBorder)
+  border.width: 1
 
   Behavior on color { ColorAnimation { duration: 140 } }
   Behavior on border.color { ColorAnimation { duration: 140 } }
 
   RowLayout {
     anchors.fill: parent
-    anchors.leftMargin: 16
-    anchors.rightMargin: 16
-    spacing: 14
+    anchors.leftMargin: 14
+    anchors.rightMargin: 14
+    spacing: 12
 
-    // Left Radio Checkmark Circle
     Rectangle {
-      width: 18
-      height: 18
-      radius: 9
+      width: 16
+      height: 16
+      radius: 8
       color: "transparent"
-      border.color: root.isSelected ? Style.accentCyan : Style.border
-      border.width: 2
+      border.color: root.isSelected ? Style.accent : Style.textMuted
+      border.width: root.isSelected ? 1.5 : 1
       Layout.alignment: Qt.AlignVCenter
 
       Rectangle {
         anchors.centerIn: parent
-        width: 10
-        height: 10
-        radius: 5
-        color: Style.accentCyan
+        width: 8
+        height: 8
+        radius: 4
+        color: Style.accent
         visible: root.isSelected
       }
     }
 
-    // Title & IPs Column (Strict Left Alignment)
     ColumnLayout {
       Layout.fillWidth: true
       Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
@@ -55,9 +53,10 @@ Rectangle {
 
       Text {
         text: root.title
+        font.family: Style.fontText
         font.pixelSize: 13
-        font.weight: root.isSelected ? Font.Bold : Font.Medium
-        color: root.isSelected ? Style.accentCyan : Style.textPrimary
+        font.weight: root.isSelected ? Font.DemiBold : Font.Medium
+        color: root.isSelected ? Style.accent : Style.textPrimary
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignLeft
         elide: Text.ElideRight
@@ -65,6 +64,7 @@ Rectangle {
 
       Text {
         text: root.dnsIps
+        font.family: Style.fontText
         font.pixelSize: 11
         color: Style.textMuted
         Layout.fillWidth: true

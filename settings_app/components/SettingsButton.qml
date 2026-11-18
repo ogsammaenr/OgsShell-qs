@@ -13,20 +13,24 @@ Rectangle {
   property bool enabled: true
   signal clicked()
 
-  implicitWidth: contentLayout.implicitWidth + 24
-  implicitHeight: 32
-  radius: 8
+  implicitWidth: contentLayout.implicitWidth + 22
+  implicitHeight: 30
+  radius: 7
 
   color: {
     if (!enabled) return Style.surfaceVariant
-    if (mouseArea.pressed) return isAccent ? Qt.darker(Style.accentCyan, 1.2) : Style.surfaceActive
-    if (mouseArea.containsMouse) return isAccent ? Qt.lighter(Style.accentCyan, 1.1) : Style.surfaceHover
-    if (isAccent) return Style.accentCyan
-    if (isDanger) return Style.accentRed
+    if (mouseArea.pressed) return isAccent ? Qt.darker(Style.accent, 1.15) : Style.surfaceActive
+    if (mouseArea.containsMouse) return isAccent ? Qt.lighter(Style.accent, 1.08) : Style.surfaceHover
+    if (isAccent) return Style.accent
+    if (isDanger) return Qt.alpha(Style.accentRed, 0.16)
     return Style.surfaceVariant
   }
 
-  border.color: isAccent ? "transparent" : (mouseArea.containsMouse ? Style.accentCyan : Style.border)
+  border.color: {
+    if (isAccent) return "transparent"
+    if (isDanger) return Qt.alpha(Style.accentRed, 0.45)
+    return mouseArea.containsMouse ? Style.borderHover : Style.appBorder
+  }
   border.width: 1
 
   Behavior on color { ColorAnimation { duration: 120 } }
@@ -41,14 +45,15 @@ Rectangle {
       visible: root.iconText !== ""
       text: root.iconText
       font.pixelSize: 13
-      color: root.isAccent ? "#11111B" : (root.isDanger ? "#FFFFFF" : Style.textPrimary)
+      color: root.isAccent ? Style.bgPrimary : (root.isDanger ? Style.accentRed : Style.textSecondary)
     }
 
     Text {
       text: root.text
+      font.family: Style.fontText
       font.pixelSize: 12
       font.weight: Font.Medium
-      color: root.isAccent ? "#11111B" : (root.isDanger ? "#FFFFFF" : Style.textPrimary)
+      color: root.isAccent ? Style.bgPrimary : (root.isDanger ? Style.accentRed : Style.textPrimary)
     }
   }
 

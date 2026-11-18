@@ -25,7 +25,7 @@ Rectangle {
   color: Style.appCard
   border.color: Style.appBorder
   border.width: 1
-  radius: 12
+  radius: 10
   clip: true
 
   // Helper coordinate functions
@@ -82,26 +82,21 @@ Rectangle {
       spacing: 8
 
       Text {
-        text: "⚡"
-        font.pixelSize: 15
-      }
-
-      Text {
-        text: "Cubic Bézier Fizik & Animasyon Editörü"
-        font.pixelSize: 14
-        font.weight: Font.Bold
+        text: "Cubic Bézier Eğri Editörü"
+        font.family: Style.fontText
+        font.pixelSize: 13
+        font.weight: Font.DemiBold
         color: Style.textPrimary
       }
 
       Item { Layout.fillWidth: true }
 
-      // Direct CSS String Badge
       Rectangle {
         height: 24
-        implicitWidth: cssLabel.implicitWidth + 16
+        implicitWidth: cssLabel.implicitWidth + 14
         radius: 6
-        color: Style.surfaceVariant
-        border.color: Style.borderSubtle
+        color: Style.appBackground
+        border.color: Style.appBorder
         border.width: 1
 
         Text {
@@ -110,7 +105,7 @@ Rectangle {
           text: root.cssString
           font.family: "Monospace"
           font.pixelSize: 11
-          color: Style.accentCyan
+          color: Style.textSecondary
         }
       }
     }
@@ -388,7 +383,8 @@ Rectangle {
 
         // PRESET CHIPS GRID
         Text {
-          text: "Hazır Eğri Şablonları"
+          text: "Hazır Şablonlar"
+          font.family: Style.fontText
           font.pixelSize: 11
           font.weight: Font.DemiBold
           color: Style.textMuted
@@ -413,9 +409,9 @@ Rectangle {
             delegate: Rectangle {
               height: 24
               implicitWidth: chipText.implicitWidth + 14
-              radius: 12
-              color: chipMouse.containsMouse ? Style.surfaceActive : Style.surfaceVariant
-              border.color: chipMouse.containsMouse ? Style.accent : Style.borderSubtle
+              radius: 6
+              color: chipMouse.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+              border.color: chipMouse.containsMouse ? Style.borderHover : Style.appBorder
               border.width: 1
 
               Behavior on color { ColorAnimation { duration: 120 } }
@@ -425,9 +421,10 @@ Rectangle {
                 id: chipText
                 anchors.centerIn: parent
                 text: modelData.name
+                font.family: Style.fontText
                 font.pixelSize: 10
                 font.weight: Font.Medium
-                color: chipMouse.containsMouse ? Style.accentCyan : Style.textPrimary
+                color: chipMouse.containsMouse ? Style.accent : Style.textPrimary
               }
 
               MouseArea {
@@ -443,34 +440,33 @@ Rectangle {
           }
         }
 
-        // STEPPER NUMBER CONTROLS (X1, Y1, X2, Y2)
+        // P1 & P2 Coordinate Readout
         RowLayout {
           Layout.fillWidth: true
-          spacing: 10
+          spacing: 8
 
-          // P1 Controls
           Rectangle {
             Layout.fillWidth: true
-            height: 34
-            radius: 8
-            color: Style.surface
-            border.color: Style.borderSubtle
-            border.width: 1
+            height: 32
+            radius: 7
+            color: Style.appBackground
 
             RowLayout {
               anchors.fill: parent
-              anchors.margins: 6
+              anchors.leftMargin: 10
+              anchors.rightMargin: 10
               spacing: 6
 
               Text {
                 text: "P1"
+                font.family: Style.fontText
                 font.pixelSize: 11
-                font.weight: Font.Bold
+                font.weight: Font.DemiBold
                 color: Style.accentCyan
               }
 
               Text {
-                text: "X: " + root.x1.toFixed(2) + "  Y: " + root.y1.toFixed(2)
+                text: root.x1.toFixed(2) + ", " + root.y1.toFixed(2)
                 font.family: "Monospace"
                 font.pixelSize: 11
                 color: Style.textPrimary
@@ -479,29 +475,28 @@ Rectangle {
             }
           }
 
-          // P2 Controls
           Rectangle {
             Layout.fillWidth: true
-            height: 34
-            radius: 8
-            color: Style.surface
-            border.color: Style.borderSubtle
-            border.width: 1
+            height: 32
+            radius: 7
+            color: Style.appBackground
 
             RowLayout {
               anchors.fill: parent
-              anchors.margins: 6
+              anchors.leftMargin: 10
+              anchors.rightMargin: 10
               spacing: 6
 
               Text {
                 text: "P2"
+                font.family: Style.fontText
                 font.pixelSize: 11
-                font.weight: Font.Bold
+                font.weight: Font.DemiBold
                 color: Style.accentOrange
               }
 
               Text {
-                text: "X: " + root.x2.toFixed(2) + "  Y: " + root.y2.toFixed(2)
+                text: root.x2.toFixed(2) + ", " + root.y2.toFixed(2)
                 font.family: "Monospace"
                 font.pixelSize: 11
                 color: Style.textPrimary
@@ -511,12 +506,10 @@ Rectangle {
           }
         }
 
-        // ---------------------------------------------------------------------
-        // LIVE ANIMATION SANDBOX (PREVIEW RUNNER)
-        // ---------------------------------------------------------------------
+        // Live Animation Sandbox
         Rectangle {
           Layout.fillWidth: true
-          height: 52
+          height: 48
           radius: 8
           color: Style.appBackground
           border.color: Style.appBorder
@@ -528,13 +521,11 @@ Rectangle {
             anchors.margins: 8
             spacing: 12
 
-            // Track with moving runner
             Item {
               id: testTrack
               Layout.fillWidth: true
-              height: 28
+              height: 24
 
-              // Track Line
               Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
@@ -544,23 +535,14 @@ Rectangle {
                 color: Style.surfaceVariant
               }
 
-              // Animated Mock Window Runner
               Rectangle {
                 id: testRunner
                 x: 0
                 anchors.verticalCenter: parent.verticalCenter
-                width: 26
-                height: 26
-                radius: 6
+                width: 20
+                height: 20
+                radius: 5
                 color: Style.accent
-                border.color: Qt.rgba(1, 1, 1, 0.2)
-                border.width: 1
-
-                Text {
-                  anchors.centerIn: parent
-                  text: "🪟"
-                  font.pixelSize: 12
-                }
 
                 NumberAnimation {
                   id: runnerAnim
@@ -575,56 +557,33 @@ Rectangle {
               }
             }
 
-            // Play / Test Button
-            Rectangle {
-              width: 72
-              height: 28
-              radius: 6
-              color: playMouse.containsMouse ? Style.surfaceActive : Style.surfaceVariant
-              border.color: playMouse.containsMouse ? Style.accent : Style.borderSubtle
-              border.width: 1
+            SettingsButton {
+              text: "Test"
+              iconText: "󰐊"
+              onClicked: {
+                testRunner.x = 0;
+                runnerAnim.restart();
 
-              RowLayout {
-                anchors.centerIn: parent
-                spacing: 4
-                Text { text: "▶"; font.pixelSize: 10; color: Style.accent }
-                Text { text: "Test"; font.pixelSize: 11; font.weight: Font.DemiBold; color: Style.textPrimary }
-              }
-
-              MouseArea {
-                id: playMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  testRunner.x = 0;
-                  runnerAnim.restart();
-
-                  // Live Hyprland Preview via IPC if connected
-                  if (root.ipc) {
-                    let previewLua = "hl.curve(\"__preview__\", { type = \"bezier\", points = { { " + root.x1.toFixed(3) + ", " + root.y1.toFixed(3) + " }, { " + root.x2.toFixed(3) + ", " + root.y2.toFixed(3) + " } } }); hl.animation({ leaf = \"windows\", bezier = \"__preview__\" })";
-                    root.ipc.previewHyprEval(previewLua);
-                  }
+                if (root.ipc) {
+                  let previewLua = "hl.curve(\"__preview__\", { type = \"bezier\", points = { { " + root.x1.toFixed(3) + ", " + root.y1.toFixed(3) + " }, { " + root.x2.toFixed(3) + ", " + root.y2.toFixed(3) + " } } }); hl.animation({ leaf = \"windows\", bezier = \"__preview__\" })";
+                  root.ipc.previewHyprEval(previewLua);
                 }
               }
             }
           }
         }
 
-        // ---------------------------------------------------------------------
-        // SAVE AS CUSTOM CURVE (GO BACKEND IPC)
-        // ---------------------------------------------------------------------
+        // Save Custom Curve
         RowLayout {
           Layout.fillWidth: true
           spacing: 8
 
-          // Curve Name Input
           Rectangle {
             Layout.fillWidth: true
-            height: 32
+            height: 30
             radius: 7
-            color: Style.surface
-            border.color: nameInput.activeFocus ? Style.accent : Style.borderSubtle
+            color: Style.appBackground
+            border.color: nameInput.activeFocus ? Style.accent : Style.appBorder
             border.width: 1
 
             RowLayout {
@@ -634,15 +593,17 @@ Rectangle {
               spacing: 6
 
               Text {
-                text: "🏷️"
-                font.pixelSize: 11
+                text: "󰓹"
+                font.pixelSize: 12
+                color: Style.textMuted
               }
 
               TextInput {
                 id: nameInput
                 Layout.fillWidth: true
                 text: root.curveName
-                font.pixelSize: 11
+                font.family: Style.fontText
+                font.pixelSize: 12
                 color: Style.textPrimary
                 clip: true
                 selectByMouse: true
@@ -651,56 +612,28 @@ Rectangle {
             }
           }
 
-          // Save Button
-          Rectangle {
-            width: 86
-            height: 32
-            radius: 7
-            color: saveMouse.containsMouse ? Style.accentCyan : Style.surfaceActive
-            border.color: Style.accentCyan
-            border.width: 1
+          SettingsButton {
+            text: saveFeedbackTimer.running ? "Kaydedildi" : "Kaydet"
+            iconText: saveFeedbackTimer.running ? "󰄬" : "󰆓"
+            isAccent: true
+            onClicked: {
+              let name = root.curveName.trim() || "custom_curve";
+              let pts = [
+                [root.x1, root.y1],
+                [root.x2, root.y2]
+              ];
 
-            RowLayout {
-              anchors.centerIn: parent
-              spacing: 5
-
-              Text {
-                text: saveFeedbackTimer.running ? "✓" : "💾"
-                font.pixelSize: 11
+              if (root.ipc) {
+                root.ipc.saveCustomCurve(name, pts);
               }
-
-              Text {
-                text: saveFeedbackTimer.running ? "Kayıt Edildi" : "Kaydet"
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
-                color: saveMouse.containsMouse ? Style.bgPrimary : Style.accentCyan
-              }
+              saveFeedbackTimer.restart();
+              root.curveSaved(name, root.x1, root.y1, root.x2, root.y2);
             }
+          }
 
-            Timer {
-              id: saveFeedbackTimer
-              interval: 2200
-            }
-
-            MouseArea {
-              id: saveMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                let name = root.curveName.trim() || "custom_curve";
-                let pts = [
-                  [root.x1, root.y1],
-                  [root.x2, root.y2]
-                ];
-
-                if (root.ipc) {
-                  root.ipc.saveCustomCurve(name, pts);
-                }
-                saveFeedbackTimer.restart();
-                root.curveSaved(name, root.x1, root.y1, root.x2, root.y2);
-              }
-            }
+          Timer {
+            id: saveFeedbackTimer
+            interval: 2200
           }
         }
       }

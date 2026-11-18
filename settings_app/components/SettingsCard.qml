@@ -12,7 +12,7 @@ Rectangle {
   Layout.fillWidth: true
   implicitHeight: contentLayout.implicitHeight + (innerPadding * 2)
 
-  radius: 12
+  radius: 10
   color: Style.appCard
   border.color: Style.appBorder
   border.width: 1
