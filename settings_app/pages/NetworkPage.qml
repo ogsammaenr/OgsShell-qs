@@ -13,21 +13,17 @@ Flickable {
   property string activeTab: "wifi"
   property bool userSwitchedTab: false
 
-  // ===========================================================================
   // Wi-Fi Telemetry & State
-  // ===========================================================================
   readonly property var netDetails: (ipc && ipc.networkDetails) ? ipc.networkDetails : null
   readonly property string activeSsid: (netDetails && netDetails.ssid) ? netDetails.ssid : ((ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı") ? ipc.wifi.ssid : "")
   readonly property bool isWifiConnected: !!(ipc && ipc.wifi && (ipc.wifi.connected || (ipc.net && ipc.net.is_connected && !hasActiveWired)))
   readonly property bool isWifiPowered: !ipc || !ipc.wifi || ipc.wifi.ssid !== "Kapalı"
 
-  // Custom DNS input states (Wi-Fi)
   property bool showCustomDnsInput: false
   property string customDns1: "1.1.1.1"
   property string customDns2: "1.0.0.1"
   property string cleanupStatusMessage: ""
 
-  // Active DNS Preset detection (Wi-Fi)
   readonly property string currentDnsPreset: {
     if (!netDetails) return "dhcp"
     if (!netDetails.ignore_auto_dns || !netDetails.dns || netDetails.dns.length === 0) return "dhcp"
@@ -39,9 +35,7 @@ Flickable {
     return "custom"
   }
 
-  // ===========================================================================
   // Wired (Ethernet) Telemetry & State
-  // ===========================================================================
   readonly property var wiredList: (ipc && ipc.wiredConnections) ? ipc.wiredConnections : []
   property int selectedWiredIndex: 0
   readonly property var currentWired: (wiredList && wiredList.length > selectedWiredIndex) ? wiredList[selectedWiredIndex] : ((wiredList && wiredList.length > 0) ? wiredList[0] : null)
@@ -49,13 +43,11 @@ Flickable {
   readonly property bool hasActiveWired: wiredList ? wiredList.some(w => !!w.is_connected) : false
   readonly property bool hasCarrierWired: wiredList ? wiredList.some(w => !!w.carrier) : false
 
-  // Custom DNS input states (Wired)
   property bool showCustomWiredDnsInput: false
   property string customWiredDns1: "1.1.1.1"
   property string customWiredDns2: "1.0.0.1"
   property string wiredStatusMessage: ""
 
-  // Active DNS Preset detection (Wired)
   readonly property string currentWiredDnsPreset: {
     if (!currentWired) return "dhcp"
     if (!currentWired.ignore_auto_dns || !currentWired.dns || currentWired.dns.length === 0) return "dhcp"
@@ -99,12 +91,9 @@ Flickable {
     target: ipc ? ipc : null
     function onCleanupDuplicatesCompleted(payload) {
       if (payload) {
-        root.cleanupStatusMessage = `✓ ${payload.deleted_count || 0} adet kopya profil başarıyla temizlendi.`
+        root.cleanupStatusMessage = `${payload.deleted_count || 0} adet kopya profil temizlendi.`
         cleanupMessageTimer.restart()
       }
-    }
-    function onNetworkDetailsUpdated() {
-      // Trigger reactive refresh
     }
     function onWiredConnectionsUpdated() {
       if (root.currentWired && root.currentWired.dns && root.currentWired.dns.length > 0) {
@@ -128,132 +117,253 @@ Flickable {
     onTriggered: root.wiredStatusMessage = ""
   }
 
-  ColumnLayout {
-    id: mainColumn
-    width: parent.width - 24
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.top: parent.top
-    anchors.topMargin: 16
-    spacing: 20
+  // Reusable Custom DNS Input Box
+  component CustomDnsInputCard: Rectangle {
+    id: dnsInputCard
+    property string primaryDns: "1.1.1.1"
+    property string secondaryDns: "1.0.0.1"
+    property string applyLabel: "Özel DNS'i Uygula"
+    signal primaryEdited(string text)
+    signal secondaryEdited(string text)
+    signal applyClicked(string dns1, string dns2)
 
-    // =========================================================================
-    // 0. Bağlantı Türü Seçici (Segmented Tab Bar)
-    // =========================================================================
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 8
+    Layout.fillWidth: true
+    implicitHeight: customCol.implicitHeight + 24
+    radius: 10
+    color: Style.appCard
+    border.color: Style.borderHover
+    border.width: 1
 
-      // Tab 1: Wi-Fi
-      Rectangle {
+    ColumnLayout {
+      id: customCol
+      anchors.fill: parent
+      anchors.margins: 12
+      spacing: 10
+
+      RowLayout {
         Layout.fillWidth: true
-        implicitHeight: 38
-        radius: 8
-        color: root.activeTab === "wifi" ? Style.surfaceActive : (wifiHover.containsMouse ? Style.surfaceHover : Style.appCard)
-        border.color: root.activeTab === "wifi" ? Style.accentCyan : Style.appBorder
-        border.width: 1
+        spacing: 10
 
-        Behavior on color { ColorAnimation { duration: 120 } }
-        Behavior on border.color { ColorAnimation { duration: 120 } }
-
-        RowLayout {
-          anchors.centerIn: parent
-          spacing: 8
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 4
 
           Text {
-            text: "󰤨"
-            font.pixelSize: 15
-            color: root.activeTab === "wifi" ? Style.accentCyan : Style.textPrimary
-          }
-
-          Text {
-            text: "Wi-Fi (Kablosuz)"
-            font.pixelSize: 13
-            font.weight: root.activeTab === "wifi" ? Font.Bold : Font.Medium
-            color: root.activeTab === "wifi" ? Style.accentCyan : Style.textPrimary
+            text: "Birincil DNS"
+            font.family: Style.fontText
+            font.pixelSize: 11
+            color: Style.textMuted
           }
 
           Rectangle {
-            width: 7
-            height: 7
-            radius: 3.5
-            color: root.isWifiConnected ? Style.accentGreen : Style.textMuted
+            Layout.fillWidth: true
+            implicitHeight: 30
+            radius: 7
+            color: Style.appBackground
+            border.color: dns1Field.activeFocus ? Style.accent : Style.appBorder
+            border.width: 1
+
+            TextInput {
+              id: dns1Field
+              anchors.fill: parent
+              anchors.leftMargin: 8
+              anchors.rightMargin: 8
+              verticalAlignment: TextInput.AlignVCenter
+              color: Style.textPrimary
+              font.family: "Monospace"
+              font.pixelSize: 12
+              text: dnsInputCard.primaryDns
+              selectByMouse: true
+              onTextChanged: dnsInputCard.primaryEdited(text)
+            }
           }
         }
 
-        MouseArea {
-          id: wifiHover
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            root.userSwitchedTab = true
-            root.activeTab = "wifi"
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 4
+
+          Text {
+            text: "İkincil DNS"
+            font.family: Style.fontText
+            font.pixelSize: 11
+            color: Style.textMuted
+          }
+
+          Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: 30
+            radius: 7
+            color: Style.appBackground
+            border.color: dns2Field.activeFocus ? Style.accent : Style.appBorder
+            border.width: 1
+
+            TextInput {
+              id: dns2Field
+              anchors.fill: parent
+              anchors.leftMargin: 8
+              anchors.rightMargin: 8
+              verticalAlignment: TextInput.AlignVCenter
+              color: Style.textPrimary
+              font.family: "Monospace"
+              font.pixelSize: 12
+              text: dnsInputCard.secondaryDns
+              selectByMouse: true
+              onTextChanged: dnsInputCard.secondaryEdited(text)
+            }
           }
         }
       }
 
-      // Tab 2: Kablolu Ağ (Ethernet)
+      SettingsButton {
+        text: dnsInputCard.applyLabel
+        iconText: "󰄬"
+        isAccent: true
+        Layout.alignment: Qt.AlignRight
+        onClicked: dnsInputCard.applyClicked(dns1Field.text.trim(), dns2Field.text.trim())
+      }
+    }
+  }
+
+  ColumnLayout {
+    id: mainColumn
+    width: parent.width - 40
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.top: parent.top
+    anchors.topMargin: 20
+    spacing: 18
+
+    // =========================================================================
+    // 0. SLIDING SEGMENTED CONTROL (Wi-Fi vs Ethernet)
+    // =========================================================================
+    Rectangle {
+      id: segmentedTrack
+      Layout.fillWidth: true
+      implicitHeight: 36
+      radius: 9
+      color: Style.surfaceVariant
+      border.color: Style.appBorder
+      border.width: 1
+
+      readonly property real segmentWidth: (width - 6) / 2
+
+      // Spring-animated sliding thumb capsule
       Rectangle {
-        Layout.fillWidth: true
-        implicitHeight: 38
-        radius: 8
-        color: root.activeTab === "wired" ? Style.surfaceActive : (wiredHover.containsMouse ? Style.surfaceHover : Style.appCard)
-        border.color: root.activeTab === "wired" ? Style.accentCyan : Style.appBorder
+        y: 3
+        x: root.activeTab === "wifi" ? 3 : (3 + segmentedTrack.segmentWidth)
+        width: segmentedTrack.segmentWidth
+        height: parent.height - 6
+        radius: 7
+        color: Style.appCard
+        border.color: Style.appBorder
         border.width: 1
 
-        Behavior on color { ColorAnimation { duration: 120 } }
-        Behavior on border.color { ColorAnimation { duration: 120 } }
+        Behavior on x {
+          SpringAnimation {
+            spring: 28.0
+            damping: 0.78
+            epsilon: 0.01
+          }
+        }
+      }
 
-        RowLayout {
-          anchors.centerIn: parent
-          spacing: 8
+      RowLayout {
+        anchors.fill: parent
+        anchors.margins: 3
+        spacing: 0
 
-          Text {
-            text: "󰈀"
-            font.pixelSize: 15
-            color: root.activeTab === "wired" ? Style.accentCyan : Style.textPrimary
+        Item {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: 7
+
+            Text {
+              text: "󰤨"
+              font.pixelSize: 14
+              color: root.activeTab === "wifi" ? Style.accent : Style.textMuted
+            }
+
+            Text {
+              text: "Wi-Fi (Kablosuz)"
+              font.family: Style.fontText
+              font.pixelSize: 12
+              font.weight: root.activeTab === "wifi" ? Font.DemiBold : Font.Medium
+              color: root.activeTab === "wifi" ? Style.textPrimary : Style.textMuted
+            }
+
+            Rectangle {
+              width: 6
+              height: 6
+              radius: 3
+              color: root.isWifiConnected ? Style.accentGreen : Style.textMuted
+            }
           }
 
-          Text {
-            text: "Kablolu Ağ (Ethernet)"
-            font.pixelSize: 13
-            font.weight: root.activeTab === "wired" ? Font.Bold : Font.Medium
-            color: root.activeTab === "wired" ? Style.accentCyan : Style.textPrimary
-          }
-
-          Rectangle {
-            width: 7
-            height: 7
-            radius: 3.5
-            color: root.hasActiveWired ? Style.accentGreen : (root.hasCarrierWired ? Style.accentYellow : Style.textMuted)
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              root.userSwitchedTab = true
+              root.activeTab = "wifi"
+            }
           }
         }
 
-        MouseArea {
-          id: wiredHover
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            root.userSwitchedTab = true
-            root.activeTab = "wired"
-            if (ipc) ipc.requestWiredConnections()
+        Item {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+
+          RowLayout {
+            anchors.centerIn: parent
+            spacing: 7
+
+            Text {
+              text: "󰈀"
+              font.pixelSize: 14
+              color: root.activeTab === "wired" ? Style.accent : Style.textMuted
+            }
+
+            Text {
+              text: "Kablolu (Ethernet)"
+              font.family: Style.fontText
+              font.pixelSize: 12
+              font.weight: root.activeTab === "wired" ? Font.DemiBold : Font.Medium
+              color: root.activeTab === "wired" ? Style.textPrimary : Style.textMuted
+            }
+
+            Rectangle {
+              width: 6
+              height: 6
+              radius: 3
+              color: root.hasActiveWired ? Style.accentGreen : (root.hasCarrierWired ? Style.accentOrange : Style.textMuted)
+            }
+          }
+
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              root.userSwitchedTab = true
+              root.activeTab = "wired"
+              if (ipc) ipc.requestWiredConnections()
+            }
           }
         }
       }
     }
 
     // #########################################################################
-    // SECTION A: KABLOLU AĞ (ETHERNET) GÖRÜNÜMÜ
+    // SECTION A: WIRED (ETHERNET)
     // #########################################################################
     ColumnLayout {
       visible: root.activeTab === "wired"
       Layout.fillWidth: true
-      spacing: 20
+      spacing: 18
 
-      // -----------------------------------------------------------------------
-      // A1. Kablolu Donanım & Bağlantı Durumu
-      // -----------------------------------------------------------------------
+      // A1. Wired Hardware & Status
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
@@ -262,7 +372,7 @@ Flickable {
           Layout.fillWidth: true
 
           SettingsSectionHeader {
-            titleText: "Kablolu Donanım & Bağlantı Durumu"
+            titleText: "Kablolu Donanım"
             Layout.fillWidth: true
           }
 
@@ -275,7 +385,6 @@ Flickable {
           }
         }
 
-        // Çoklu Profil / Kart Seçici (Eğer birden fazla kablolu bağlantı varsa)
         RowLayout {
           visible: root.wiredList && root.wiredList.length > 1
           Layout.fillWidth: true
@@ -284,12 +393,12 @@ Flickable {
           Repeater {
             model: root.wiredList || []
             delegate: Rectangle {
-              implicitWidth: profRow.implicitWidth + 20
-              implicitHeight: 32
-              radius: 6
+              implicitWidth: profRow.implicitWidth + 18
+              implicitHeight: 30
+              radius: 7
               readonly property bool isSelected: root.selectedWiredIndex === index
-              color: isSelected ? Style.surfaceActive : (profHover.containsMouse ? Style.surfaceHover : Style.appCard)
-              border.color: isSelected ? Style.accentCyan : Style.appBorder
+              color: isSelected ? Qt.alpha(Style.accent, 0.14) : (profHover.containsMouse ? Style.surfaceHover : Style.appCard)
+              border.color: isSelected ? Style.accent : Style.appBorder
               border.width: 1
 
               RowLayout {
@@ -300,21 +409,22 @@ Flickable {
                 Text {
                   text: "󰈀"
                   font.pixelSize: 12
-                  color: isSelected ? Style.accentCyan : Style.textPrimary
+                  color: isSelected ? Style.accent : Style.textSecondary
                 }
 
                 Text {
                   text: modelData.name || modelData.interface || `Bağlantı ${index + 1}`
+                  font.family: Style.fontText
                   font.pixelSize: 11
-                  font.weight: isSelected ? Font.Bold : Font.Medium
-                  color: isSelected ? Style.accentCyan : Style.textPrimary
+                  font.weight: isSelected ? Font.DemiBold : Font.Medium
+                  color: isSelected ? Style.accent : Style.textPrimary
                 }
 
                 Rectangle {
                   width: 6
                   height: 6
                   radius: 3
-                  color: modelData.is_connected ? Style.accentGreen : (modelData.carrier ? Style.accentYellow : Style.textMuted)
+                  color: modelData.is_connected ? Style.accentGreen : (modelData.carrier ? Style.accentOrange : Style.textMuted)
                 }
               }
 
@@ -335,46 +445,39 @@ Flickable {
           }
         }
 
-        // Kablolu Durum Kartı
         SettingsCard {
           visible: !!root.currentWired
 
           SettingsRow {
             iconText: "󰈀"
-            iconColor: (root.currentWired && root.currentWired.is_connected) ? Style.accentGreen : ((root.currentWired && root.currentWired.carrier) ? Style.accentYellow : Style.textMuted)
+            iconColor: (root.currentWired && root.currentWired.is_connected) ? Style.accentGreen : ((root.currentWired && root.currentWired.carrier) ? Style.accentOrange : Style.textMuted)
             title: root.currentWired ? (root.currentWired.name || "Kablolu Bağlantı") : "Kablolu Ağ"
             subtitle: {
               if (!root.currentWired) return "Kablolu cihaz algılanamadı"
               if (root.currentWired.is_connected) {
-                return `IP: ${root.currentWired.ip_address || "192.168.1.X"} • Ağ Geçidi: ${root.currentWired.gateway || "192.168.1.1"} • Arayüz: ${root.currentWired.interface || "eth0"}`
+                return `IP: ${root.currentWired.ip_address || "-"} • Ağ Geçidi: ${root.currentWired.gateway || "-"} • ${root.currentWired.interface || "eth0"}`
               }
               if (root.currentWired.carrier) {
-                return `Kablo takılı • Bağlantı hazır (${root.currentWired.interface || "eth0"})`
+                return `Kablo takılı • Hazır (${root.currentWired.interface || "eth0"})`
               }
               return `Kablo takılı değil (${root.currentWired.interface || "eth0"})`
             }
             showDivider: true
 
             Rectangle {
-              implicitWidth: wiredBadgeRow.implicitWidth + 14
-              implicitHeight: 24
-              radius: 12
+              implicitWidth: wiredBadgeRow.implicitWidth + 12
+              implicitHeight: 22
+              radius: 6
               color: {
-                if (root.currentWired && root.currentWired.is_connected) return Qt.rgba(0.2, 0.8, 0.4, 0.15)
-                if (root.currentWired && root.currentWired.carrier) return Qt.rgba(0.9, 0.7, 0.2, 0.15)
-                return Qt.rgba(0.5, 0.5, 0.5, 0.15)
+                if (root.currentWired && root.currentWired.is_connected) return Qt.alpha(Style.accentGreen, 0.14)
+                if (root.currentWired && root.currentWired.carrier) return Qt.alpha(Style.accentOrange, 0.14)
+                return Style.surfaceVariant
               }
-              border.color: {
-                if (root.currentWired && root.currentWired.is_connected) return Qt.rgba(0.2, 0.8, 0.4, 0.4)
-                if (root.currentWired && root.currentWired.carrier) return Qt.rgba(0.9, 0.7, 0.2, 0.4)
-                return Qt.rgba(0.5, 0.5, 0.5, 0.3)
-              }
-              border.width: 1
 
               RowLayout {
                 id: wiredBadgeRow
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: 5
 
                 Rectangle {
                   width: 6
@@ -382,7 +485,7 @@ Flickable {
                   radius: 3
                   color: {
                     if (root.currentWired && root.currentWired.is_connected) return Style.accentGreen
-                    if (root.currentWired && root.currentWired.carrier) return Style.accentYellow
+                    if (root.currentWired && root.currentWired.carrier) return Style.accentOrange
                     return Style.textMuted
                   }
                 }
@@ -390,18 +493,16 @@ Flickable {
                 Text {
                   text: {
                     if (root.currentWired && root.currentWired.is_connected) {
-                      return `Bağlı • ${root.currentWired.speed_mbps > 0 ? root.currentWired.speed_mbps + ' Mbps' : 'Aktif'}`
+                      return root.currentWired.speed_mbps > 0 ? `${root.currentWired.speed_mbps} Mbps` : "Bağlı"
                     }
-                    if (root.currentWired && root.currentWired.carrier) {
-                      return "Kablo Takılı • Hazır"
-                    }
-                    return "Kablo Yok"
+                    return (root.currentWired && root.currentWired.carrier) ? "Hazır" : "Kablo Yok"
                   }
+                  font.family: Style.fontText
                   font.pixelSize: 11
                   font.weight: Font.Medium
                   color: {
                     if (root.currentWired && root.currentWired.is_connected) return Style.accentGreen
-                    if (root.currentWired && root.currentWired.carrier) return Style.accentYellow
+                    if (root.currentWired && root.currentWired.carrier) return Style.accentOrange
                     return Style.textMuted
                   }
                 }
@@ -409,54 +510,39 @@ Flickable {
             }
           }
 
-          // Donanım Ayrıntıları Satırı
           SettingsRow {
             iconText: "󰢮"
-            iconColor: Style.accentCyan
-            title: `Arayüz Donanımı: ${root.currentWired ? root.currentWired.interface : "Ethernet"}`
-            subtitle: `MAC: ${root.currentWired && root.currentWired.hw_address ? root.currentWired.hw_address : "Bilinmiyor"} • Hız: ${root.currentWired && root.currentWired.speed_mbps > 0 ? root.currentWired.speed_mbps + ' Mbps' : 'Otomatik'} • Taşıyıcı (Carrier): ${root.currentWired && root.currentWired.carrier ? "Aktif (Takılı)" : "Sinyal Yok"}`
+            title: `Arayüz: ${root.currentWired ? root.currentWired.interface : "Ethernet"}`
+            subtitle: `MAC: ${root.currentWired && root.currentWired.hw_address ? root.currentWired.hw_address : "-"} • Hız: ${root.currentWired && root.currentWired.speed_mbps > 0 ? root.currentWired.speed_mbps + ' Mbps' : 'Otomatik'}`
             showDivider: false
           }
         }
 
-        // Boş durum placeholder
         SettingsCard {
           visible: !root.currentWired || (root.wiredList && root.wiredList.length === 0)
           SettingsRow {
             iconText: "󰈂"
             iconColor: Style.textMuted
             title: "Kablolu Arayüz Bulunamadı"
-            subtitle: "Sistemde yapılandırılmış bir Ethernet arayüzü veya kablolu profil tespit edilemedi."
+            subtitle: "Sistemde yapılandırılmış bir Ethernet arayüzü tespit edilemedi."
             showDivider: false
           }
         }
       }
 
-      // -----------------------------------------------------------------------
-      // A2. Güvenli DNS Seçimi (Kablolu - DPI Bypass & Zapret Uyumu)
-      // -----------------------------------------------------------------------
+      // A2. Wired DNS
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "Güvenli DNS & DPI Bypass (Zapret - Kablolu Ağ)"
-        }
-
-        Text {
-          text: "Kablolu bağlantınız üzerinden Zapret gibi DPI bypass araçlarının çalışabilmesi ve servis sağlayıcının DNS engellemelerini aşmak için güvenli bir DNS sunucusu seçin."
-          font.pixelSize: 12
-          color: Style.textMuted
-          Layout.fillWidth: true
-          wrapMode: Text.WordWrap
-          leftPadding: 4
+          titleText: "Güvenli DNS (Kablolu)"
         }
 
         ColumnLayout {
           Layout.fillWidth: true
           spacing: 6
 
-          // Preset 1: Cloudflare
           SettingsDnsCard {
             title: "Cloudflare DNS"
             dnsIps: "1.1.1.1 • 1.0.0.1"
@@ -465,13 +551,12 @@ Flickable {
               root.showCustomWiredDnsInput = false
               if (ipc && root.wiredTargetId) {
                 ipc.setConnectionDNS(root.wiredTargetId, ["1.1.1.1", "1.0.0.1"], true)
-                root.wiredStatusMessage = "✓ Cloudflare DNS kablolu bağlantıya uygulandı."
+                root.wiredStatusMessage = "Cloudflare DNS kablolu bağlantıya uygulandı."
                 wiredMessageTimer.restart()
               }
             }
           }
 
-          // Preset 2: Quad9
           SettingsDnsCard {
             title: "Quad9 DNS"
             dnsIps: "9.9.9.9 • 149.112.112.112"
@@ -480,13 +565,12 @@ Flickable {
               root.showCustomWiredDnsInput = false
               if (ipc && root.wiredTargetId) {
                 ipc.setConnectionDNS(root.wiredTargetId, ["9.9.9.9", "149.112.112.112"], true)
-                root.wiredStatusMessage = "✓ Quad9 DNS kablolu bağlantıya uygulandı."
+                root.wiredStatusMessage = "Quad9 DNS kablolu bağlantıya uygulandı."
                 wiredMessageTimer.restart()
               }
             }
           }
 
-          // Preset 3: AdGuard
           SettingsDnsCard {
             title: "AdGuard DNS"
             dnsIps: "94.140.14.14 • 94.140.15.15"
@@ -495,13 +579,12 @@ Flickable {
               root.showCustomWiredDnsInput = false
               if (ipc && root.wiredTargetId) {
                 ipc.setConnectionDNS(root.wiredTargetId, ["94.140.14.14", "94.140.15.15"], true)
-                root.wiredStatusMessage = "✓ AdGuard DNS kablolu bağlantıya uygulandı."
+                root.wiredStatusMessage = "AdGuard DNS kablolu bağlantıya uygulandı."
                 wiredMessageTimer.restart()
               }
             }
           }
 
-          // Preset 4: Google DNS
           SettingsDnsCard {
             title: "Google DNS"
             dnsIps: "8.8.8.8 • 8.8.4.4"
@@ -510,117 +593,48 @@ Flickable {
               root.showCustomWiredDnsInput = false
               if (ipc && root.wiredTargetId) {
                 ipc.setConnectionDNS(root.wiredTargetId, ["8.8.8.8", "8.8.4.4"], true)
-                root.wiredStatusMessage = "✓ Google DNS kablolu bağlantıya uygulandı."
+                root.wiredStatusMessage = "Google DNS kablolu bağlantıya uygulandı."
                 wiredMessageTimer.restart()
               }
             }
           }
 
-          // Preset 5: Otomatik DHCP / Modem DNS
           SettingsDnsCard {
-            title: "Otomatik (Modem / DHCP DNS)"
+            title: "Otomatik (DHCP DNS)"
             dnsIps: "Servis Sağlayıcı Varsayılanı"
             isSelected: root.currentWiredDnsPreset === "dhcp" && !root.showCustomWiredDnsInput
             onClicked: {
               root.showCustomWiredDnsInput = false
               if (ipc && root.wiredTargetId) {
                 ipc.setConnectionDNS(root.wiredTargetId, [], false)
-                root.wiredStatusMessage = "✓ Otomatik (DHCP) DNS kablolu bağlantıya uygulandı."
+                root.wiredStatusMessage = "Otomatik DHCP DNS kablolu bağlantıya uygulandı."
                 wiredMessageTimer.restart()
               }
             }
           }
 
-          // Preset 6: Özel / Manuel DNS
           SettingsDnsCard {
-            title: "Özel (Manuel IP Girişi)"
-            dnsIps: root.showCustomWiredDnsInput ? `${root.customWiredDns1}, ${root.customWiredDns2}` : "Kendi DNS sunucularınızı tanımlayın"
+            title: "Özel DNS"
+            dnsIps: root.showCustomWiredDnsInput ? `${root.customWiredDns1}, ${root.customWiredDns2}` : "Manuel DNS sunucusu tanımlayın"
             isSelected: root.currentWiredDnsPreset === "custom" || root.showCustomWiredDnsInput
-            onClicked: {
-              root.showCustomWiredDnsInput = !root.showCustomWiredDnsInput
-            }
+            onClicked: root.showCustomWiredDnsInput = !root.showCustomWiredDnsInput
           }
 
-          // Özel DNS Giriş Alanı (Kablolu)
-          Rectangle {
+          CustomDnsInputCard {
             visible: root.showCustomWiredDnsInput
-            Layout.fillWidth: true
-            implicitHeight: customWiredDnsCol.implicitHeight + 20
-            radius: 10
-            color: Style.appCard
-            border.color: Style.accentCyan
-            border.width: 1
-
-            ColumnLayout {
-              id: customWiredDnsCol
-              anchors.fill: parent
-              anchors.margins: 12
-              spacing: 10
-
-              RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                ColumnLayout {
-                  Layout.fillWidth: true
-                  spacing: 4
-                  Text { text: "Birincil DNS:"; font.pixelSize: 11; color: Style.textMuted }
-                  Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 32
-                    radius: 6
-                    color: Style.appBackground
-                    border.color: Style.appBorder
-                    border.width: 1
-                    TextInput {
-                      anchors.fill: parent
-                      anchors.margins: 6
-                      color: Style.textPrimary
-                      font.pixelSize: 12
-                      text: root.customWiredDns1
-                      onTextChanged: root.customWiredDns1 = text
-                    }
-                  }
-                }
-
-                ColumnLayout {
-                  Layout.fillWidth: true
-                  spacing: 4
-                  Text { text: "İkincil DNS:"; font.pixelSize: 11; color: Style.textMuted }
-                  Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 32
-                    radius: 6
-                    color: Style.appBackground
-                    border.color: Style.appBorder
-                    border.width: 1
-                    TextInput {
-                      anchors.fill: parent
-                      anchors.margins: 6
-                      color: Style.textPrimary
-                      font.pixelSize: 12
-                      text: root.customWiredDns2
-                      onTextChanged: root.customWiredDns2 = text
-                    }
-                  }
-                }
-              }
-
-              SettingsButton {
-                text: "Kablolu Ağ İçin Özel DNS'i Uygula"
-                iconText: "✓"
-                isAccent: true
-                Layout.alignment: Qt.AlignRight
-                onClicked: {
-                  if (ipc && root.wiredTargetId) {
-                    let arr = []
-                    if (root.customWiredDns1.trim() !== "") arr.push(root.customWiredDns1.trim())
-                    if (root.customWiredDns2.trim() !== "") arr.push(root.customWiredDns2.trim())
-                    ipc.setConnectionDNS(root.wiredTargetId, arr, true)
-                    root.wiredStatusMessage = "✓ Özel DNS kablolu bağlantıya uygulandı."
-                    wiredMessageTimer.restart()
-                  }
-                }
+            primaryDns: root.customWiredDns1
+            secondaryDns: root.customWiredDns2
+            applyLabel: "Kablolu Ağ İçin Uygula"
+            onPrimaryEdited: text => root.customWiredDns1 = text
+            onSecondaryEdited: text => root.customWiredDns2 = text
+            onApplyClicked: (d1, d2) => {
+              if (ipc && root.wiredTargetId) {
+                let arr = []
+                if (d1 !== "") arr.push(d1)
+                if (d2 !== "") arr.push(d2)
+                ipc.setConnectionDNS(root.wiredTargetId, arr, true)
+                root.wiredStatusMessage = "Özel DNS kablolu bağlantıya uygulandı."
+                wiredMessageTimer.restart()
               }
             }
           }
@@ -629,30 +643,28 @@ Flickable {
         Text {
           visible: root.wiredStatusMessage !== ""
           text: root.wiredStatusMessage
+          font.family: Style.fontText
           font.pixelSize: 12
           font.weight: Font.Medium
           color: Style.accentGreen
-          leftPadding: 4
+          leftPadding: 2
         }
       }
 
-      // -----------------------------------------------------------------------
-      // A3. IPv6 Sızıntı Koruması (Kablolu)
-      // -----------------------------------------------------------------------
+      // A3. Wired IPv6 Protection
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "IPv6 Sızıntı Koruması (Kablolu Ağ)"
+          titleText: "IPv6 Koruması (Kablolu)"
         }
 
         SettingsCard {
           SettingsRow {
             iconText: "󰖪"
-            iconColor: Style.accentYellow
             title: "IPv6 Trafiğini Devre Dışı Bırak"
-            subtitle: "Zapret'in kablolu ağdaki tüm internet trafiğini eksiksiz yakalamasını sağlar ve IPv6 üzerinden oluşabilecek sansür sızıntılarını önler."
+            subtitle: "Zapret uyumluluğu ve IPv6 DNS sızıntısını önlemek için IPv6'yı kapatır."
             showDivider: false
 
             SettingsToggle {
@@ -660,7 +672,7 @@ Flickable {
               onToggled: isChecked => {
                 if (ipc && root.wiredTargetId) {
                   ipc.setConnectionIPv6(root.wiredTargetId, isChecked)
-                  root.wiredStatusMessage = isChecked ? "✓ IPv6 devre dışı bırakıldı." : "✓ IPv6 etkinleştirildi."
+                  root.wiredStatusMessage = isChecked ? "IPv6 devre dışı bırakıldı." : "IPv6 etkinleştirildi."
                   wiredMessageTimer.restart()
                 }
               }
@@ -671,30 +683,28 @@ Flickable {
     }
 
     // #########################################################################
-    // SECTION B: WI-FI (KABLOSUZ AĞ) GÖRÜNÜMÜ
+    // SECTION B: WI-FI
     // #########################################################################
     ColumnLayout {
       visible: root.activeTab === "wifi"
       Layout.fillWidth: true
-      spacing: 20
+      spacing: 18
 
-      // -----------------------------------------------------------------------
-      // B1. Wi-Fi Donanım & Aktif Bağlantı Durumu
-      // -----------------------------------------------------------------------
+      // B1. Wi-Fi Hardware & Active Connection
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "Wi-Fi & Bağlantı Durumu"
+          titleText: "Wi-Fi & Bağlantı"
         }
 
         SettingsCard {
           SettingsRow {
             iconText: "󰤨"
-            iconColor: root.isWifiConnected ? Style.accentCyan : Style.textMuted
+            iconColor: root.isWifiConnected ? Style.accent : Style.textMuted
             title: "Wi-Fi Donanımı"
-            subtitle: root.isWifiConnected ? `Bağlı: ${root.activeSsid}` : "Kablosuz ağ kartı aktif"
+            subtitle: root.isWifiConnected ? `Bağlı: ${root.activeSsid}` : "Kablosuz ağ adaptörü"
             showDivider: root.isWifiConnected
 
             SettingsToggle {
@@ -705,27 +715,24 @@ Flickable {
             }
           }
 
-          // Aktif Bağlantı Detayları (IP, Gateway, Sinyal)
           SettingsRow {
             visible: root.isWifiConnected
             iconText: "󰩠"
             iconColor: Style.accentGreen
             title: root.activeSsid
-            subtitle: `IP: ${root.netDetails && root.netDetails.ip_address ? root.netDetails.ip_address : "192.168.1.X"} • Ağ Geçidi: ${root.netDetails && root.netDetails.gateway ? root.netDetails.gateway : "192.168.1.1"}`
+            subtitle: `IP: ${root.netDetails && root.netDetails.ip_address ? root.netDetails.ip_address : "-"} • Ağ Geçidi: ${root.netDetails && root.netDetails.gateway ? root.netDetails.gateway : "-"}`
             showDivider: false
 
             Rectangle {
-              implicitWidth: statusRow.implicitWidth + 14
-              implicitHeight: 24
-              radius: 12
-              color: Qt.rgba(0.2, 0.8, 0.4, 0.15)
-              border.color: Qt.rgba(0.2, 0.8, 0.4, 0.4)
-              border.width: 1
+              implicitWidth: statusRow.implicitWidth + 12
+              implicitHeight: 22
+              radius: 6
+              color: Qt.alpha(Style.accentGreen, 0.14)
 
               RowLayout {
                 id: statusRow
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: 5
 
                 Rectangle {
                   width: 6
@@ -735,7 +742,8 @@ Flickable {
                 }
 
                 Text {
-                  text: `Bağlı • %${root.netDetails && root.netDetails.signal ? root.netDetails.signal : ((ipc && ipc.wifi) ? ipc.wifi.signal : 80)}`
+                  text: `%${root.netDetails && root.netDetails.signal ? root.netDetails.signal : ((ipc && ipc.wifi) ? ipc.wifi.signal : 80)}`
+                  font.family: Style.fontText
                   font.pixelSize: 11
                   font.weight: Font.Medium
                   color: Style.accentGreen
@@ -746,223 +754,122 @@ Flickable {
         }
       }
 
-      // -----------------------------------------------------------------------
-      // B2. Güvenli DNS Seçimi (Wi-Fi)
-      // -----------------------------------------------------------------------
+      // B2. Wi-Fi DNS
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "Güvenli DNS & DPI Bypass (Zapret - Wi-Fi)"
-        }
-
-        Text {
-          text: "Zapret gibi DPI bypass araçlarının çalışabilmesi ve servis sağlayıcının DNS zehirlemesini engellemek için güvenli bir DNS sunucusu seçin."
-          font.pixelSize: 12
-          color: Style.textMuted
-          Layout.fillWidth: true
-          wrapMode: Text.WordWrap
-          leftPadding: 4
+          titleText: "Güvenli DNS (Wi-Fi)"
         }
 
         ColumnLayout {
           Layout.fillWidth: true
           spacing: 6
 
-          // Preset 1: Cloudflare
           SettingsDnsCard {
             title: "Cloudflare DNS"
             dnsIps: "1.1.1.1 • 1.0.0.1"
             isSelected: root.currentDnsPreset === "cloudflare"
             onClicked: {
               root.showCustomDnsInput = false
-              if (ipc && root.activeSsid) {
-                ipc.setConnectionDNS(root.activeSsid, ["1.1.1.1", "1.0.0.1"], true)
-              }
+              if (ipc && root.activeSsid) ipc.setConnectionDNS(root.activeSsid, ["1.1.1.1", "1.0.0.1"], true)
             }
           }
 
-          // Preset 2: Quad9
           SettingsDnsCard {
             title: "Quad9 DNS"
             dnsIps: "9.9.9.9 • 149.112.112.112"
             isSelected: root.currentDnsPreset === "quad9"
             onClicked: {
               root.showCustomDnsInput = false
-              if (ipc && root.activeSsid) {
-                ipc.setConnectionDNS(root.activeSsid, ["9.9.9.9", "149.112.112.112"], true)
-              }
+              if (ipc && root.activeSsid) ipc.setConnectionDNS(root.activeSsid, ["9.9.9.9", "149.112.112.112"], true)
             }
           }
 
-          // Preset 3: AdGuard
           SettingsDnsCard {
             title: "AdGuard DNS"
             dnsIps: "94.140.14.14 • 94.140.15.15"
             isSelected: root.currentDnsPreset === "adguard"
             onClicked: {
               root.showCustomDnsInput = false
-              if (ipc && root.activeSsid) {
-                ipc.setConnectionDNS(root.activeSsid, ["94.140.14.14", "94.140.15.15"], true)
-              }
+              if (ipc && root.activeSsid) ipc.setConnectionDNS(root.activeSsid, ["94.140.14.14", "94.140.15.15"], true)
             }
           }
 
-          // Preset 4: Google DNS
           SettingsDnsCard {
             title: "Google DNS"
             dnsIps: "8.8.8.8 • 8.8.4.4"
             isSelected: root.currentDnsPreset === "google"
             onClicked: {
               root.showCustomDnsInput = false
-              if (ipc && root.activeSsid) {
-                ipc.setConnectionDNS(root.activeSsid, ["8.8.8.8", "8.8.4.4"], true)
-              }
+              if (ipc && root.activeSsid) ipc.setConnectionDNS(root.activeSsid, ["8.8.8.8", "8.8.4.4"], true)
             }
           }
 
-          // Preset 5: Otomatik DHCP / Modem DNS
           SettingsDnsCard {
-            title: "Otomatik (Modem / DHCP DNS)"
+            title: "Otomatik (DHCP DNS)"
             dnsIps: "Servis Sağlayıcı Varsayılanı"
             isSelected: root.currentDnsPreset === "dhcp" && !root.showCustomDnsInput
             onClicked: {
               root.showCustomDnsInput = false
-              if (ipc && root.activeSsid) {
-                ipc.setConnectionDNS(root.activeSsid, [], false)
-              }
+              if (ipc && root.activeSsid) ipc.setConnectionDNS(root.activeSsid, [], false)
             }
           }
 
-          // Preset 6: Özel / Manuel DNS
           SettingsDnsCard {
-            title: "Özel (Manuel IP Girişi)"
-            dnsIps: root.showCustomDnsInput ? `${root.customDns1}, ${root.customDns2}` : "Kendi DNS sunucularınızı tanımlayın"
+            title: "Özel DNS"
+            dnsIps: root.showCustomDnsInput ? `${root.customDns1}, ${root.customDns2}` : "Manuel DNS sunucusu tanımlayın"
             isSelected: root.currentDnsPreset === "custom" || root.showCustomDnsInput
-            onClicked: {
-              root.showCustomDnsInput = !root.showCustomDnsInput
-            }
+            onClicked: root.showCustomDnsInput = !root.showCustomDnsInput
           }
 
-          // Özel DNS Giriş Alanı
-          Rectangle {
+          CustomDnsInputCard {
             visible: root.showCustomDnsInput
-            Layout.fillWidth: true
-            implicitHeight: customDnsCol.implicitHeight + 20
-            radius: 10
-            color: Style.appCard
-            border.color: Style.accentCyan
-            border.width: 1
-
-            ColumnLayout {
-              id: customDnsCol
-              anchors.fill: parent
-              anchors.margins: 12
-              spacing: 10
-
-              RowLayout {
-                Layout.fillWidth: true
-                spacing: 10
-
-                ColumnLayout {
-                  Layout.fillWidth: true
-                  spacing: 4
-                  Text { text: "Birincil DNS:"; font.pixelSize: 11; color: Style.textMuted }
-                  Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 32
-                    radius: 6
-                    color: Style.appBackground
-                    border.color: Style.appBorder
-                    border.width: 1
-                    TextInput {
-                      anchors.fill: parent
-                      anchors.margins: 6
-                      color: Style.textPrimary
-                      font.pixelSize: 12
-                      text: root.customDns1
-                      onTextChanged: root.customDns1 = text
-                    }
-                  }
-                }
-
-                ColumnLayout {
-                  Layout.fillWidth: true
-                  spacing: 4
-                  Text { text: "İkincil DNS:"; font.pixelSize: 11; color: Style.textMuted }
-                  Rectangle {
-                    Layout.fillWidth: true
-                    implicitHeight: 32
-                    radius: 6
-                    color: Style.appBackground
-                    border.color: Style.appBorder
-                    border.width: 1
-                    TextInput {
-                      anchors.fill: parent
-                      anchors.margins: 6
-                      color: Style.textPrimary
-                      font.pixelSize: 12
-                      text: root.customDns2
-                      onTextChanged: root.customDns2 = text
-                    }
-                  }
-                }
-              }
-
-              SettingsButton {
-                text: "Özel DNS'i Uygula"
-                iconText: "✓"
-                isAccent: true
-                Layout.alignment: Qt.AlignRight
-                onClicked: {
-                  if (ipc && root.activeSsid) {
-                    let arr = []
-                    if (root.customDns1.trim() !== "") arr.push(root.customDns1.trim())
-                    if (root.customDns2.trim() !== "") arr.push(root.customDns2.trim())
-                    ipc.setConnectionDNS(root.activeSsid, arr, true)
-                  }
-                }
+            primaryDns: root.customDns1
+            secondaryDns: root.customDns2
+            applyLabel: "Özel DNS'i Uygula"
+            onPrimaryEdited: text => root.customDns1 = text
+            onSecondaryEdited: text => root.customDns2 = text
+            onApplyClicked: (d1, d2) => {
+              if (ipc && root.activeSsid) {
+                let arr = []
+                if (d1 !== "") arr.push(d1)
+                if (d2 !== "") arr.push(d2)
+                ipc.setConnectionDNS(root.activeSsid, arr, true)
               }
             }
           }
         }
       }
 
-      // -----------------------------------------------------------------------
-      // B3. IPv6 Sızıntı Koruması (Wi-Fi)
-      // -----------------------------------------------------------------------
+      // B3. Wi-Fi IPv6 Protection
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "IPv6 Sızıntı Koruması (Wi-Fi)"
+          titleText: "IPv6 Koruması (Wi-Fi)"
         }
 
         SettingsCard {
           SettingsRow {
             iconText: "󰖪"
-            iconColor: Style.accentYellow
             title: "IPv6 Trafiğini Devre Dışı Bırak"
-            subtitle: "Zapret'in tüm internet trafiğini eksiksiz yakalamasını sağlar ve IPv6 üzerinden oluşabilecek sansür sızıntılarını önler."
+            subtitle: "Zapret uyumluluğu ve IPv6 DNS sızıntısını önlemek için IPv6'yı kapatır."
             showDivider: false
 
             SettingsToggle {
               checked: !!(root.netDetails && root.netDetails.ipv6_disabled)
               onToggled: isChecked => {
-                if (ipc && root.activeSsid) {
-                  ipc.setConnectionIPv6(root.activeSsid, isChecked)
-                }
+                if (ipc && root.activeSsid) ipc.setConnectionIPv6(root.activeSsid, isChecked)
               }
             }
           }
         }
       }
 
-      // -----------------------------------------------------------------------
-      // B4. Kullanılabilir Kablosuz Ağlar
-      // -----------------------------------------------------------------------
+      // B4. Available Networks
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
@@ -976,7 +883,7 @@ Flickable {
           }
 
           SettingsButton {
-            text: "Ağları Yenile"
+            text: "Yenile"
             iconText: "󰑐"
             onClicked: {
               if (ipc) ipc.sendAction("scan_wifi", {})
@@ -990,7 +897,7 @@ Flickable {
           ListView {
             id: apListView
             Layout.fillWidth: true
-            implicitHeight: Math.min(220, Math.max(80, count * 44))
+            implicitHeight: Math.min(220, Math.max(76, count * 40))
             clip: true
             spacing: 2
             model: {
@@ -1001,10 +908,10 @@ Flickable {
 
             delegate: Rectangle {
               width: apListView.width
-              height: 40
-              radius: 8
+              height: 38
+              radius: 7
               readonly property bool isActive: !!(modelData.is_active || modelData.is_connected)
-              color: isActive ? Style.surfaceActive : (itemHover.containsMouse ? Style.surfaceHover : "transparent")
+              color: isActive ? Qt.alpha(Style.accent, 0.14) : (itemHover.containsMouse ? Style.surfaceHover : "transparent")
 
               RowLayout {
                 anchors.fill: parent
@@ -1014,31 +921,32 @@ Flickable {
 
                 Text {
                   text: (modelData.signal >= 70) ? "󰤨" : ((modelData.signal >= 45) ? "󰤥" : ((modelData.signal >= 20) ? "󰤢" : "󰤟"))
-                  font.pixelSize: 15
-                  color: isActive ? Style.accentCyan : Style.textPrimary
+                  font.pixelSize: 14
+                  color: isActive ? Style.accent : Style.textSecondary
                 }
 
                 Text {
                   text: modelData.ssid || "Gizli Ağ"
+                  font.family: Style.fontText
                   font.pixelSize: 12
-                  font.weight: isActive ? Font.Bold : Font.Medium
-                  color: isActive ? Style.accentCyan : Style.textPrimary
+                  font.weight: isActive ? Font.DemiBold : Font.Medium
+                  color: isActive ? Style.accent : Style.textPrimary
                   Layout.fillWidth: true
                   elide: Text.ElideRight
                 }
 
                 Text {
                   text: `${modelData.band || "2.4/5GHz"} • %${modelData.signal || 0}`
+                  font.family: Style.fontText
                   font.pixelSize: 10
                   color: Style.textMuted
                 }
 
                 Text {
                   visible: isActive
-                  text: "✓"
+                  text: "󰄬"
                   font.pixelSize: 13
-                  font.weight: Font.Bold
-                  color: Style.accentCyan
+                  color: Style.accent
                 }
               }
 
@@ -1049,9 +957,7 @@ Flickable {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                   if (isActive) return
-                  if (ipc) {
-                    ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
-                  }
+                  if (ipc) ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
                 }
               }
             }
@@ -1062,6 +968,7 @@ Flickable {
               Text {
                 anchors.centerIn: parent
                 text: "Ağlar taranıyor veya bulunamadı..."
+                font.family: Style.fontText
                 color: Style.textMuted
                 font.pixelSize: 12
               }
@@ -1070,27 +977,24 @@ Flickable {
         }
       }
 
-      // -----------------------------------------------------------------------
-      // B5. Ağ Profili Bakımı & Kopya Temizleyici
-      // -----------------------------------------------------------------------
+      // B5. Profile Cleanup
       ColumnLayout {
         Layout.fillWidth: true
         spacing: 6
 
         SettingsSectionHeader {
-          titleText: "Ağ Profili Bakımı"
+          titleText: "Profil Bakımı"
         }
 
         SettingsCard {
           SettingsRow {
             iconText: "󰃢"
-            iconColor: Style.accentGreen
             title: "Kopya Bağlantı Profillerini Temizle"
-            subtitle: "NetworkManager'da birikmiş aynı ada sahip eski kopya (.nmconnection) dosyalarını siler ve ana profilinizi korur."
+            subtitle: "Birikmiş eski .nmconnection kopyalarını temizler ve ana profili korur."
             showDivider: false
 
             SettingsButton {
-              text: "Kopyaları Temizle"
+              text: "Temizle"
               iconText: "󰩹"
               onClicked: {
                 if (ipc) ipc.cleanupDuplicateProfiles("")
@@ -1102,10 +1006,11 @@ Flickable {
         Text {
           visible: root.cleanupStatusMessage !== ""
           text: root.cleanupStatusMessage
+          font.family: Style.fontText
           font.pixelSize: 12
           font.weight: Font.Medium
           color: Style.accentGreen
-          leftPadding: 4
+          leftPadding: 2
         }
       }
     }

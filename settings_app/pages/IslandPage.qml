@@ -88,7 +88,7 @@ Flickable {
     animOvershoot = (Config.animation && Config.animation.overshoot_factor) ? Config.animation.overshoot_factor : 1.12
   }
 
-  function applyAndSave() {
+  function applyAndSave(customMsg) {
     let payload = {
       "form_factor": root.currentFormFactor,
       "theme": Config.theme,
@@ -134,8 +134,47 @@ Flickable {
     }
 
     Config.saveConfig(payload)
-    root.statusFeedbackMessage = "✓ Ayarlar başarıyla config.json dosyasına kaydedildi ve anında uygulandı."
+    root.statusFeedbackMessage = customMsg || "Ayarlar kaydedildi ve anında uygulandı."
     feedbackTimer.restart()
+  }
+
+  function resetDefaults() {
+    root.currentFormFactor = "notch"
+    root.currentFocusMode = false
+    root.currentShowMetrics = true
+    root.currentNotifEnabled = true
+    root.currentNotifTimeout = 3500
+
+    root.islandTopMargin = 3
+    root.islandIdleW = 180
+    root.islandIdleH = 36
+    root.islandHoverW = 480
+    root.islandHoverH = 58
+    root.islandTransientW = 340
+    root.islandTransientH = 56
+    root.islandExpandedW = 490
+    root.islandExpandedH = 315
+    root.islandRadiusFull = 18
+    root.islandRadiusExp = 24
+
+    root.notchTopMargin = 0
+    root.notchIdleW = 190
+    root.notchIdleH = 28
+    root.notchHoverW = 500
+    root.notchHoverH = 74
+    root.notchTransientW = 350
+    root.notchTransientH = 58
+    root.notchExpandedW = 500
+    root.notchExpandedH = 315
+    root.notchRadiusBottom = 20
+    root.notchRadiusExp = 26
+
+    root.animCompact = 250
+    root.animTransient = 280
+    root.animExpanded = 320
+    root.animOvershoot = 1.12
+
+    root.applyAndSave("Varsayılan geometri ve animasyon değerleri geri yüklendi.")
   }
 
   Connections {
@@ -169,15 +208,13 @@ Flickable {
 
   ColumnLayout {
     id: mainColumn
-    width: parent.width - 24
+    width: parent.width - 40
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
-    anchors.topMargin: 16
-    spacing: 22
+    anchors.topMargin: 20
+    spacing: 18
 
-    // =========================================================================
-    // HEADER & GLOBAL ACTIONS
-    // =========================================================================
+    // Header & Global Actions
     RowLayout {
       Layout.fillWidth: true
       spacing: 10
@@ -188,13 +225,15 @@ Flickable {
 
         Text {
           text: "Ada ve Çentik Yapılandırması"
-          font.pixelSize: 15
-          font.weight: Font.Bold
+          font.family: Style.fontText
+          font.pixelSize: 14
+          font.weight: Font.DemiBold
           color: Style.textPrimary
         }
 
         Text {
-          text: "Dynamic Island ve Dynamic Notch sunum modları, geometri boyutları ve yay animasyonları."
+          text: "Sunum formatı, geometri boyutları ve yay animasyonları."
+          font.family: Style.fontText
           font.pixelSize: 11
           color: Style.textMuted
         }
@@ -202,31 +241,26 @@ Flickable {
 
       SettingsButton {
         text: "Sıfırla"
-        iconText: "↺"
-        onClicked: {
-          Config.resetToDefaults()
-          root.pullValuesFromConfig()
-          root.statusFeedbackMessage = "✓ Ayarlar varsayılan değerlere sıfırlandı."
-          feedbackTimer.restart()
-        }
+        iconText: "󰑐"
+        onClicked: root.resetDefaults()
       }
 
       SettingsButton {
-        text: "Değişiklikleri Uygula"
-        iconText: "✓"
+        text: "Uygula"
+        iconText: "󰄬"
         isAccent: true
         onClicked: root.applyAndSave()
       }
     }
 
-    // Feedback Toast / Status Banner
+    // Status Banner
     Rectangle {
       visible: root.statusFeedbackMessage !== ""
       Layout.fillWidth: true
-      implicitHeight: 34
+      implicitHeight: 32
       radius: 8
-      color: Qt.rgba(0.2, 0.8, 0.4, 0.15)
-      border.color: Qt.rgba(0.2, 0.8, 0.4, 0.4)
+      color: Qt.alpha(Style.accentGreen, 0.12)
+      border.color: Qt.alpha(Style.accentGreen, 0.35)
       border.width: 1
 
       RowLayout {
@@ -236,7 +270,14 @@ Flickable {
         spacing: 8
 
         Text {
+          text: "󰄬"
+          font.pixelSize: 13
+          color: Style.accentGreen
+        }
+
+        Text {
           text: root.statusFeedbackMessage
+          font.family: Style.fontText
           font.pixelSize: 12
           font.weight: Font.Medium
           color: Style.accentGreen
@@ -245,26 +286,24 @@ Flickable {
       }
     }
 
-    // =========================================================================
-    // 1. FORM FACTOR SELECTION (Dynamic Island vs Dynamic Notch)
-    // =========================================================================
+    // 1. Form Factor Selection
     ColumnLayout {
       Layout.fillWidth: true
-      spacing: 8
+      spacing: 6
 
       SettingsSectionHeader {
-        titleText: "Sunum Formatı (Form Factor)"
+        titleText: "Sunum Formatı"
       }
 
       RowLayout {
         Layout.fillWidth: true
-        spacing: 12
+        spacing: 10
 
         SettingsChoiceCard {
-          title: "Dynamic Island (Ada)"
-          subtitle: "Ekranın üstünden hafif aşağıda süzülen, OLED siyahı yumuşak köşeli bağımsız kapsül."
-          iconText: "🏝️"
-          badgeText: "Floating Pill"
+          title: "Dynamic Island"
+          subtitle: "Üst kenardan ayrık süzülen kapsül görünümü."
+          iconText: "󰘔"
+          badgeText: "Floating"
           isSelected: root.currentFormFactor === "island"
           onClicked: {
             root.currentFormFactor = "island"
@@ -273,10 +312,10 @@ Flickable {
         }
 
         SettingsChoiceCard {
-          title: "Dynamic Notch (Çentik)"
-          subtitle: "Ekranın üst kenarına tam oturan, organik Bézier kavisli üst panel çentiği."
-          iconText: "📱"
-          badgeText: "Bezel Notch"
+          title: "Dynamic Notch"
+          subtitle: "Ekran üst kenarına bitişik organik çentik."
+          iconText: "󰞷"
+          badgeText: "Bezel"
           isSelected: root.currentFormFactor === "notch"
           onClicked: {
             root.currentFormFactor = "notch"
@@ -286,23 +325,20 @@ Flickable {
       }
     }
 
-    // =========================================================================
-    // 2. BEHAVIOR & SYSTEM FLAGS
-    // =========================================================================
+    // 2. General Behavior
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 6
 
       SettingsSectionHeader {
-        titleText: "Genel Davranış & Modlar"
+        titleText: "Genel Davranış"
       }
 
       SettingsCard {
         SettingsRow {
-          iconText: "🎯"
-          iconColor: Style.accentCyan
+          iconText: "󰓾"
           title: "Akıllı Odak Modu (Focus Mode)"
-          subtitle: "İmleç ada/çentik üzerinde değilken ekran alanını maksimuma çıkarmak için arayüzü gizler."
+          subtitle: "İmleç dışarıdayken arayüzü gizleyerek tam ekran alanı sunar."
           showDivider: true
 
           SettingsToggle {
@@ -315,10 +351,9 @@ Flickable {
         }
 
         SettingsRow {
-          iconText: "📊"
-          iconColor: Style.accentGreen
+          iconText: "󰄨"
           title: "Sistem Metriklerini Sabitle"
-          subtitle: "Boşta durumdayken CPU, RAM ve GPU canlı telemetri kullanım değerlerini gösterir."
+          subtitle: "Boşta durumdayken canlı CPU, RAM ve GPU değerlerini gösterir."
           showDivider: true
 
           SettingsToggle {
@@ -331,10 +366,9 @@ Flickable {
         }
 
         SettingsRow {
-          iconText: "🔔"
-          iconColor: Style.accentYellow
+          iconText: "󰂚"
           title: "Bildirim Açılır Pencereleri"
-          subtitle: "Gelen bildirimlerin ada üzerinde otomatik olarak geçici pop-up şeklinde açılmasını sağlar."
+          subtitle: "Gelen bildirimleri geçici kart olarak ada üzerinde gösterir."
           showDivider: true
 
           SettingsToggle {
@@ -347,10 +381,9 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "⏱️"
-          iconColor: Style.accentMagenta
+          iconText: "󰔛"
           title: "Bildirim Kapanma Süresi"
-          subtitle: "Geçici bildirim penceresinin ekranda kalma süresi."
+          subtitle: "Geçici bildirimin ekranda kalma süresi."
           value: root.currentNotifTimeout
           minValue: 1000
           maxValue: 15000
@@ -365,22 +398,18 @@ Flickable {
       }
     }
 
-    // =========================================================================
-    // 3. DYNAMIC ISLAND (FLOATING) GEOMETRY
-    // =========================================================================
+    // 3. Dynamic Island Geometry
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 6
 
       SettingsSectionHeader {
-        titleText: "Dynamic Island (Süzülen Ada) Geometrisi"
+        titleText: "Dynamic Island Geometrisi"
       }
 
       SettingsCard {
         SettingsNumberRow {
-          iconText: "📏"
-          title: "Üst Kenar Boşluğu (Top Margin)"
-          subtitle: "Ekranın üst kenarı ile süzülen ada arasındaki dikey boşluk."
+          title: "Üst Kenar Boşluğu"
           value: root.islandTopMargin
           minValue: 0
           maxValue: 64
@@ -390,9 +419,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📐"
           title: "Boşta (Idle) Genişlik"
-          subtitle: "Ada boşta ve küçülmüş durumdaykenki genişlik."
           value: root.islandIdleW
           minValue: 120
           maxValue: 400
@@ -402,9 +429,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📐"
           title: "Boşta (Idle) Yükseklik"
-          subtitle: "Ada boşta ve küçülmüş durumdaykenki yükseklik."
           value: root.islandIdleH
           minValue: 24
           maxValue: 64
@@ -414,9 +439,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔍"
-          title: "Hover (Üzerine Gelme) Genişlik"
-          subtitle: "İmleç adanın üzerine geldiğinde genişleyen boyut."
+          title: "Hover Genişlik"
           value: root.islandHoverW
           minValue: 250
           maxValue: 800
@@ -426,9 +449,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔍"
-          title: "Hover (Üzerine Gelme) Yükseklik"
-          subtitle: "İmleç adanın üzerine geldiğinde genişleyen yükseklik."
+          title: "Hover Yükseklik"
           value: root.islandHoverH
           minValue: 36
           maxValue: 90
@@ -438,9 +459,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "💬"
-          title: "Geçici (Transient / Bildirim) Genişlik"
-          subtitle: "Yeni bir bildirim geldiğinde adanın aldığı genişlik."
+          title: "Geçici (Bildirim) Genişlik"
           value: root.islandTransientW
           minValue: 220
           maxValue: 600
@@ -450,9 +469,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "💬"
-          title: "Geçici (Transient / Bildirim) Yükseklik"
-          subtitle: "Yeni bir bildirim geldiğinde adanın aldığı yükseklik."
+          title: "Geçici (Bildirim) Yükseklik"
           value: root.islandTransientH
           minValue: 36
           maxValue: 90
@@ -462,9 +479,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📱"
           title: "Genişletilmiş (Expanded) Genişlik"
-          subtitle: "Tam uygulama panelleri (Launcher, Takvim, Kontrol Merkezi vb.) açıkkenki genişlik."
           value: root.islandExpandedW
           minValue: 320
           maxValue: 900
@@ -474,9 +489,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📱"
           title: "Genişletilmiş (Expanded) Yükseklik"
-          subtitle: "Tam uygulama panelleri açıkkenki yükseklik."
           value: root.islandExpandedH
           minValue: 160
           maxValue: 600
@@ -486,9 +499,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔘"
-          title: "Kompakt Köşe Yuvarlama Yarıçapı"
-          subtitle: "Boşta ve hover modunda köşe eğriliği."
+          title: "Kompakt Köşe Yarıçapı"
           value: root.islandRadiusFull
           minValue: 8
           maxValue: 32
@@ -498,9 +509,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔘"
-          title: "Genişletilmiş Köşe Yuvarlama Yarıçapı"
-          subtitle: "Genişletilmiş uygulama pencerelerinde köşe eğriliği."
+          title: "Genişletilmiş Köşe Yarıçapı"
           value: root.islandRadiusExp
           minValue: 10
           maxValue: 40
@@ -512,22 +521,18 @@ Flickable {
       }
     }
 
-    // =========================================================================
-    // 4. DYNAMIC NOTCH (BEZEL ATTACHED) GEOMETRY
-    // =========================================================================
+    // 4. Dynamic Notch Geometry
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 6
 
       SettingsSectionHeader {
-        titleText: "Dynamic Notch (Üst Çentik) Geometrisi"
+        titleText: "Dynamic Notch Geometrisi"
       }
 
       SettingsCard {
         SettingsNumberRow {
-          iconText: "📏"
-          title: "Üst Boşluk (Top Margin)"
-          subtitle: "Üst panele yapışık çentiğin tepe ofseti (genelde 0px)."
+          title: "Üst Boşluk"
           value: root.notchTopMargin
           minValue: 0
           maxValue: 32
@@ -537,9 +542,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📐"
           title: "Boşta (Idle) Genişlik"
-          subtitle: "Çentik boşta durumdaykenki genişlik."
           value: root.notchIdleW
           minValue: 120
           maxValue: 400
@@ -549,9 +552,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📐"
           title: "Boşta (Idle) Yükseklik"
-          subtitle: "Çentik boşta durumdaykenki yükseklik."
           value: root.notchIdleH
           minValue: 20
           maxValue: 60
@@ -561,9 +562,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔍"
-          title: "Hover (Üzerine Gelme) Genişlik"
-          subtitle: "İmleç çentiğin üzerine geldiğindeki genişlik."
+          title: "Hover Genişlik"
           value: root.notchHoverW
           minValue: 250
           maxValue: 800
@@ -573,9 +572,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔍"
-          title: "Hover (Üzerine Gelme) Yükseklik"
-          subtitle: "İmleç çentiğin üzerine geldiğindeki yükseklik."
+          title: "Hover Yükseklik"
           value: root.notchHoverH
           minValue: 30
           maxValue: 90
@@ -585,9 +582,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "💬"
-          title: "Geçici (Transient / Bildirim) Genişlik"
-          subtitle: "Bildirim geldiğinde çentiğin genişliği."
+          title: "Geçici (Bildirim) Genişlik"
           value: root.notchTransientW
           minValue: 220
           maxValue: 600
@@ -597,9 +592,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "💬"
-          title: "Geçici (Transient / Bildirim) Yükseklik"
-          subtitle: "Bildirim geldiğinde çentiğin yüksekliği."
+          title: "Geçici (Bildirim) Yükseklik"
           value: root.notchTransientH
           minValue: 30
           maxValue: 90
@@ -609,9 +602,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📱"
           title: "Genişletilmiş (Expanded) Genişlik"
-          subtitle: "Tam uygulama panelleri açıkken çentiğin genişliği."
           value: root.notchExpandedW
           minValue: 320
           maxValue: 900
@@ -621,9 +612,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "📱"
           title: "Genişletilmiş (Expanded) Yükseklik"
-          subtitle: "Tam uygulama panelleri açıkken çentiğin yüksekliği."
           value: root.notchExpandedH
           minValue: 160
           maxValue: 600
@@ -633,9 +622,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔘"
           title: "Alt Bézier Kavis Yarıçapı"
-          subtitle: "Çentiğin alt köşelerindeki yumuşak organik kavis yarıçapı."
           value: root.notchRadiusBottom
           minValue: 8
           maxValue: 40
@@ -645,9 +632,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🔘"
           title: "Genişletilmiş Alt Kavis Yarıçapı"
-          subtitle: "Genişletilmiş pencerelerde çentiğin alt kavis yarıçapı."
           value: root.notchRadiusExp
           minValue: 12
           maxValue: 50
@@ -659,23 +644,18 @@ Flickable {
       }
     }
 
-    // =========================================================================
-    // 5. SPRING PHYSICS & ANIMATION DURATIONS
-    // =========================================================================
+    // 5. Physics & Animations
     ColumnLayout {
       Layout.fillWidth: true
       spacing: 6
 
       SettingsSectionHeader {
-        titleText: "Fizik ve Yay Animasyonları"
+        titleText: "Animasyon Süreleri ve Fizik"
       }
 
       SettingsCard {
         SettingsNumberRow {
-          iconText: "⚡"
-          iconColor: Style.accentYellow
           title: "Kompakt Geçiş Süresi"
-          subtitle: "Boşta ve hover arasındaki pürüzsüz yay animasyonu süresi."
           value: root.animCompact
           minValue: 100
           maxValue: 800
@@ -685,10 +665,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "⚡"
-          iconColor: Style.accentYellow
-          title: "Geçici (Bildirim) Geçiş Süresi"
-          subtitle: "Bildirim açılış ve kapanış yay animasyonu süresi."
+          title: "Geçici (Bildirim) Süresi"
           value: root.animTransient
           minValue: 100
           maxValue: 800
@@ -698,10 +675,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "⚡"
-          iconColor: Style.accentYellow
           title: "Genişletilmiş Panel Süresi"
-          subtitle: "Tam boyutlu uygulama panellerinin açılış süresi."
           value: root.animExpanded
           minValue: 100
           maxValue: 1000
@@ -711,10 +685,7 @@ Flickable {
         }
 
         SettingsNumberRow {
-          iconText: "🧲"
-          iconColor: Style.accentMagenta
-          title: "Yay / Esneme Çarpanı (Overshoot)"
-          subtitle: "Animasyonun hedefine ulaşırken yaptığı esneme ve sıçrama katsayısı."
+          title: "Yay Esneme Çarpanı (Overshoot)"
           value: root.animOvershoot
           minValue: 1.0
           maxValue: 2.0
