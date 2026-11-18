@@ -248,10 +248,17 @@ FloatingWindow {
               visible: rootWindow.activeCategory === "hyprland"
             }
 
+            // Page 4: Sound & Audio Over-Amplification Page
+            SoundPage {
+              anchors.fill: parent
+              ipc: ipcService
+              visible: rootWindow.activeCategory === "sound"
+            }
+
             // Placeholder for other upcoming pages
             Item {
               anchors.fill: parent
-              visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island" && rootWindow.activeCategory !== "hyprland"
+              visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island" && rootWindow.activeCategory !== "hyprland" && rootWindow.activeCategory !== "sound"
 
               ColumnLayout {
                 anchors.centerIn: parent
