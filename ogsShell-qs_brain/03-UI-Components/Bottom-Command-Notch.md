@@ -88,7 +88,7 @@ Bileşen `[[Shell-Root-PanelWindow]]` içerisinde bağımsız bir `PanelWindow` 
 * `:set factor island/notch` -> Dinamik Ada ve Çentik form faktörünü anında değiştirir.
 * `:set corners on/off` -> `[[Screen-Corners-Component]]` ekran köşe yuvarlatmalarını açar/kapatır.
 * `:set dnd on/off` -> Rahatsız Etme (DND) modunu değiştirir (`toggle_dnd`).
-* `:set volume <0-100>` -> PipeWire ve `pamixer` üzerinden ses seviyesini ayarlar.
+* `:set volume <0-100|150>` -> PipeWire ve `wpctl` üzerinden ses seviyesini `Config.audioMaxVolume` (`100` veya `150`) sınırına göre ayarlar.
 * `:mute` -> Ses çıkışını susturur / açar.
 
 ### 4. ⚡ Oturum & Güç Yönetimi

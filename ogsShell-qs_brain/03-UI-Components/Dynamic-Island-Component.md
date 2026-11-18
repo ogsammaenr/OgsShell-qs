@@ -80,10 +80,10 @@ graph TD
 ## 3. Geometry & Gesture Interactions
 
 * **IDLE State:** `180-190px` $\times$ `34-36px`. Displays single-line `[[Clock-Widget]]`.
-* **HOVER State:** `420-430px` $\times$ `48-50px`. Expands into a 3-column status bar with:
+* **HOVER State:** `420-500px` $\times$ `48-74px`. Expands into a 3-column status bar with:
   * Left: `[[Media-Widget]]` (MPRIS Player & Animated Equalizer, Left-click toggles play/pause)
   * Center: `[[Clock-Widget]]` (Left-click Time opens Clock Suite, Left-click Date opens Calendar)
-  * Right: `[[Connectivity-Status-Widget]]` (Wi-Fi & Bluetooth Button, Left-click opens Control Center)
+  * Right: `[[Connectivity-Status-Widget]]` (Wi-Fi & Bluetooth Button, Left-click opens Control Center) ve hemen altında o monitöre izole etkileşimli `[[Workspace-Indicator-Widget]]` (aktif çalışma alanı pill, pasifler dolu/boş nokta; tıklama veya tekerlekle çalışma alanı değiştirir)
   * **Ada Geneli Sağ Tık (Right-Click):** Hover durumundayken adanın herhangi bir yerine sağ tıklandığında anında `[[Control-Center-Widget]]` açılır.
 * **EXPANDED State:** Full modal with Clock Suite, Calendar & Events, or Control Center Suite.
   * **5-Saniye Odak/Ayrılma Zaman Aşımı (5s Unfocus Auto-Collapse):** Ada genişletilmiş moddayken fare imleci adanın dışına çıktığında 5 saniyelik bir geri sayım başlar. İmleç 5 saniye dolmadan adaya geri dönerse sayaç sıfırlanır; 5 saniye boyunca dönmezse ada kendiliğinden `IDLE` moduna kapanır.
@@ -160,6 +160,7 @@ Behavior on height {
 * Clock Widget: `[[Clock-Widget]]`
 * Media Widget: `[[Media-Widget]]`
 * Connectivity Status Widget: `[[Connectivity-Status-Widget]]`
+* Workspace Indicator Widget: `[[Workspace-Indicator-Widget]]`
 * Control Center: `[[Control-Center-Widget]]`
 * Design Tokens: `[[Style-Design-Tokens]]`
 * State Machine & Physics: `[[Dynamic-Island-Physics-State-Machine]]`

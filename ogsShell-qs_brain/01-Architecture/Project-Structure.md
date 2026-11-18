@@ -159,6 +159,7 @@ graph TD
         W_CLOCK["[[Clock-Widget]]"]
         W_METRICS["[[Pinned-Metrics-Widget]]"]
         W_CONN["[[Connectivity-Status-Widget]]"]
+        W_WS["[[Workspace-Indicator-Widget]]"]
         W_MEDIA["[[Media-Widget]]"]
 
         subgraph Clock_Suite ["[[Clock-Suite-View]]"]

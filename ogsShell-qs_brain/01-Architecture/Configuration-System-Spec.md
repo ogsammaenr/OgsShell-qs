@@ -37,7 +37,7 @@ The configuration system continuously watches both locations using a real-time e
 2. **Project Workspace Config:** `shell/config.json`
 
 * **Instant Low-Latency Hot Reloading (<5ms):** `Config.qml` uses `inotifywait` (`close_write`, `moved_to`, `modify`) over the parent directories and a zero-cache `cat` reader process. When `shell/config.json` is modified or saved via atomic editor renames, `Config.qml` reads the new payload immediately, increments `configRevision`, and triggers real-time visual updates.
-* **Automatic Two-Way Sync:** Whenever `shell/config.json` is modified, `Config.qml` parses the updated payload and synchronizes the active config to `$XDG_CONFIG_HOME/ogsShell/config.json` and `shared/app_configs/shell/config.json`.
+* **Automatic Two-Way Sync:** Whenever `shell/config.json` or `settings_app/config.json` is modified via `Config.saveConfig()`, `Config.qml` parses the updated payload and synchronizes the active config atomically across `$XDG_CONFIG_HOME/ogsShell/config.json`, `shell/config.json`, `settings_app/config.json`, and `shared/app_configs/shell/config.json`.
 * **Theme Synchronization & Cold-Boot Resilience:** To prevent cold-boot theme mismatches, `Config.theme` is bound to `Style.activeThemeId`. On startup, if `theme_config.json` contains a saved active theme, `Config.qml` respects `Style.themeConfigLoaded` over any stale `"theme"` entry in `config.json`. When themes change at runtime via `DaemonIPC`, `Config.updateTheme(themeId)` persists the selection to `config.json` simultaneously.
 * **Live UI Morphing:** Window spacers (`reservedSpacerWindow`), input masks (`activeInputEnvelope`), typography scale, color tokens (`Style.qml`), and Dynamic Notch vector Bézier paths instantly resize upon saving without requiring a manual shell restart.
 
@@ -142,6 +142,13 @@ The configuration system continuously watches both locations using a real-time e
         "bottom_right": { "type": "bool", "default": true }
       }
     },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "over_amplification": { "type": "bool", "default": false, "description": "Allows raising master/app volume up to max_volume (150%) across all shell sliders, HUD, and ogsshell.sh volume CLI" },
+        "max_volume": { "type": "integer", "default": 150, "description": "Upper volume ceiling percentage (up to 150) when over_amplification is enabled" }
+      }
+    },
     "audio_feedback": {
       "type": "object",
       "properties": {
@@ -208,7 +215,7 @@ graph LR
     C_MGR --> CHUD["CornerIslandHUD.qml (Top-Left HUD)"]
 ```
 
-* **Singleton Access:** Accessed globally in any QML file via `Config.formFactor`, `Config.activeGeometry`, `Config.theme`, `Config.screenCornersEnabled`, `Config.audioFeedbackEnabled`, `Config.cornerHudEnabled`.
+* **Singleton Access:** Accessed globally in any QML file via `Config.formFactor`, `Config.activeGeometry`, `Config.theme`, `Config.screenCornersEnabled`, `Config.audioOverAmplification`, `Config.audioMaxVolume`, `Config.audioFeedbackEnabled`, `Config.cornerHudEnabled`.
 * **Dynamic Property Resolution:**
   ```qml
   readonly property var activeGeometry: formFactor === "notch" ? configData.notch : configData.island

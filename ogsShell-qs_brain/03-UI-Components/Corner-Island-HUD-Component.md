@@ -60,7 +60,7 @@ Corner Island HUD sistemi üç ana katmandan oluşur:
 
 | Olay Tipi | İkon | Görsel Öğeler | Davranış & Animasyon |
 | :--- | :---: | :--- | :--- |
-| `VOLUME` | `󰕾`/`󰖀`/`󰕿`/`󰝟` | Yatay ses çubuğu, yüzde metni | 1500 ms dinamik slider dolumu |
+| `VOLUME` | `󰕾`/`󰖀`/`󰕿`/`󰝟` | Yatay ses çubuğu (`%100` eşik işaretçili), yüzde metni | 1500 ms dinamik slider dolumu; `Config.audioOverAmplification` açıkken `%0–%150` ölçeğine uyum sağlar ve `%100` üzerinde turuncu/kırmızı boost vurgusu gösterir |
 | `WORKSPACE` | `󱂬` | Monitöre özel çalışma alanı noktaları (`Repeater`, metinsiz) | Aktif nokta genişler (`18px`, `accentBlue`), pasif noktalar (`6px`). Noktalar arası `SpringAnimation` ve renk geçişi. |
 | `CAPSLOCK` | `󰪛` | Durum rozeti (`AÇIK` - Yeşil / `KAPALI` - Gri) | 1500 ms durum rozeti |
 | `MIC` | `󰍬`/`󰍭` | Mikrofon durum rozeti (`Açık` / `Sessiz`) | 1600 ms mute uyarısı |

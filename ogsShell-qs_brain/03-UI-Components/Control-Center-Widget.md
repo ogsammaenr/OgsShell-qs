@@ -76,8 +76,9 @@ graph TD
      * **Ekran Parlaklığı (Brightness):** Thick, interactive rounded capsule slider with embedded glyph (`󰃟`) and percentage.
      * **Ses Seviyesi (Volume) & Canlı Reaktif PipeWire Entegrasyonu:**
        - `Quickshell.Services.Pipewire` (`PwObjectTracker`) ile varsayılan ses çıkış cihazını (`Pipewire.defaultAudioSink`) anlık izler.
-       - Harici klavye kısayollarından, ses düğmelerinden veya başka uygulamalardan (`pactl`, `pamixer`, `wpctl`, `pavucontrol`) ses değiştirildiğinde veya sessize alındığında (`muted`), kontrol merkezi açıkken ses kapsülü ve yüzde göstergesi **0 milisaniye gecikme ile anlık ve reaktif** olarak güncellenir.
-       - Sürükleme veya tıklamada doğrudan PipeWire nesnesi güncellenir, PipeWire bulunmayan ortamlarda ise otomatik `pamixer` fallback'ine geçilir.
+       - Harici klavye kısayollarından, ses düğmelerinden veya başka uygulamalardan (`pactl`, `wpctl`, `pavucontrol`) ses değiştirildiğinde veya sessize alındığında (`muted`), kontrol merkezi açıkken ses kapsülü ve yüzde göstergesi **0 milisaniye gecikme ile anlık ve reaktif** olarak güncellenir.
+       - Sürükleme veya tıklamada doğrudan PipeWire nesnesi güncellenir, PipeWire bulunmayan ortamlarda (veya `%100` üzeri yükseltmede) otomatik `wpctl` (`-l 1.0`/`1.5`) yürütülür.
+       - `Config.audioOverAmplification` aktifken kaydırıcı `%0–%150` ölçeğine genişler, `%100` noktasında dikey eşik çizgisi gösterir ve `%100` üzerini turuncu/kırmızı boost tonuyla vurgular. (`[[Configuration-System-Spec]]`, `[[Settings-Application-Component]]`)
    * **Row 4 - Status Footer:**
      * **Klavye Düzeni:** Clickable `[ 󰌌 TR ]` pill. Hem Go backend `switch_keyboard_layout` hem de `hyprctl switchxkblayout` fallback'i ile anında TR/US/DE/FR düzenleri arasında geçiş yapar.
      * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0 • NET 1.2 MB/s` (Go `sys_metrics` stream'inden reaktif okur ve `[[Pinned-Metrics-Widget]]` ile senkronize çalışır).

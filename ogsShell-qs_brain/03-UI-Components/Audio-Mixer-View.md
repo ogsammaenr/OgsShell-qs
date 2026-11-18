@@ -46,7 +46,7 @@ related_notes:
   - Aygıt türü ikonu (Kulaklık, Hoparlör, HDMI).
   - "Varsayılan Yap" butonu (`pactl set-default-sink <id>`).
   - Master çıkış ses seviyesi ve sessize alma yönetimi.
-* **Canlı Senkronizasyon:** Periyodik arka plan taraması ve kullanıcı kaydırma hareketinde anlık optimistik arayüz tepkisi.
+* **Canlı Senkronizasyon & %150 Over-Amplification:** Periyodik arka plan taraması ve kullanıcı kaydırma hareketinde anlık optimistik arayüz tepkisi. `Config.audioOverAmplification` (`[[Configuration-System-Spec]]`) aktif olduğunda hem **Uygulamalar (`sink-inputs`)** hem **Çıkış Aygıtları (`sinks`)** kaydırıcıları `%100` eşik işaretçisi ve boost renk vurgusuyla `%150`'ye kadar ayarlanabilir.
 
 ---
 

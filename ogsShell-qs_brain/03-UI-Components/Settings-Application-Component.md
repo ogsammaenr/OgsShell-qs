@@ -48,7 +48,7 @@ related_notes:
    - 🎨 **Görünüm ve Tema** (`appearance`)
    - 🏝️ **Ada ve Çentik** (`island`) — *Aktif*
    - 🪟 **Hyprland ve Efektler** (`hyprland`) — *Aktif*
-   - 🔊 **Ses ve Donanım** (`sound`)
+   - 🔊 **Ses ve Donanım** (`sound`) — *Aktif*
    - 🔔 **Bildirimler** (`notifications`)
    - ⌨️ **Klavye ve Giriş** (`keyboard`)
    - ℹ️ **Sistem Hakkında** (`about`)
@@ -115,10 +115,23 @@ related_notes:
 
 ---
 
-## 5. İlgili Bağlantılar
+## 5. Ses ve Donanım Yönetimi (`SoundPage.qml`)
+
+* **Aktif Ses Çıkışı Önizlemesi:** `Quickshell.Services.Pipewire` (`PwObjectTracker`) ile varsayılan çıkış cihazının anlık ses yüzdesi (`%0–%150`), aktif sınır rozeti (`Maks. %100` / `Maks. %150`), susturma ve interaktif önizleme kaydırıcısı sunar.
+* **%150 Ses Yükseltme (Over-Amplification):**
+  - `Config.audioOverAmplification` (`audio.over_amplification`) değerini canlı toggle eder ve `Config.saveConfig()` aracılığıyla tüm kabuk bileşenlerine (`[[Control-Center-Widget]]`, `[[Audio-Mixer-View]]`, `[[Corner-Island-HUD-Component]]`, `[[Bottom-Command-Notch]]`) ile `ogsshell.sh volume` komutuna anında yansıtır.
+  - **Güvenli Geri Dönüş (Auto-Clamp):** Özellik kapatıldığında `%100` üzerinde çalışan tüm çıkış aygıtları (`sinks`) ve uygulama akışları (`sink-inputs`) `wpctl` ve `pactl` üzerinden otomatik olarak `%100` seviyesine çekilir.
+* **Geri Bildirim ve Köşe OSD Kontrolleri:** `[[Audio-Feedback-Service]]` (`enabled`, `volume_change_sound`, `throttle_ms`) ve `corner_hud.volume_enabled` ayarlarını tek merkezden yönetir.
+
+---
+
+## 6. İlgili Bağlantılar
 
 * Hyprland Profil Servisi (Go Daemon): `[[Hyprland-Profile-Service]]`
 * Konfigürasyon Spesifikasyonu: `[[Configuration-System-Spec]]`
+* Kontrol Merkezi: `[[Control-Center-Widget]]`
+* Ses Karıştırıcısı: `[[Audio-Mixer-View]]`
+* Köşe HUD OSD: `[[Corner-Island-HUD-Component]]`
 * Tasarım Token'ları: `[[Style-Design-Tokens]]`
 * Daemon IPC İletişimi: `[[Daemon-IPC-Client]]`
 * Dynamic Island: `[[Dynamic-Island-Component]]`

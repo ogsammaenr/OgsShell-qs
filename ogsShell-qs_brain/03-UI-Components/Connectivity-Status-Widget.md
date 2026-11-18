@@ -33,7 +33,7 @@ related_notes:
 * **Reactivity:** Directly binds to `DaemonIPC` properties (`root.ipc.wifi`, `root.ipc.net`, and `root.ipc.bluetooth`).
 * **Network & Wi-Fi Telemetry:** Automatically detects whether Ethernet or Wi-Fi is active. Displays Ethernet icon (`󰈀` in green) or signal strength graduated Wi-Fi Nerd Font icons (`󰤨`, `󰤥`, `󰤢`, `󰤟`, `󰤮` in **`14px`**) alongside the interface / active network SSID in **`11px DemiBold`** (up to 54px text allocation).
 * **Bluetooth Telemetry:** Displays adapter power state (`󰂯`, `󰂲` in **`14px`**) and active peripheral connectivity (`󰂱` with active cyan accent indicator dot `5x5px`).
-* **Pill Geometry:** Height **`30px`**, width **`104px+`**, radius **`12px`** for balanced proportions alongside the central clock.
+* **Pill Geometry:** Height **`28–30px`**, width **`104px+`**, radius **`12px`** for balanced proportions alongside the central clock; in `[[Dynamic-Island-Component]]` hover mode, `[[Workspace-Indicator-Widget]]` sits directly centered beneath this pill.
 * **Interactive Navigation:** Clicking the button triggers `root.clicked()`, smoothly transitioning the Island into the `EXPANDED` mode and focusing the **System** telemetry tab.
 
 ---
@@ -41,6 +41,7 @@ related_notes:
 ## 2. Related Links
 
 * Dynamic Island: `[[Dynamic-Island-Component]]`
+* Workspace Indicator: `[[Workspace-Indicator-Widget]]`
 * IPC Client: `[[Daemon-IPC-Client]]`
 * Wi-Fi Service: `[[Wifi-Client-Service]]`
 * Bluetooth Service: `[[Bluetooth-Service]]`
