@@ -489,6 +489,53 @@ cmd_tray_close() {
   fi
 }
 
+cmd_volume() {
+  local sub="${1:-get}"
+  local raw_arg="${2:-5%}"
+  local cfg_file="${CONFIG_DIR}/config.json"
+  [ -f "${cfg_file}" ] || cfg_file="${SHELL_DIR}/config.json"
+
+  local limit="1.0"
+  if [ -f "${cfg_file}" ]; then
+    local cfg_content
+    cfg_content="$(< "${cfg_file}")"
+    if [[ "${cfg_content}" =~ \"over_amplification\"[[:space:]]*:[[:space:]]*true ]]; then
+      limit="1.5"
+    fi
+  fi
+
+  local clean_num="${raw_arg%[+-]}"
+  clean_num="${clean_num%%%}"
+
+  case "${sub}" in
+    up|raise|+)
+      wpctl set-volume -l "${limit}" @DEFAULT_AUDIO_SINK@ "${clean_num}%+"
+      ;;
+    down|lower|-)
+      wpctl set-volume -l "${limit}" @DEFAULT_AUDIO_SINK@ "${clean_num}%-"
+      ;;
+    set)
+      if [[ "${raw_arg}" != *% ]] && [[ "${raw_arg}" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk "BEGIN {exit !(${raw_arg} <= 2.0)}"; then
+        wpctl set-volume -l "${limit}" @DEFAULT_AUDIO_SINK@ "${raw_arg}"
+      else
+        wpctl set-volume -l "${limit}" @DEFAULT_AUDIO_SINK@ "${clean_num}%"
+      fi
+      ;;
+    mute|toggle)
+      wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+      ;;
+    clamp)
+      if [ "${limit}" = "1.0" ]; then
+        wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 0%+
+      fi
+      ;;
+    get|status|*)
+      wpctl get-volume @DEFAULT_AUDIO_SINK@
+      echo "Limit: ${limit} ($([ "${limit}" = "1.5" ] && echo "150%" || echo "100%"))"
+      ;;
+  esac
+}
+
 cmd_test_keyring() {
   echo -e "${C_BLUE}[ogsShell]${C_RESET} 🔒 Keyring kilitleniyor..."
   python3 -c "
@@ -651,6 +698,7 @@ cmd_help() {
   echo -e "  ${C_CYAN}toggle_bottom_notch${C_RESET} | ${C_CYAN}notch${C_RESET}        Alt Komut Çentiğini (Bottom Notch) açar/kapatır"
   echo -e "  ${C_CYAN}toggle_control_center${C_RESET} | ${C_CYAN}cc${C_RESET}         Kontrol Merkezini açar/kapatır"
   echo -e "  ${C_CYAN}toggle_audio_mixer${C_RESET} | ${C_CYAN}mixer${C_RESET} | ${C_CYAN}audio${C_RESET} Ses Karıştırıcısını açar/kapatır"
+  echo -e "  ${C_CYAN}volume${C_RESET} [up|down|set|mute|clamp|get] Konfigürasyon sınırına (%100/%150) göre sesi kontrol eder"
   echo -e "  ${C_CYAN}toggle_bluetooth${C_RESET} | ${C_CYAN}bluetooth${C_RESET} | ${C_CYAN}bt${C_RESET} Bluetooth panelini açar/kapatır"
   echo -e "  ${C_CYAN}toggle_wifi${C_RESET} | ${C_CYAN}wifi${C_RESET}                   Wi-Fi panelini açar/kapatır"
   echo -e "  ${C_CYAN}toggle_calendar${C_RESET} | ${C_CYAN}calendar${C_RESET} | ${C_CYAN}cal${C_RESET}    Takvim ve Etkinlikler görünümünü açar/kapatır"
@@ -765,6 +813,9 @@ case "${ACTION}" in
     ;;
   toggle_audio_mixer|audio_mixer|mixer|audio)
     send_ipc_action "toggle_audio_mixer" "{}"
+    ;;
+  volume|vol)
+    cmd_volume "${ARGS[@]}"
     ;;
   toggle_bluetooth|bluetooth|bt)
     send_ipc_action "toggle_bluetooth_view" "{}"

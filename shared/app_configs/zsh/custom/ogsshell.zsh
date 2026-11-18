@@ -35,6 +35,8 @@ _ogsshell() {
     'toggle_audio_mixer:Ses Karıştırıcısını açar/kapatır'
     'mixer:Ses Karıştırıcısını açar/kapatır'
     'audio:Ses Karıştırıcısını açar/kapatır'
+    'volume:Konfigürasyon sınırına (%100/%150) göre sesi kontrol eder'
+    'vol:Konfigürasyon sınırına (%100/%150) göre sesi kontrol eder'
     'toggle_bluetooth:Bluetooth cihaz panelini açar/kapatır'
     'bluetooth:Bluetooth cihaz panelini açar/kapatır'
     'bt:Bluetooth cihaz panelini açar/kapatır'
@@ -161,6 +163,18 @@ _ogsshell() {
             'launcher:Spotlight Uygulama Başlatıcı'
           )
           _describe -t apps 'Uygulama veya bileşen' apps
+          ;;
+        volume|vol)
+          local -a vol_args
+          vol_args=(
+            'up:Sesi artır (örn. up 5%)'
+            'down:Sesi azalt (örn. down 5%)'
+            'set:Belirli bir yüzdeye ayarla (örn. set 125%)'
+            'mute:Sesi sustur veya aç'
+            'clamp:Boost kapalıysa sesi %100 sınırına çek'
+            'get:Mevcut ses düzeyini ve aktif sınırı göster'
+          )
+          _describe -t vol_args 'Ses komutu' vol_args
           ;;
       esac
       ;;
