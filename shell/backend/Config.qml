@@ -93,6 +93,11 @@ Item {
     "bottom_right": true
   })
 
+  property var audio: ({
+    "over_amplification": false,
+    "max_volume": 150
+  })
+
   property var audioFeedback: ({
     "enabled": true,
     "volume_change_sound": true,
@@ -244,6 +249,12 @@ Item {
   readonly property bool screenCornerBottomRight: (screenCorners && screenCorners.bottom_right !== undefined) ? screenCorners.bottom_right : true
 
   // =========================================================================
+  // First-Class Typed Reactive Audio & Over-Amplification Accessors
+  // =========================================================================
+  readonly property bool audioOverAmplification: (audio && audio.over_amplification !== undefined) ? !!audio.over_amplification : false
+  readonly property int audioMaxVolume: audioOverAmplification ? Math.max(100, Math.min(150, (audio && audio.max_volume !== undefined) ? audio.max_volume : 150)) : 100
+
+  // =========================================================================
   // First-Class Typed Reactive Audio Feedback Accessors
   // =========================================================================
   readonly property bool audioFeedbackEnabled: (audioFeedback && audioFeedback.enabled !== undefined) ? audioFeedback.enabled : true
@@ -336,25 +347,57 @@ Item {
     return home + "/Workspace/projects/OgsShell-qs/shared/app_configs/shell/config.json"
   }
 
+  readonly property string shellConfigPath: {
+    let u = Qt.resolvedUrl("../../shell/config.json").toString()
+    if (u.startsWith("file://")) {
+      return u.substring(7)
+    }
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    return home + "/Workspace/projects/OgsShell-qs/shell/config.json"
+  }
+
+  readonly property string settingsConfigPath: {
+    let u = Qt.resolvedUrl("../../settings_app/config.json").toString()
+    if (u.startsWith("file://")) {
+      return u.substring(7)
+    }
+    let home = Quickshell.env("HOME") || "/home/excalibur"
+    return home + "/Workspace/projects/OgsShell-qs/settings_app/config.json"
+  }
+
   Process {
     id: syncProc
   }
 
   function writeConfig(jsonContent) {
     if (!jsonContent || jsonContent.trim().length === 0) return
-    let uPath = root.userConfigPath
-    let wPath = root.workspaceConfigPath
-    let sPath = root.sharedConfigPath
+    let paths = [
+      root.userConfigPath,
+      root.workspaceConfigPath,
+      root.shellConfigPath,
+      root.settingsConfigPath,
+      root.sharedConfigPath
+    ]
 
     let pyScript = "import os\n" +
       "content = " + JSON.stringify(jsonContent) + "\n" +
-      "for path in ['" + uPath + "', '" + wPath + "', '" + sPath + "']:\n" +
-      "    if not path: continue\n" +
+      "seen = set()\n" +
+      "for path in " + JSON.stringify(paths) + ":\n" +
+      "    if not path:\n" +
+      "        continue\n" +
+      "    real = os.path.realpath(path)\n" +
+      "    if real in seen:\n" +
+      "        continue\n" +
+      "    seen.add(real)\n" +
       "    try:\n" +
+      "        if os.path.exists(path):\n" +
+      "            with open(path, 'r', encoding='utf-8') as rf:\n" +
+      "                if rf.read() == content:\n" +
+      "                    continue\n" +
       "        os.makedirs(os.path.dirname(path), exist_ok=True)\n" +
       "        with open(path, 'w', encoding='utf-8') as f:\n" +
       "            f.write(content)\n" +
-      "    except Exception as e:\n" +
+      "    except Exception:\n" +
       "        pass\n"
 
     syncProc.running = false
@@ -364,18 +407,31 @@ Item {
 
   function syncToUserConfig(jsonContent) {
     if (!jsonContent || jsonContent.trim().length === 0) return
-    let uPath = root.userConfigPath
-    let sPath = root.sharedConfigPath
+    let paths = [
+      root.userConfigPath,
+      root.settingsConfigPath,
+      root.sharedConfigPath
+    ]
 
     let pyScript = "import os\n" +
       "content = " + JSON.stringify(jsonContent) + "\n" +
-      "for path in ['" + uPath + "', '" + sPath + "']:\n" +
-      "    if not path: continue\n" +
+      "seen = set()\n" +
+      "for path in " + JSON.stringify(paths) + ":\n" +
+      "    if not path:\n" +
+      "        continue\n" +
+      "    real = os.path.realpath(path)\n" +
+      "    if real in seen:\n" +
+      "        continue\n" +
+      "    seen.add(real)\n" +
       "    try:\n" +
+      "        if os.path.exists(path):\n" +
+      "            with open(path, 'r', encoding='utf-8') as rf:\n" +
+      "                if rf.read() == content:\n" +
+      "                    continue\n" +
       "        os.makedirs(os.path.dirname(path), exist_ok=True)\n" +
       "        with open(path, 'w', encoding='utf-8') as f:\n" +
       "            f.write(content)\n" +
-      "    except Exception as e:\n" +
+      "    except Exception:\n" +
       "        pass\n"
 
     syncProc.running = false
@@ -404,6 +460,7 @@ Item {
     }
     if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
     if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
+    if (cfg.audio) root.audio = Object.assign({}, root.audio, cfg.audio)
     if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
     if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
     if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
@@ -420,6 +477,7 @@ Item {
       "notifications": root.notifications,
       "animation": root.animation,
       "screen_corners": root.screenCorners,
+      "audio": root.audio,
       "audio_feedback": root.audioFeedback,
       "corner_hud": root.cornerHud,
       "shadows": root.shadows,
@@ -596,6 +654,7 @@ Item {
       }
       if (cfg.animation) root.animation = Object.assign({}, root.animation, cfg.animation)
       if (cfg.screen_corners) root.screenCorners = Object.assign({}, root.screenCorners, cfg.screen_corners)
+      if (cfg.audio) root.audio = Object.assign({}, root.audio, cfg.audio)
       if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
       if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
       if (cfg.corner_tray) root.cornerTray = Object.assign({}, root.cornerTray, cfg.corner_tray)
