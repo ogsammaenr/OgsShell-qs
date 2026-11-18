@@ -125,7 +125,7 @@ Item {
   }
 
   function queueStreamVolume(streamId, targetVol) {
-    let vol = Math.max(0, Math.min(100, Math.round(targetVol)))
+    let vol = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(targetVol)))
     root.pendingStreamVols[streamId] = vol
     if (!streamVolThrottleTimer.running) {
       streamVolThrottleTimer.restart()
@@ -143,6 +143,7 @@ Item {
     for (let i = 0; i < keys.length; i++) {
       let id = keys[i]
       let vol = root.pendingStreamVols[id]
+      controlCmdProc.running = false
       controlCmdProc.command = ["pactl", "set-sink-input-volume", "" + id, "" + vol + "%"]
       controlCmdProc.running = true
     }
@@ -150,12 +151,13 @@ Item {
   }
 
   function toggleStreamMute(streamId) {
+    controlCmdProc.running = false
     controlCmdProc.command = ["pactl", "set-sink-input-mute", "" + streamId, "toggle"]
     controlCmdProc.running = true
   }
 
   function queueSinkVolume(sinkId, targetVol) {
-    let vol = Math.max(0, Math.min(100, Math.round(targetVol)))
+    let vol = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(targetVol)))
     root.pendingSinkVols[sinkId] = vol
     if (!sinkVolThrottleTimer.running) {
       sinkVolThrottleTimer.restart()
@@ -173,6 +175,7 @@ Item {
     for (let i = 0; i < keys.length; i++) {
       let id = keys[i]
       let vol = root.pendingSinkVols[id]
+      controlCmdProc.running = false
       controlCmdProc.command = ["pactl", "set-sink-volume", "" + id, "" + vol + "%"]
       controlCmdProc.running = true
     }
@@ -625,15 +628,31 @@ Item {
                 // Active Fill Bar
                 Rectangle {
                   height: parent.height
-                  width: streamDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (streamDelegateItem.localVol / 100.0)))
+                  width: streamDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (streamDelegateItem.localVol / Config.audioMaxVolume)))
                   radius: 6
-                  color: Style.accent
+                  color: (!streamDelegateItem.localMute && streamDelegateItem.localVol >= 135)
+                    ? Style.accentRed
+                    : ((!streamDelegateItem.localMute && streamDelegateItem.localVol > 100) ? Style.accentOrange : Style.accent)
                   opacity: 0.85
 
                   Behavior on width {
                     enabled: !streamSliderMouse.pressed
                     NumberAnimation { duration: 100 }
                   }
+                }
+
+                // 100% Threshold Marker (Over-Amplification)
+                Rectangle {
+                  visible: Config.audioOverAmplification
+                  x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
+                  anchors.topMargin: 3
+                  anchors.bottomMargin: 3
+                  width: 1.5
+                  radius: 1
+                  color: Style.textMuted
+                  opacity: 0.65
                 }
 
                 // Percentage Text
@@ -644,7 +663,7 @@ Item {
                   text: streamDelegateItem.localMute ? "Sessiz" : `%${streamDelegateItem.localVol}`
                   font.pixelSize: 9
                   font.weight: Font.Bold
-                  color: streamDelegateItem.localMute ? Style.accentRed : Style.textPrimary
+                  color: streamDelegateItem.localMute ? Style.accentRed : (streamDelegateItem.localVol >= 135 ? Style.accentRed : (streamDelegateItem.localVol > 100 ? Style.accentOrange : Style.textPrimary))
                 }
 
                 // Slider Mouse Handler
@@ -657,7 +676,7 @@ Item {
                   acceptedButtons: Qt.LeftButton
 
                   function updateStreamVol(mouse) {
-                    let pct = Math.max(0, Math.min(100, Math.round((mouse.x / width) * 100.0)))
+                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, Math.round((mouse.x / width) * Config.audioMaxVolume)))
                     streamDelegateItem.localVol = pct
                     root.queueStreamVolume(modelData.id, pct)
                   }
@@ -688,7 +707,7 @@ Item {
                   }
                   onWheel: wheel => {
                     let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    let pct = Math.max(0, Math.min(100, streamDelegateItem.localVol + delta))
+                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, streamDelegateItem.localVol + delta))
                     streamDelegateItem.localVol = pct
                     root.queueStreamVolume(modelData.id, pct)
                     root.flushStreamVolume(modelData.id)
@@ -856,15 +875,31 @@ Item {
 
                 Rectangle {
                   height: parent.height
-                  width: sinkDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (sinkDelegateItem.localVol / 100.0)))
+                  width: sinkDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (sinkDelegateItem.localVol / Config.audioMaxVolume)))
                   radius: 6
-                  color: Style.accent
+                  color: (!sinkDelegateItem.localMute && sinkDelegateItem.localVol >= 135)
+                    ? Style.accentRed
+                    : ((!sinkDelegateItem.localMute && sinkDelegateItem.localVol > 100) ? Style.accentOrange : Style.accent)
                   opacity: 0.85
 
                   Behavior on width {
                     enabled: !sinkSliderMouse.pressed
                     NumberAnimation { duration: 100 }
                   }
+                }
+
+                // 100% Threshold Marker (Over-Amplification)
+                Rectangle {
+                  visible: Config.audioOverAmplification
+                  x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
+                  anchors.topMargin: 3
+                  anchors.bottomMargin: 3
+                  width: 1.5
+                  radius: 1
+                  color: Style.textMuted
+                  opacity: 0.65
                 }
 
                 Text {
@@ -874,7 +909,7 @@ Item {
                   text: sinkDelegateItem.localMute ? "Sessiz" : `%${sinkDelegateItem.localVol}`
                   font.pixelSize: 9
                   font.weight: Font.Bold
-                  color: sinkDelegateItem.localMute ? Style.accentRed : Style.textPrimary
+                  color: sinkDelegateItem.localMute ? Style.accentRed : (sinkDelegateItem.localVol >= 135 ? Style.accentRed : (sinkDelegateItem.localVol > 100 ? Style.accentOrange : Style.textPrimary))
                 }
 
                 MouseArea {
@@ -886,7 +921,7 @@ Item {
                   acceptedButtons: Qt.LeftButton
 
                   function updateSinkVol(mouse) {
-                    let pct = Math.max(0, Math.min(100, Math.round((mouse.x / width) * 100.0)))
+                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, Math.round((mouse.x / width) * Config.audioMaxVolume)))
                     sinkDelegateItem.localVol = pct
                     root.queueSinkVolume(modelData.id, pct)
                   }
@@ -917,7 +952,7 @@ Item {
                   }
                   onWheel: wheel => {
                     let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    let pct = Math.max(0, Math.min(100, sinkDelegateItem.localVol + delta))
+                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, sinkDelegateItem.localVol + delta))
                     sinkDelegateItem.localVol = pct
                     root.queueSinkVolume(modelData.id, pct)
                     root.flushSinkVolume(modelData.id)

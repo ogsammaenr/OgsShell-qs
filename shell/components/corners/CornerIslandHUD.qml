@@ -288,6 +288,17 @@ Item {
               NumberAnimation { duration: 80; easing.type: Easing.OutQuad }
             }
           }
+
+          // 100% Threshold Tick when Over-Amplification is enabled
+          Rectangle {
+            visible: !!(activeEvent && activeEvent.overAmpEnabled)
+            x: Math.round(parent.width * (100.0 / 150.0))
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: 1
+            color: Style.textPrimary
+            opacity: 0.45
+          }
         }
 
         Text {
@@ -295,7 +306,7 @@ Item {
           font.family: Style.fontDisplay
           font.pixelSize: 11
           font.weight: Style.fontWeightDisplay
-          color: Style.textPrimary
+          color: (activeEvent && activeEvent.badgeColor && activeEvent.badgeColor !== Style.accent) ? activeEvent.badgeColor : Style.textPrimary
         }
       }
 

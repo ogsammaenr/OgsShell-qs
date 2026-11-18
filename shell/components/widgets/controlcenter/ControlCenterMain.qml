@@ -44,10 +44,17 @@ Item {
   }
 
   Connections {
+    target: Config
+    function onAudioMaxVolumeChanged() {
+      root.syncTelemetry()
+    }
+  }
+
+  Connections {
     target: Pipewire.defaultAudioSink ? Pipewire.defaultAudioSink.audio : null
     function onVolumeChanged() {
       if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
-        root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+        root.volumeLevel = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
       }
     }
     function onMutedChanged() {
@@ -61,7 +68,7 @@ Item {
     target: Pipewire
     function onDefaultAudioSinkChanged() {
       if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
-        root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+        root.volumeLevel = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
         root.isMuted = Pipewire.defaultAudioSink.audio.muted
       }
     }
@@ -70,21 +77,15 @@ Item {
   // System processes for Volume (Fallback) & Brightness
   Process {
     id: volGetProc
-    command: ["pamixer", "--get-volume"]
+    command: ["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"]
     stdout: SplitParser {
       onRead: data => {
-        let v = parseInt(data.trim())
-        if (!isNaN(v)) root.volumeLevel = Math.max(0, Math.min(100, v))
-      }
-    }
-  }
-
-  Process {
-    id: volMuteProc
-    command: ["pamixer", "--get-mute"]
-    stdout: SplitParser {
-      onRead: data => {
-        root.isMuted = (data.trim() === "true")
+        let m = data.match(/Volume:\s*([0-9.]+)/)
+        if (m && m[1]) {
+          let v = Math.round(parseFloat(m[1]) * 100)
+          if (!isNaN(v)) root.volumeLevel = Math.max(0, Math.min(Config.audioMaxVolume, v))
+        }
+        root.isMuted = data.indexOf("[MUTED]") !== -1
       }
     }
   }
@@ -115,24 +116,27 @@ Item {
 
   function syncTelemetry() {
     if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
-      root.volumeLevel = Math.max(0, Math.min(100, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
+      root.volumeLevel = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(Pipewire.defaultAudioSink.audio.volume * 100)))
       root.isMuted = Pipewire.defaultAudioSink.audio.muted
     } else {
       volGetProc.running = true
-      volMuteProc.running = true
     }
     brightGetProc.running = true
   }
 
   function setVolume(val) {
-    let target = Math.max(0, Math.min(100, Math.round(val)))
+    let maxVol = Config.audioMaxVolume
+    let target = Math.max(0, Math.min(maxVol, Math.round(val)))
     root.volumeLevel = target
     root.isMuted = false
     if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
       Pipewire.defaultAudioSink.audio.volume = target / 100.0
       Pipewire.defaultAudioSink.audio.muted = false
-    } else {
-      setVolProc.command = ["pamixer", "--set-volume", "" + target]
+    }
+    if (target > 100 || !Pipewire.defaultAudioSink || !Pipewire.defaultAudioSink.audio) {
+      let maxRatio = (maxVol / 100.0).toFixed(1)
+      setVolProc.running = false
+      setVolProc.command = ["wpctl", "set-volume", "-l", maxRatio, "@DEFAULT_AUDIO_SINK@", target + "%"]
       setVolProc.running = true
     }
   }
@@ -142,7 +146,8 @@ Item {
     if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
       Pipewire.defaultAudioSink.audio.muted = root.isMuted
     } else {
-      toggleMuteProc.command = ["pamixer", "-t"]
+      toggleMuteProc.running = false
+      toggleMuteProc.command = ["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"]
       toggleMuteProc.running = true
     }
   }
@@ -187,7 +192,6 @@ Item {
       brightGetProc.running = true
       if (!Pipewire.defaultAudioSink || !Pipewire.defaultAudioSink.audio) {
         volGetProc.running = true
-        volMuteProc.running = true
       }
     }
   }
@@ -647,10 +651,28 @@ Item {
       Rectangle {
         id: soundFill
         height: parent.height
-        width: root.isMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (root.volumeLevel / 100.0)))
+        width: root.isMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (root.volumeLevel / Config.audioMaxVolume)))
         radius: 12
-        color: Style.surfaceActive
+        color: (!root.isMuted && root.volumeLevel >= 135)
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.36)
+          : ((!root.isMuted && root.volumeLevel > 100)
+            ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.34)
+            : Style.surfaceActive)
         opacity: 0.85
+      }
+
+      // 100% Threshold Marker (visible when Over-Amplification is enabled)
+      Rectangle {
+        visible: Config.audioOverAmplification
+        x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.topMargin: 7
+        anchors.bottomMargin: 7
+        width: 2
+        radius: 1
+        color: Style.textMuted
+        opacity: 0.55
       }
 
       // Left Content: Speaker Icon + Label
@@ -673,7 +695,7 @@ Item {
             anchors.centerIn: parent
             text: root.isMuted ? "󰖁" : (root.volumeLevel > 50 ? "󰕾" : (root.volumeLevel > 0 ? "󰖀" : "󰕿"))
             font.pixelSize: 16
-            color: root.isMuted ? Style.accentRed : Style.textPrimary
+            color: root.isMuted ? Style.accentRed : (root.volumeLevel >= 135 ? Style.accentRed : (root.volumeLevel > 100 ? Style.accentOrange : Style.textPrimary))
           }
 
           MouseArea {
@@ -687,11 +709,11 @@ Item {
 
         Text {
           anchors.verticalCenter: parent.verticalCenter
-          text: root.isMuted ? "Sessiz (Muted)" : "Ses Düzeyi"
+          text: root.isMuted ? "Sessiz (Muted)" : (root.volumeLevel > 100 ? "Ses Düzeyi (Boost)" : "Ses Düzeyi")
           font.family: Style.fontDisplay
           font.pixelSize: 12
           font.weight: Font.Medium
-          color: root.isMuted ? Style.accentRed : Style.textPrimary
+          color: root.isMuted ? Style.accentRed : (root.volumeLevel > 100 ? Style.accentOrange : Style.textPrimary)
         }
       }
 
@@ -704,7 +726,7 @@ Item {
         font.family: Style.fontDisplay
         font.pixelSize: 12
         font.weight: Style.fontWeightDisplay
-        color: Style.textSecondary
+        color: root.isMuted ? Style.accentRed : (root.volumeLevel >= 135 ? Style.accentRed : (root.volumeLevel > 100 ? Style.accentOrange : Style.textSecondary))
       }
 
       // Slider MouseArea placed on the track area
@@ -719,7 +741,7 @@ Item {
 
         function updateLevel(mouse) {
           let availableWidth = width
-          let pct = (mouse.x / availableWidth) * 100.0
+          let pct = (mouse.x / availableWidth) * Config.audioMaxVolume
           root.setVolume(pct)
         }
 

@@ -55,7 +55,8 @@ Item {
       "progress": (payload.progress !== undefined) ? payload.progress : -1,
       "badgeColor": payload.badgeColor || Style.accent,
       "isMuted": !!payload.isMuted,
-      "isCaps": !!payload.isCaps
+      "isCaps": !!payload.isCaps,
+      "overAmpEnabled": !!payload.overAmpEnabled
     }
 
     root.activeEvent = eventData
@@ -95,12 +96,17 @@ Item {
         root.lastSinkMuted = isMuted
 
         let volPercent = Math.round(currentVol * 100)
+        let maxRatio = Config.audioMaxVolume / 100.0
         let icon = "󰕾"
         let badgeColor = Style.accent
 
         if (isMuted || volPercent === 0) {
           icon = "󰝟"
           badgeColor = Style.accentRed
+        } else if (volPercent >= 135) {
+          badgeColor = Style.accentRed
+        } else if (volPercent > 100) {
+          badgeColor = Style.accentOrange
         } else if (volPercent < 30) {
           icon = "󰕿"
         } else if (volPercent < 70) {
@@ -111,9 +117,10 @@ Item {
           "icon": icon,
           "title": "Ses",
           "subtitle": isMuted ? "Sessiz" : (volPercent + "%"),
-          "progress": isMuted ? 0 : Math.min(1.0, currentVol),
+          "progress": isMuted ? 0 : Math.max(0.0, Math.min(1.0, currentVol / maxRatio)),
           "badgeColor": badgeColor,
-          "isMuted": isMuted
+          "isMuted": isMuted,
+          "overAmpEnabled": Config.audioOverAmplification
         })
       }
     }
@@ -130,14 +137,17 @@ Item {
 
       let currentVol = sink.audio.volume
       let volPercent = Math.round(currentVol * 100)
+      let maxRatio = Config.audioMaxVolume / 100.0
+      let badgeColor = isMuted ? Style.accentRed : (volPercent >= 135 ? Style.accentRed : (volPercent > 100 ? Style.accentOrange : Style.accent))
 
       root.triggerEvent("VOLUME", {
         "icon": isMuted ? "󰝟" : (volPercent >= 70 ? "󰕾" : (volPercent >= 30 ? "󰖀" : "󰕿")),
         "title": "Ses",
         "subtitle": isMuted ? "Sessize Alındı" : (volPercent + "%"),
-        "progress": isMuted ? 0 : Math.min(1.0, currentVol),
-        "badgeColor": isMuted ? Style.accentRed : Style.accent,
-        "isMuted": isMuted
+        "progress": isMuted ? 0 : Math.max(0.0, Math.min(1.0, currentVol / maxRatio)),
+        "badgeColor": badgeColor,
+        "isMuted": isMuted,
+        "overAmpEnabled": Config.audioOverAmplification
       })
     }
   }

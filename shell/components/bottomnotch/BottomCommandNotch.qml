@@ -418,7 +418,7 @@ FocusScope {
           "val": "%" + (Pipewire.defaultAudioSink ? Math.round(Pipewire.defaultAudioSink.audio.volume * 100) : 50),
           "cmdOn": ":set volume 75",
           "cmdOff": ":set volume 25",
-          "desc": "0-100 arasında sistem genel ses seviyesini ayarlar"
+          "desc": "0-" + Config.audioMaxVolume + " arasında sistem genel ses seviyesini ayarlar"
         }
       ]
 
@@ -577,11 +577,13 @@ FocusScope {
       } else if (arg1 === "volume" || arg1 === "vol") {
         let volNum = parseInt(arg2)
         if (!isNaN(volNum)) {
-          volNum = Math.max(0, Math.min(100, volNum))
+          let maxVol = Config.audioMaxVolume
+          volNum = Math.max(0, Math.min(maxVol, volNum))
           if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
             Pipewire.defaultAudioSink.audio.volume = volNum / 100.0
           }
-          executeExternal(["pamixer", "--set-volume", "" + volNum])
+          let maxRatio = (maxVol / 100.0).toFixed(1)
+          executeExternal(["wpctl", "set-volume", "-l", maxRatio, "@DEFAULT_AUDIO_SINK@", volNum + "%"])
         }
       }
       BottomNotchService.close()
@@ -593,7 +595,7 @@ FocusScope {
       if (Pipewire.defaultAudioSink && Pipewire.defaultAudioSink.audio) {
         Pipewire.defaultAudioSink.audio.muted = !Pipewire.defaultAudioSink.audio.muted
       }
-      executeExternal(["pamixer", "-t"])
+      executeExternal(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
       BottomNotchService.close()
       return
     }
