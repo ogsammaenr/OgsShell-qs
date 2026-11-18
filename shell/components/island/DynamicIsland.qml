@@ -18,6 +18,8 @@ Item {
   // IPC Service Reference
   required property var ipc
   property var audioFeedback: null
+  property var screen: null
+  property var hyprMonitor: null
 
   // State Machine: "IDLE" | "HOVER" | "EXPANDED" | "TRANSIENT"
   property string stateMode: "IDLE"
@@ -1192,24 +1194,43 @@ Item {
         }
       }
 
-      // Right Slot: Wi-Fi & Bluetooth Status Button (Fades & Scales smoothly on hover)
-      ConnectivityStatusWidget {
-        id: connectivityWidget
-        ipc: root.ipc
+      // Right Slot: Wi-Fi & Bluetooth Status Button + Per-Monitor Workspace Dots/Pill (Fades & Scales smoothly on hover)
+      Item {
+        id: rightHoverSlot
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
-        width: implicitWidth
-        height: 30
+        width: Math.max(connectivityWidget.width, workspaceIndicator.implicitWidth)
+        height: connectivityWidget.height + 4 + workspaceIndicator.implicitHeight
         opacity: root.stateMode === "HOVER" ? 1.0 : 0.0
         scale: root.stateMode === "HOVER" ? 1.0 : 0.82
         visible: opacity > 0.0
 
-        onClicked: {
-          if (controlCenterLoader.item) {
-            controlCenterLoader.item.resetToMain()
+        ConnectivityStatusWidget {
+          id: connectivityWidget
+          ipc: root.ipc
+          anchors.top: parent.top
+          anchors.right: parent.right
+          width: implicitWidth
+          height: 28
+
+          onClicked: {
+            if (controlCenterLoader.item) {
+              controlCenterLoader.item.resetToMain()
+            }
+            root.expandedActiveTab = "CONTROL_CENTER"
+            root.stateMode = "EXPANDED"
           }
-          root.expandedActiveTab = "CONTROL_CENTER"
-          root.stateMode = "EXPANDED"
+        }
+
+        WorkspaceIndicatorWidget {
+          id: workspaceIndicator
+          screen: root.screen
+          hyprMonitor: root.hyprMonitor
+          anchors.top: connectivityWidget.bottom
+          anchors.topMargin: 4
+          x: (connectivityWidget.width >= width)
+            ? (connectivityWidget.x + (connectivityWidget.width - width) / 2)
+            : (parent.width - width)
         }
 
         Behavior on opacity {

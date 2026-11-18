@@ -348,6 +348,8 @@ Scope {
           id: island
           ipc: ipcService
           audioFeedback: audioFeedbackService
+          screen: screenScope.modelData
+          hyprMonitor: screenScope.hyprMonitor
           isScreenFocused: screenScope.isFocusedMonitor
           anchors.horizontalCenter: parent.horizontalCenter
           y: SnippingService.isOpen ? (-island.implicitHeight - 24) : (screenScope.isRevealed ? (Config.isNotch ? 0 : Config.islandTopMargin) : (-island.implicitHeight - 12))
