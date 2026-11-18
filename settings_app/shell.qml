@@ -14,12 +14,13 @@ FloatingWindow {
   title: "ogsShell Ayarlar"
   implicitWidth: 880
   implicitHeight: 580
-  width: 880
-  height: 580
   visible: true
   color: "transparent"
 
   property string activeCategory: "network"
+
+  FontLoader { source: Qt.resolvedUrl("assets/fonts/Inter.ttf") }
+  FontLoader { source: Qt.resolvedUrl("assets/fonts/NotoSansDisplay.ttf") }
 
   // IPC Service instance to communicate with Go daemon
   DaemonIPC {
@@ -40,14 +41,13 @@ FloatingWindow {
       spacing: 0
 
       // =======================================================================
-      // LEFT SIDEBAR (Width: 230px)
+      // LEFT SIDEBAR (Width: 224px)
       // =======================================================================
       Rectangle {
-        Layout.preferredWidth: 230
+        Layout.preferredWidth: 224
         Layout.fillHeight: true
         color: Style.appSidebar
 
-        // Right separator border
         Rectangle {
           anchors.right: parent.right
           anchors.top: parent.top
@@ -61,41 +61,38 @@ FloatingWindow {
           anchors.margins: 14
           spacing: 14
 
-          // Window Header with Title & Close (X) Button
+          // Window Header with Title & Close Button
           RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
             Text {
-              text: "⚙️"
-              font.pixelSize: 17
+              text: "󰒓"
+              font.pixelSize: 16
+              color: Style.textSecondary
             }
 
             Text {
               text: "Ayarlar"
-              font.pixelSize: 15
-              font.weight: Font.Bold
+              font.family: Style.fontText
+              font.pixelSize: 14
+              font.weight: Font.DemiBold
               color: Style.textPrimary
               Layout.fillWidth: true
             }
 
-            // Minimalist Close (✕) Button
             Rectangle {
-              width: 26
-              height: 26
-              radius: 13
-              color: closeHover.containsMouse ? Style.surfaceActive : "transparent"
-              border.color: closeHover.containsMouse ? Style.appBorder : "transparent"
-              border.width: 1
+              width: 24
+              height: 24
+              radius: 12
+              color: closeHover.containsMouse ? Style.surfaceHover : "transparent"
 
               Behavior on color { ColorAnimation { duration: 120 } }
-              Behavior on border.color { ColorAnimation { duration: 120 } }
 
               Text {
                 anchors.centerIn: parent
-                text: "✕"
+                text: "󰅖"
                 font.pixelSize: 12
-                font.weight: Font.Medium
                 color: closeHover.containsMouse ? Style.accentRed : Style.textMuted
               }
 
@@ -114,27 +111,29 @@ FloatingWindow {
             id: sidebarList
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 4
+            spacing: 3
             clip: true
 
             model: [
-              { "id": "network",       "title": "Ağ ve Wi-Fi",        "icon": "🌐" },
+              { "id": "network",       "title": "Ağ ve Wi-Fi",        "icon": "󰛳" },
               { "id": "bluetooth",     "title": "Bluetooth",          "icon": "󰂯" },
-              { "id": "appearance",    "title": "Görünüm ve Tema",    "icon": "🎨" },
-              { "id": "island",        "title": "Ada ve Çentik",      "icon": "🏝️" },
-              { "id": "hyprland",      "title": "Hyprland & Efektler","icon": "🪟" },
-              { "id": "sound",         "title": "Ses ve Donanım",     "icon": "🔊" },
-              { "id": "notifications", "title": "Bildirimler",        "icon": "🔔" },
-              { "id": "keyboard",      "title": "Klavye ve Giriş",    "icon": "⌨️" },
-              { "id": "about",         "title": "Sistem Hakkında",    "icon": "ℹ️" }
+              { "id": "appearance",    "title": "Görünüm ve Tema",    "icon": "󰏘" },
+              { "id": "island",        "title": "Ada ve Çentik",      "icon": "󰘔" },
+              { "id": "hyprland",      "title": "Hyprland & Efektler","icon": "󰖯" },
+              { "id": "sound",         "title": "Ses ve Donanım",     "icon": "󰕾" },
+              { "id": "notifications", "title": "Bildirimler",        "icon": "󰂚" },
+              { "id": "keyboard",      "title": "Klavye ve Giriş",    "icon": "󰌌" },
+              { "id": "about",         "title": "Sistem Hakkında",    "icon": "󰋼" }
             ]
 
             delegate: Rectangle {
               width: sidebarList.width
-              height: 38
-              radius: 8
+              height: 34
+              radius: 7
               readonly property bool isSelected: rootWindow.activeCategory === modelData.id
-              color: isSelected ? Style.surfaceActive : (itemMouse.containsMouse ? Style.surfaceHover : "transparent")
+              color: isSelected ? Qt.alpha(Style.accent, 0.14) : (itemMouse.containsMouse ? Style.surfaceHover : "transparent")
+
+              Behavior on color { ColorAnimation { duration: 120 } }
 
               RowLayout {
                 anchors.fill: parent
@@ -145,14 +144,17 @@ FloatingWindow {
                 Text {
                   text: modelData.icon
                   font.pixelSize: 14
-                  color: isSelected ? Style.accentCyan : Style.textPrimary
+                  color: isSelected ? Style.accent : Style.textSecondary
+                  Layout.preferredWidth: 16
+                  horizontalAlignment: Text.AlignHCenter
                 }
 
                 Text {
                   text: modelData.title
+                  font.family: Style.fontText
                   font.pixelSize: 12
-                  font.weight: isSelected ? Font.Bold : Font.Medium
-                  color: isSelected ? Style.accentCyan : Style.textPrimary
+                  font.weight: isSelected ? Font.DemiBold : Font.Medium
+                  color: isSelected ? Style.accent : Style.textPrimary
                   Layout.fillWidth: true
                   elide: Text.ElideRight
                 }
@@ -185,7 +187,7 @@ FloatingWindow {
           // Header Bar of Detail Pane
           Rectangle {
             Layout.fillWidth: true
-            implicitHeight: 48
+            implicitHeight: 46
             color: "transparent"
 
             RowLayout {
@@ -207,8 +209,9 @@ FloatingWindow {
                   if (rootWindow.activeCategory === "about") return "Sistem Hakkında"
                   return "Ayarlar"
                 }
-                font.pixelSize: 16
-                font.weight: Font.Bold
+                font.family: Style.fontText
+                font.pixelSize: 15
+                font.weight: Font.DemiBold
                 color: Style.textPrimary
               }
             }
@@ -227,61 +230,70 @@ FloatingWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // Page 1: Network & DNS Page
             NetworkPage {
               anchors.fill: parent
               ipc: ipcService
               visible: rootWindow.activeCategory === "network"
             }
 
-            // Page 2: Dynamic Island & Notch Configuration Page
             IslandPage {
               anchors.fill: parent
               ipc: ipcService
               visible: rootWindow.activeCategory === "island"
             }
 
-            // Page 3: Hyprland Borders & Animations Page
             HyprlandPage {
               anchors.fill: parent
               ipc: ipcService
               visible: rootWindow.activeCategory === "hyprland"
             }
 
-            // Page 4: Sound & Audio Over-Amplification Page
             SoundPage {
               anchors.fill: parent
               ipc: ipcService
               visible: rootWindow.activeCategory === "sound"
             }
 
-            // Placeholder for other upcoming pages
+            // Minimalist Empty State for Upcoming Categories
             Item {
               anchors.fill: parent
               visible: rootWindow.activeCategory !== "network" && rootWindow.activeCategory !== "island" && rootWindow.activeCategory !== "hyprland" && rootWindow.activeCategory !== "sound"
 
               ColumnLayout {
                 anchors.centerIn: parent
-                spacing: 12
+                spacing: 10
 
-                Text {
+                Rectangle {
                   Layout.alignment: Qt.AlignHCenter
-                  text: "🛠️"
-                  font.pixelSize: 36
+                  width: 44
+                  height: 44
+                  radius: 10
+                  color: Style.surfaceVariant
+                  border.color: Style.appBorder
+                  border.width: 1
+
+                  Text {
+                    anchors.centerIn: parent
+                    text: "󰒓"
+                    font.pixelSize: 20
+                    color: Style.textMuted
+                  }
                 }
 
                 Text {
                   Layout.alignment: Qt.AlignHCenter
-                  text: "Bu modül yakında eklenecek"
-                  font.pixelSize: 14
-                  font.weight: Font.Bold
+                  text: "Bu bölüm henüz yapılandırılmadı"
+                  font.family: Style.fontText
+                  font.pixelSize: 13
+                  font.weight: Font.DemiBold
                   color: Style.textPrimary
                 }
 
                 Text {
                   Layout.alignment: Qt.AlignHCenter
-                  text: "Bu kategori için görsel ayarlar çok yakında kullanıma sunulacaktır."
-                  font.pixelSize: 12
+                  text: "İlgili ayarlar sonraki güncellemelerde eklenecektir."
+                  font.family: Style.fontText
+                  font.pixelSize: 11
                   color: Style.textMuted
                 }
               }
