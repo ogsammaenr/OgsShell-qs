@@ -11,37 +11,93 @@ Item {
   signal backRequested()
 
   property int activeTab: 0 // 0: Uygulamalar (Apps), 1: Çıkış Cihazları (Sinks)
-  property var appStreams: []
-  property var outputSinks: []
   property bool isLoading: false
+  property bool isDragging: false
+  property string activeDragKey: ""
+  property bool pendingRefreshAfterDrag: false
 
-  // Helper Python script for fast and robust JSON parsing from pactl
+  // Mutation generation counters & per-target edit protection to block stale poll overwrites
+  property int streamMutationGen: 0
+  property int sinkMutationGen: 0
+  property int fetchStreamsGen: 0
+  property int fetchSinksGen: 0
+  property var recentEdits: ({})
+  property var pendingVols: ({})
+  property var streamGroupIds: ({})
+  property var cmdQueue: []
+  property string activeCmdKey: ""
+
+  property string streamsAccum: ""
+  property string sinksAccum: ""
+
+  // Persistent ListModels keep ListView delegates & scroll position (contentY) intact across refreshes
+  ListModel { id: streamsModel }
+  ListModel { id: sinksModel }
+
+  // Helper Python scripts for fast and robust JSON parsing from pactl
   readonly property string getStreamsCmd: "import subprocess, json\n" +
+    "def parse_vol(vdict):\n" +
+    "    vals = []\n" +
+    "    for vinfo in (vdict or {}).values():\n" +
+    "        if isinstance(vinfo, dict) and 'value_percent' in vinfo:\n" +
+    "            try:\n" +
+    "                vals.append(int(vinfo['value_percent'].strip().replace('%', '')))\n" +
+    "            except Exception:\n" +
+    "                pass\n" +
+    "    return round(sum(vals) / len(vals)) if vals else 50\n" +
     "try:\n" +
     "    res = subprocess.run(['pactl', '--format=json', 'list', 'sink-inputs'], capture_output=True, text=True)\n" +
     "    txt = res.stdout.strip()\n" +
     "    idx = txt.find('[')\n" +
     "    if idx != -1: txt = txt[idx:]\n" +
     "    data = json.loads(txt)\n" +
-    "    streams = []\n" +
+    "    groups = {}\n" +
     "    for item in data:\n" +
-    "        vol = 50\n" +
-    "        vdict = item.get('volume', {})\n" +
-    "        for ch, vinfo in vdict.items():\n" +
-    "            if isinstance(vinfo, dict) and 'value_percent' in vinfo:\n" +
-    "                vol = int(vinfo['value_percent'].replace('%', ''))\n" +
-    "                break\n" +
     "        props = item.get('properties', {})\n" +
-    "        name = props.get('application.name', props.get('media.name', 'Uygulama'))\n" +
-    "        icon = props.get('application.icon_name', '')\n" +
-    "        media = props.get('media.name', '')\n" +
-    "        streams.append({'id': item.get('index'), 'name': name, 'media': media, 'icon': icon, 'volume': vol, 'mute': item.get('mute', False)})\n" +
+    "        sid = int(item.get('index', 0))\n" +
+    "        app_name = (props.get('application.name') or props.get('node.name') or props.get('media.name') or 'Uygulama').strip()\n" +
+    "        raw_group = (props.get('application.name') or props.get('application.process.binary') or props.get('node.name') or '').strip().lower()\n" +
+    "        gkey = ('app:' + raw_group) if raw_group else ('stream:' + str(sid))\n" +
+    "        icon = props.get('application.icon_name', '') or ''\n" +
+    "        media = (props.get('media.name') or '').strip()\n" +
+    "        vol = parse_vol(item.get('volume', {}))\n" +
+    "        mute = bool(item.get('mute', False))\n" +
+    "        corked = bool(item.get('corked', False))\n" +
+    "        if gkey not in groups:\n" +
+    "            groups[gkey] = {'key': gkey, 'name': app_name, 'icon': icon, 'items': []}\n" +
+    "        grp = groups[gkey]\n" +
+    "        if not grp['icon'] and icon:\n" +
+    "            grp['icon'] = icon\n" +
+    "        grp['items'].append({'id': sid, 'media': media, 'vol': vol, 'mute': mute, 'corked': corked})\n" +
+    "    streams = []\n" +
+    "    for grp in groups.values():\n" +
+    "        items = sorted(grp['items'], key=lambda x: x['id'])\n" +
+    "        active = [x for x in items if not x['corked']]\n" +
+    "        primary = active if active else items\n" +
+    "        rep_vol = round(sum(x['vol'] for x in primary) / len(primary))\n" +
+    "        rep_mute = all(x['mute'] for x in primary)\n" +
+    "        rep_media = next((x['media'] for x in primary if x['media'] and x['media'] != '(null)'), '')\n" +
+    "        if not rep_media:\n" +
+    "            rep_media = next((x['media'] for x in items if x['media'] and x['media'] != '(null)'), '')\n" +
+    "        streams.append({'key': grp['key'], 'id': items[0]['id'], 'stream_ids': [x['id'] for x in items], 'name': grp['name'], 'media': rep_media, 'icon': grp['icon'], 'volume': rep_vol, 'mute': rep_mute})\n" +
+    "    streams.sort(key=lambda x: x['id'])\n" +
     "    print(json.dumps(streams))\n" +
     "except Exception:\n" +
     "    print('[]')"
 
   readonly property string getSinksCmd: "import subprocess, json\n" +
+    "def parse_vol(vdict):\n" +
+    "    vals = []\n" +
+    "    for vinfo in (vdict or {}).values():\n" +
+    "        if isinstance(vinfo, dict) and 'value_percent' in vinfo:\n" +
+    "            try:\n" +
+    "                vals.append(int(vinfo['value_percent'].strip().replace('%', '')))\n" +
+    "            except Exception:\n" +
+    "                pass\n" +
+    "    return round(sum(vals) / len(vals)) if vals else 50\n" +
     "try:\n" +
+    "    def_res = subprocess.run(['pactl', 'get-default-sink'], capture_output=True, text=True)\n" +
+    "    def_sink = def_res.stdout.strip()\n" +
     "    res = subprocess.run(['pactl', '--format=json', 'list', 'sinks'], capture_output=True, text=True)\n" +
     "    txt = res.stdout.strip()\n" +
     "    idx = txt.find('[')\n" +
@@ -49,16 +105,12 @@ Item {
     "    data = json.loads(txt)\n" +
     "    sinks = []\n" +
     "    for item in data:\n" +
-    "        vol = 50\n" +
-    "        vdict = item.get('volume', {})\n" +
-    "        for ch, vinfo in vdict.items():\n" +
-    "            if isinstance(vinfo, dict) and 'value_percent' in vinfo:\n" +
-    "                vol = int(vinfo['value_percent'].replace('%', ''))\n" +
-    "                break\n" +
+    "        sid = int(item.get('index', 0))\n" +
     "        name = item.get('name', '')\n" +
     "        desc = item.get('description', name)\n" +
-    "        active_port = item.get('active_port', '')\n" +
-    "        sinks.append({'id': item.get('index'), 'name': name, 'description': desc, 'volume': vol, 'mute': item.get('mute', False), 'port': active_port})\n" +
+    "        active_port = item.get('active_port', '') or ''\n" +
+    "        sinks.append({'key': 'sink:' + str(sid), 'id': sid, 'name': name, 'description': desc, 'volume': parse_vol(item.get('volume', {})), 'mute': bool(item.get('mute', False)), 'port': active_port, 'is_default': (name == def_sink)})\n" +
+    "    sinks.sort(key=lambda x: x['id'])\n" +
     "    print(json.dumps(sinks))\n" +
     "except Exception:\n" +
     "    print('[]')"
@@ -71,14 +123,24 @@ Item {
     command: ["python3", "-c", root.getStreamsCmd]
     stdout: SplitParser {
       onRead: data => {
-        try {
-          let list = JSON.parse(data.trim())
-          if (Array.isArray(list)) {
-            root.appStreams = list
-          }
-        } catch (e) {}
-        root.isLoading = false
+        root.streamsAccum += data
       }
+    }
+    onExited: (exitCode, exitStatus) => {
+      let raw = root.streamsAccum.trim()
+      root.streamsAccum = ""
+      root.updateLoadingState()
+      if (exitCode !== 0 || raw.length === 0) return
+      if (root.isDragging) {
+        root.pendingRefreshAfterDrag = true
+        return
+      }
+      try {
+        let list = JSON.parse(raw)
+        if (Array.isArray(list)) {
+          root.reconcileModel(streamsModel, list, true, root.fetchStreamsGen === root.streamMutationGen)
+        }
+      } catch (e) {}
     }
   }
 
@@ -87,110 +149,345 @@ Item {
     command: ["python3", "-c", root.getSinksCmd]
     stdout: SplitParser {
       onRead: data => {
-        try {
-          let list = JSON.parse(data.trim())
-          if (Array.isArray(list)) {
-            root.outputSinks = list
-          }
-        } catch (e) {}
+        root.sinksAccum += data
+      }
+    }
+    onExited: (exitCode, exitStatus) => {
+      let raw = root.sinksAccum.trim()
+      root.sinksAccum = ""
+      root.updateLoadingState()
+      if (exitCode !== 0 || raw.length === 0) return
+      if (root.isDragging) {
+        root.pendingRefreshAfterDrag = true
+        return
+      }
+      try {
+        let list = JSON.parse(raw)
+        if (Array.isArray(list)) {
+          root.reconcileModel(sinksModel, list, false, root.fetchSinksGen === root.sinkMutationGen)
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Sequential non-interrupting command executor (never SIGTERMs an in-flight pactl command)
+  Process {
+    id: controlCmdProc
+    onExited: (exitCode, exitStatus) => {
+      root.activeCmdKey = ""
+      root.dispatchNextControlCmd()
+    }
+  }
+
+  Timer {
+    id: volThrottleTimer
+    interval: 35
+    repeat: false
+    onTriggered: root.dispatchPendingVolumes()
+  }
+
+  // Gentle post-command confirmation refresh after queue drains
+  Timer {
+    id: postCommandSyncTimer
+    interval: 450
+    repeat: false
+    onTriggered: {
+      if (!root.isDragging && root.cmdQueue.length === 0 && !controlCmdProc.running) {
+        root.refreshAudio()
       }
     }
   }
 
-  Process { id: controlCmdProc }
-
-  property var pendingStreamVols: ({})
-  property var pendingSinkVols: ({})
-  property bool isDragging: false
-
-  Timer {
-    id: streamVolThrottleTimer
-    interval: 35
-    repeat: false
-    onTriggered: root.dispatchPendingStreamVolumes()
-  }
-
-  Timer {
-    id: sinkVolThrottleTimer
-    interval: 35
-    repeat: false
-    onTriggered: root.dispatchPendingSinkVolumes()
+  function updateLoadingState() {
+    root.isLoading = fetchStreamsProc.running || fetchSinksProc.running
   }
 
   function refreshAudio() {
-    if (root.isDragging) return
-    root.isLoading = true
-    fetchStreamsProc.running = true
-    fetchSinksProc.running = true
+    if (root.isDragging) {
+      root.pendingRefreshAfterDrag = true
+      return
+    }
+    if (!fetchStreamsProc.running) {
+      root.streamsAccum = ""
+      root.fetchStreamsGen = root.streamMutationGen
+      fetchStreamsProc.running = true
+    }
+    if (!fetchSinksProc.running) {
+      root.sinksAccum = ""
+      root.fetchSinksGen = root.sinkMutationGen
+      fetchSinksProc.running = true
+    }
+    root.updateLoadingState()
   }
 
-  function queueStreamVolume(streamId, targetVol) {
+  function hasPendingCmdFor(isStream, itemKey) {
+    let prefix = isStream ? "stream" : "sink"
+    let volKey = prefix + "_vol:" + itemKey
+    let muteKey = prefix + "_mute:" + itemKey
+    if (root.pendingVols[volKey] !== undefined) return true
+    if (root.activeCmdKey === volKey || root.activeCmdKey === muteKey) return true
+    for (let i = 0; i < root.cmdQueue.length; i++) {
+      let k = root.cmdQueue[i].key
+      if (k === volKey || k === muteKey) return true
+    }
+    return false
+  }
+
+  function isItemLocked(isStream, itemKey, nowMs) {
+    if (root.isDragging && root.activeDragKey === itemKey) return true
+    if (hasPendingCmdFor(isStream, itemKey)) return true
+    let ts = root.recentEdits[itemKey]
+    return ts !== undefined && (nowMs - ts) < 850
+  }
+
+  function resolveItemKey(item, isStream) {
+    if (item && item.key) return String(item.key)
+    return (isStream ? "stream:" : "sink:") + Number(item.id)
+  }
+
+  function toModelEntry(item, isStream) {
+    let itemKey = resolveItemKey(item, isStream)
+    if (isStream) {
+      let ids = Array.isArray(item.stream_ids) ? item.stream_ids : [Number(item.id)]
+      return {
+        "itemKey": itemKey,
+        "itemId": Number(item.id),
+        "itemStreamCount": Number(ids.length),
+        "itemName": String(item.name || "Uygulama"),
+        "itemMedia": String(item.media || ""),
+        "itemIcon": String(item.icon || ""),
+        "itemVolume": Number(item.volume !== undefined ? item.volume : 50),
+        "itemMute": Boolean(item.mute)
+      }
+    }
+    return {
+      "itemKey": itemKey,
+      "itemId": Number(item.id),
+      "itemName": String(item.name || ""),
+      "itemDesc": String(item.description || item.name || "Çıkış Aygıtı"),
+      "itemPort": String(item.port || ""),
+      "itemVolume": Number(item.volume !== undefined ? item.volume : 50),
+      "itemMute": Boolean(item.mute),
+      "itemIsDefault": Boolean(item.is_default)
+    }
+  }
+
+  function reconcileModel(model, incomingList, isStream, genMatches) {
+    if (incomingList.length === 0) {
+      if (model.count > 0) model.clear()
+      if (isStream) root.streamGroupIds = ({})
+      return
+    }
+
+    let nowMs = Date.now()
+    let incomingKeys = {}
+    let nextGroupIds = isStream ? {} : null
+    for (let i = 0; i < incomingList.length; i++) {
+      let rawItem = incomingList[i]
+      let k = resolveItemKey(rawItem, isStream)
+      incomingKeys[k] = true
+      if (isStream) {
+        let rawIds = Array.isArray(rawItem.stream_ids) ? rawItem.stream_ids : [Number(rawItem.id)]
+        nextGroupIds[k] = rawIds.map(x => Number(x))
+      }
+    }
+    if (isStream) {
+      root.streamGroupIds = nextGroupIds
+    }
+
+    // 1. Remove items that no longer exist
+    for (let r = model.count - 1; r >= 0; r--) {
+      if (!incomingKeys[model.get(r).itemKey]) {
+        model.remove(r, 1)
+      }
+    }
+
+    // 2. Insert new items and update existing rows in-place (preserving scroll position & delegates)
+    for (let targetIdx = 0; targetIdx < incomingList.length; targetIdx++) {
+      let entry = toModelEntry(incomingList[targetIdx], isStream)
+      let curIdx = -1
+      for (let j = 0; j < model.count; j++) {
+        if (model.get(j).itemKey === entry.itemKey) {
+          curIdx = j
+          break
+        }
+      }
+
+      if (curIdx === -1) {
+        model.insert(targetIdx, entry)
+        continue
+      }
+
+      if (curIdx !== targetIdx) {
+        model.move(curIdx, targetIdx, 1)
+      }
+
+      let row = model.get(targetIdx)
+      if (isStream) {
+        if (row.itemId !== entry.itemId) model.setProperty(targetIdx, "itemId", entry.itemId)
+        if (row.itemStreamCount !== entry.itemStreamCount) model.setProperty(targetIdx, "itemStreamCount", entry.itemStreamCount)
+        if (row.itemName !== entry.itemName) model.setProperty(targetIdx, "itemName", entry.itemName)
+        if (row.itemMedia !== entry.itemMedia) model.setProperty(targetIdx, "itemMedia", entry.itemMedia)
+        if (row.itemIcon !== entry.itemIcon) model.setProperty(targetIdx, "itemIcon", entry.itemIcon)
+      } else {
+        if (row.itemName !== entry.itemName) model.setProperty(targetIdx, "itemName", entry.itemName)
+        if (row.itemDesc !== entry.itemDesc) model.setProperty(targetIdx, "itemDesc", entry.itemDesc)
+        if (row.itemPort !== entry.itemPort) model.setProperty(targetIdx, "itemPort", entry.itemPort)
+        let lockDef = root.recentEdits["default_sink"] !== undefined && (nowMs - root.recentEdits["default_sink"]) < 850
+        if (!lockDef && row.itemIsDefault !== entry.itemIsDefault) {
+          model.setProperty(targetIdx, "itemIsDefault", entry.itemIsDefault)
+        }
+      }
+
+      if (genMatches && !root.isItemLocked(isStream, entry.itemKey, nowMs)) {
+        if (row.itemVolume !== entry.itemVolume) model.setProperty(targetIdx, "itemVolume", entry.itemVolume)
+        if (row.itemMute !== entry.itemMute) model.setProperty(targetIdx, "itemMute", entry.itemMute)
+      }
+    }
+  }
+
+  function updateLocalRow(model, itemKey, fields) {
+    for (let i = 0; i < model.count; i++) {
+      if (model.get(i).itemKey === itemKey) {
+        for (let prop in fields) {
+          model.setProperty(i, prop, fields[prop])
+        }
+        return
+      }
+    }
+  }
+
+  function buildControlCmd(isStream, itemKey, itemId, isMuteCmd, valueArg) {
+    if (isStream) {
+      let pactlSubCmd = isMuteCmd ? "set-sink-input-mute" : "set-sink-input-volume"
+      let ids = root.streamGroupIds[itemKey]
+      if (!ids || ids.length === 0) ids = [itemId]
+      if (ids.length === 1) {
+        return ["pactl", pactlSubCmd, "" + ids[0], "" + valueArg]
+      }
+      let args = ["/bin/sh", "-c", "val=\"$1\"; shift; for id in \"$@\"; do pactl " + pactlSubCmd + " \"$id\" \"$val\" >/dev/null 2>&1 || true; done", "_", "" + valueArg]
+      for (let i = 0; i < ids.length; i++) {
+        args.push("" + ids[i])
+      }
+      return args
+    }
+    let pactlSinkCmd = isMuteCmd ? "set-sink-mute" : "set-sink-volume"
+    return ["pactl", pactlSinkCmd, "" + itemId, "" + valueArg]
+  }
+
+  function enqueueControlCmd(key, cmd) {
+    let queue = root.cmdQueue.slice()
+    let replaced = false
+    for (let i = 0; i < queue.length; i++) {
+      if (queue[i].key === key) {
+        queue[i] = { "key": key, "cmd": cmd }
+        replaced = true
+        break
+      }
+    }
+    if (!replaced) {
+      queue.push({ "key": key, "cmd": cmd })
+    }
+    root.cmdQueue = queue
+    if (!controlCmdProc.running) {
+      root.dispatchNextControlCmd()
+    }
+  }
+
+  function dispatchNextControlCmd() {
+    if (controlCmdProc.running) return
+    if (root.cmdQueue.length === 0) {
+      postCommandSyncTimer.restart()
+      return
+    }
+    let next = root.cmdQueue[0]
+    root.cmdQueue = root.cmdQueue.slice(1)
+    root.activeCmdKey = next.key
+    controlCmdProc.command = next.cmd
+    controlCmdProc.running = true
+  }
+
+  function setItemVolume(isStream, itemKey, itemId, targetVol, immediate) {
     let vol = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(targetVol)))
-    root.pendingStreamVols[streamId] = vol
-    if (!streamVolThrottleTimer.running) {
-      streamVolThrottleTimer.restart()
+    let model = isStream ? streamsModel : sinksModel
+    let prefix = isStream ? "stream" : "sink"
+    let volKey = prefix + "_vol:" + itemKey
+
+    root.recentEdits[itemKey] = Date.now()
+    if (isStream) root.streamMutationGen++
+    else root.sinkMutationGen++
+
+    root.updateLocalRow(model, itemKey, { "itemVolume": vol })
+
+    if (immediate) {
+      let pending = Object.assign({}, root.pendingVols)
+      delete pending[volKey]
+      root.pendingVols = pending
+      root.enqueueControlCmd(volKey, root.buildControlCmd(isStream, itemKey, itemId, false, "" + vol + "%"))
+      return
+    }
+
+    let pending = Object.assign({}, root.pendingVols)
+    pending[volKey] = { "isStream": isStream, "key": itemKey, "id": itemId, "vol": vol }
+    root.pendingVols = pending
+    if (!volThrottleTimer.running) {
+      volThrottleTimer.restart()
     }
   }
 
-  function flushStreamVolume(streamId) {
-    streamVolThrottleTimer.stop()
-    root.dispatchPendingStreamVolumes()
+  function flushTargetVolume(isStream, itemKey) {
+    let prefix = isStream ? "stream" : "sink"
+    let volKey = prefix + "_vol:" + itemKey
+    root.recentEdits[itemKey] = Date.now()
+    let entry = root.pendingVols[volKey]
+    if (entry !== undefined) {
+      let pending = Object.assign({}, root.pendingVols)
+      delete pending[volKey]
+      root.pendingVols = pending
+      if (Object.keys(pending).length === 0) {
+        volThrottleTimer.stop()
+      }
+      root.enqueueControlCmd(volKey, root.buildControlCmd(entry.isStream, entry.key, entry.id, false, "" + entry.vol + "%"))
+    }
+    if (root.pendingRefreshAfterDrag && !root.isDragging) {
+      root.pendingRefreshAfterDrag = false
+      postCommandSyncTimer.restart()
+    }
   }
 
-  function dispatchPendingStreamVolumes() {
-    let keys = Object.keys(root.pendingStreamVols)
+  function dispatchPendingVolumes() {
+    let keys = Object.keys(root.pendingVols)
     if (keys.length === 0) return
+    let pending = root.pendingVols
+    root.pendingVols = {}
     for (let i = 0; i < keys.length; i++) {
-      let id = keys[i]
-      let vol = root.pendingStreamVols[id]
-      controlCmdProc.running = false
-      controlCmdProc.command = ["pactl", "set-sink-input-volume", "" + id, "" + vol + "%"]
-      controlCmdProc.running = true
-    }
-    root.pendingStreamVols = {}
-  }
-
-  function toggleStreamMute(streamId) {
-    controlCmdProc.running = false
-    controlCmdProc.command = ["pactl", "set-sink-input-mute", "" + streamId, "toggle"]
-    controlCmdProc.running = true
-  }
-
-  function queueSinkVolume(sinkId, targetVol) {
-    let vol = Math.max(0, Math.min(Config.audioMaxVolume, Math.round(targetVol)))
-    root.pendingSinkVols[sinkId] = vol
-    if (!sinkVolThrottleTimer.running) {
-      sinkVolThrottleTimer.restart()
+      let k = keys[i]
+      let entry = pending[k]
+      root.enqueueControlCmd(k, root.buildControlCmd(entry.isStream, entry.key, entry.id, false, "" + entry.vol + "%"))
     }
   }
 
-  function flushSinkVolume(sinkId) {
-    sinkVolThrottleTimer.stop()
-    root.dispatchPendingSinkVolumes()
+  function toggleItemMute(isStream, itemKey, itemId, currentMute) {
+    let nextMute = !currentMute
+    let model = isStream ? streamsModel : sinksModel
+    let prefix = isStream ? "stream" : "sink"
+    let muteKey = prefix + "_mute:" + itemKey
+
+    root.recentEdits[itemKey] = Date.now()
+    if (isStream) root.streamMutationGen++
+    else root.sinkMutationGen++
+
+    root.updateLocalRow(model, itemKey, { "itemMute": nextMute })
+    root.enqueueControlCmd(muteKey, root.buildControlCmd(isStream, itemKey, itemId, true, nextMute ? "1" : "0"))
   }
 
-  function dispatchPendingSinkVolumes() {
-    let keys = Object.keys(root.pendingSinkVols)
-    if (keys.length === 0) return
-    for (let i = 0; i < keys.length; i++) {
-      let id = keys[i]
-      let vol = root.pendingSinkVols[id]
-      controlCmdProc.running = false
-      controlCmdProc.command = ["pactl", "set-sink-volume", "" + id, "" + vol + "%"]
-      controlCmdProc.running = true
+  function setDefaultSink(sinkName, sinkId) {
+    root.recentEdits["default_sink"] = Date.now()
+    root.sinkMutationGen++
+    for (let i = 0; i < sinksModel.count; i++) {
+      sinksModel.setProperty(i, "itemIsDefault", sinksModel.get(i).itemId === sinkId)
     }
-    root.pendingSinkVols = {}
-  }
-
-  function toggleSinkMute(sinkId) {
-    controlCmdProc.command = ["pactl", "set-sink-mute", "" + sinkId, "toggle"]
-    controlCmdProc.running = true
-  }
-
-  function setDefaultSink(sinkNameOrId) {
-    controlCmdProc.command = ["pactl", "set-default-sink", "" + sinkNameOrId]
-    controlCmdProc.running = true
-    pollTimer.restart()
+    root.enqueueControlCmd("default_sink", ["pactl", "set-default-sink", "" + (sinkName || sinkId)])
   }
 
   function getAppGlyph(name) {
@@ -379,12 +676,12 @@ Item {
               height: 14
               radius: 7
               color: root.activeTab === 0 ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.25) : Style.surface
-              visible: root.appStreams.length > 0
+              visible: streamsModel.count > 0
 
               Text {
                 id: appBadgeTxt
                 anchors.centerIn: parent
-                text: "" + root.appStreams.length
+                text: "" + streamsModel.count
                 font.pixelSize: 9
                 font.weight: Font.DemiBold
                 color: root.activeTab === 0 ? Style.accent : Style.textMuted
@@ -428,12 +725,12 @@ Item {
               height: 14
               radius: 7
               color: root.activeTab === 1 ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.25) : Style.surface
-              visible: root.outputSinks.length > 0
+              visible: sinksModel.count > 0
 
               Text {
                 id: sinkBadgeTxt
                 anchors.centerIn: parent
-                text: "" + root.outputSinks.length
+                text: "" + sinksModel.count
                 font.pixelSize: 9
                 font.weight: Font.DemiBold
                 color: root.activeTab === 1 ? Style.accent : Style.textMuted
@@ -467,7 +764,7 @@ Item {
         // Empty State: No active audio streams
         ColumnLayout {
           anchors.centerIn: parent
-          visible: root.appStreams.length === 0
+          visible: streamsModel.count === 0
           spacing: 8
 
           Rectangle {
@@ -507,10 +804,25 @@ Item {
         ListView {
           id: streamsList
           anchors.fill: parent
-          visible: root.appStreams.length > 0
-          model: root.appStreams
+          visible: streamsModel.count > 0
+          model: streamsModel
           clip: true
           spacing: 6
+          interactive: !root.isDragging
+          boundsBehavior: Flickable.StopAtBounds
+          highlightFollowsCurrentItem: false
+
+          ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+            width: 3
+            interactive: false
+            contentItem: Rectangle {
+              implicitWidth: 3
+              radius: 2
+              color: Style.textMuted
+              opacity: 0.45
+            }
+          }
 
           delegate: Rectangle {
             id: streamDelegateItem
@@ -521,22 +833,13 @@ Item {
             border.color: Style.border
             border.width: 1
 
-            property int localVol: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
-            property bool localMute: (modelData && modelData.mute !== undefined) ? modelData.mute : false
-
-            Binding {
-              target: streamDelegateItem
-              property: "localVol"
-              value: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
-              when: !streamSliderMouse.pressed
-            }
-
-            Binding {
-              target: streamDelegateItem
-              property: "localMute"
-              value: (modelData && modelData.mute !== undefined) ? modelData.mute : false
-              when: !streamSliderMouse.pressed
-            }
+            readonly property string rowKey: model.itemKey
+            readonly property int rowId: model.itemId
+            readonly property int rowStreamCount: model.itemStreamCount
+            readonly property string rowName: model.itemName
+            readonly property string rowMedia: model.itemMedia
+            readonly property int rowVol: model.itemVolume
+            readonly property bool rowMute: model.itemMute
 
             ColumnLayout {
               anchors.fill: parent
@@ -557,7 +860,7 @@ Item {
 
                   Text {
                     anchors.centerIn: parent
-                    text: root.getAppGlyph(modelData.name)
+                    text: root.getAppGlyph(streamDelegateItem.rowName)
                     font.pixelSize: 13
                     color: Style.accent
                   }
@@ -570,7 +873,7 @@ Item {
 
                   Text {
                     width: parent.width
-                    text: modelData.name || "Uygulama"
+                    text: streamDelegateItem.rowName || "Uygulama"
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     color: Style.textPrimary
@@ -579,7 +882,10 @@ Item {
 
                   Text {
                     width: parent.width
-                    text: (modelData.media && modelData.media !== "(null)") ? modelData.media : "Ses Akışı"
+                    text: {
+                      let mediaTxt = (streamDelegateItem.rowMedia && streamDelegateItem.rowMedia !== "(null)") ? streamDelegateItem.rowMedia : "Ses Akışı"
+                      return streamDelegateItem.rowStreamCount > 1 ? (streamDelegateItem.rowStreamCount + " akış • " + mediaTxt) : mediaTxt
+                    }
                     font.pixelSize: 9
                     color: Style.textMuted
                     elide: Text.ElideRight
@@ -591,15 +897,15 @@ Item {
                   width: 24
                   height: 24
                   radius: 12
-                  color: streamDelegateItem.localMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (streamMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: streamDelegateItem.localMute ? Style.accentRed : Style.border
+                  color: streamDelegateItem.rowMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (streamMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
+                  border.color: streamDelegateItem.rowMute ? Style.accentRed : Style.border
                   border.width: 1
 
                   Text {
                     anchors.centerIn: parent
-                    text: streamDelegateItem.localMute ? "󰖁" : (streamDelegateItem.localVol > 50 ? "󰕾" : (streamDelegateItem.localVol > 0 ? "󰖀" : "󰕿"))
+                    text: streamDelegateItem.rowMute ? "󰖁" : (streamDelegateItem.rowVol > 50 ? "󰕾" : (streamDelegateItem.rowVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: streamDelegateItem.localMute ? Style.accentRed : Style.textPrimary
+                    color: streamDelegateItem.rowMute ? Style.accentRed : Style.textPrimary
                   }
 
                   MouseArea {
@@ -607,112 +913,26 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                      streamDelegateItem.localMute = !streamDelegateItem.localMute
-                      root.toggleStreamMute(modelData.id)
-                    }
+                    onClicked: root.toggleItemMute(true, streamDelegateItem.rowKey, streamDelegateItem.rowId, streamDelegateItem.rowMute)
                   }
                 }
               }
 
               // Stream Volume Slider Capsule
-              Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 18
-                radius: 6
-                color: Style.surface
-                border.color: Style.border
-                border.width: 1
-                clip: true
-
-                // Active Fill Bar
-                Rectangle {
-                  height: parent.height
-                  width: streamDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (streamDelegateItem.localVol / Config.audioMaxVolume)))
-                  radius: 6
-                  color: (!streamDelegateItem.localMute && streamDelegateItem.localVol >= 135)
-                    ? Style.accentRed
-                    : ((!streamDelegateItem.localMute && streamDelegateItem.localVol > 100) ? Style.accentOrange : Style.accent)
-                  opacity: 0.85
-
-                  Behavior on width {
-                    enabled: !streamSliderMouse.pressed
-                    NumberAnimation { duration: 100 }
-                  }
+              VolumeCapsuleSlider {
+                volume: streamDelegateItem.rowVol
+                muted: streamDelegateItem.rowMute
+                onDragStarted: {
+                  root.activeDragKey = streamDelegateItem.rowKey
+                  root.isDragging = true
                 }
-
-                // 100% Threshold Marker (Over-Amplification)
-                Rectangle {
-                  visible: Config.audioOverAmplification
-                  x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
-                  anchors.top: parent.top
-                  anchors.bottom: parent.bottom
-                  anchors.topMargin: 3
-                  anchors.bottomMargin: 3
-                  width: 1.5
-                  radius: 1
-                  color: Style.textMuted
-                  opacity: 0.65
+                onVolumeEdited: newVol => root.setItemVolume(true, streamDelegateItem.rowKey, streamDelegateItem.rowId, newVol, false)
+                onDragFinished: {
+                  root.isDragging = false
+                  root.activeDragKey = ""
+                  root.flushTargetVolume(true, streamDelegateItem.rowKey)
                 }
-
-                // Percentage Text
-                Text {
-                  anchors.right: parent.right
-                  anchors.rightMargin: 6
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: streamDelegateItem.localMute ? "Sessiz" : `%${streamDelegateItem.localVol}`
-                  font.pixelSize: 9
-                  font.weight: Font.Bold
-                  color: streamDelegateItem.localMute ? Style.accentRed : (streamDelegateItem.localVol >= 135 ? Style.accentRed : (streamDelegateItem.localVol > 100 ? Style.accentOrange : Style.textPrimary))
-                }
-
-                // Slider Mouse Handler
-                MouseArea {
-                  id: streamSliderMouse
-                  anchors.fill: parent
-                  preventStealing: true
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  acceptedButtons: Qt.LeftButton
-
-                  function updateStreamVol(mouse) {
-                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, Math.round((mouse.x / width) * Config.audioMaxVolume)))
-                    streamDelegateItem.localVol = pct
-                    root.queueStreamVolume(modelData.id, pct)
-                  }
-
-                  onPressed: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                      root.isDragging = true
-                      updateStreamVol(mouse)
-                    }
-                  }
-                  onPositionChanged: mouse => {
-                    if (pressed && (mouse.buttons & Qt.LeftButton)) {
-                      updateStreamVol(mouse)
-                    }
-                  }
-                  onReleased: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                      root.isDragging = false
-                      root.flushStreamVolume(modelData.id)
-                    }
-                  }
-                  onCanceled: {
-                    root.isDragging = false
-                    root.flushStreamVolume(modelData.id)
-                  }
-                  onClicked: mouse => {
-                    if (mouse.button === Qt.LeftButton) updateStreamVol(mouse)
-                  }
-                  onWheel: wheel => {
-                    let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, streamDelegateItem.localVol + delta))
-                    streamDelegateItem.localVol = pct
-                    root.queueStreamVolume(modelData.id, pct)
-                    root.flushStreamVolume(modelData.id)
-                  }
-                }
+                onWheelStepped: newVol => root.setItemVolume(true, streamDelegateItem.rowKey, streamDelegateItem.rowId, newVol, true)
               }
             }
           }
@@ -729,9 +949,24 @@ Item {
         ListView {
           id: sinksList
           anchors.fill: parent
-          model: root.outputSinks
+          model: sinksModel
           clip: true
           spacing: 6
+          interactive: !root.isDragging
+          boundsBehavior: Flickable.StopAtBounds
+          highlightFollowsCurrentItem: false
+
+          ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+            width: 3
+            interactive: false
+            contentItem: Rectangle {
+              implicitWidth: 3
+              radius: 2
+              color: Style.textMuted
+              opacity: 0.45
+            }
+          }
 
           delegate: Rectangle {
             id: sinkDelegateItem
@@ -739,25 +974,17 @@ Item {
             height: 64
             radius: 10
             color: Style.surfaceVariant
-            border.color: Style.border
+            border.color: sinkDelegateItem.rowIsDefault ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.45) : Style.border
             border.width: 1
 
-            property int localVol: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
-            property bool localMute: (modelData && modelData.mute !== undefined) ? modelData.mute : false
-
-            Binding {
-              target: sinkDelegateItem
-              property: "localVol"
-              value: (modelData && modelData.volume !== undefined) ? modelData.volume : 50
-              when: !sinkSliderMouse.pressed
-            }
-
-            Binding {
-              target: sinkDelegateItem
-              property: "localMute"
-              value: (modelData && modelData.mute !== undefined) ? modelData.mute : false
-              when: !sinkSliderMouse.pressed
-            }
+            readonly property string rowKey: model.itemKey
+            readonly property int rowId: model.itemId
+            readonly property string rowName: model.itemName
+            readonly property string rowDesc: model.itemDesc
+            readonly property string rowPort: model.itemPort
+            readonly property int rowVol: model.itemVolume
+            readonly property bool rowMute: model.itemMute
+            readonly property bool rowIsDefault: model.itemIsDefault
 
             ColumnLayout {
               anchors.fill: parent
@@ -778,7 +1005,7 @@ Item {
 
                   Text {
                     anchors.centerIn: parent
-                    text: root.getSinkGlyph(modelData.name, modelData.description, modelData.port)
+                    text: root.getSinkGlyph(sinkDelegateItem.rowName, sinkDelegateItem.rowDesc, sinkDelegateItem.rowPort)
                     font.pixelSize: 13
                     color: Style.accent
                   }
@@ -791,7 +1018,7 @@ Item {
 
                   Text {
                     width: parent.width
-                    text: modelData.description || modelData.name
+                    text: sinkDelegateItem.rowDesc || sinkDelegateItem.rowName
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     color: Style.textPrimary
@@ -800,7 +1027,7 @@ Item {
 
                   Text {
                     width: parent.width
-                    text: modelData.port ? ("Port: " + modelData.port) : "Çıkış Aygıtı"
+                    text: sinkDelegateItem.rowPort ? ("Port: " + sinkDelegateItem.rowPort) : "Çıkış Aygıtı"
                     font.pixelSize: 9
                     color: Style.textMuted
                     elide: Text.ElideRight
@@ -812,17 +1039,19 @@ Item {
                   width: defaultTxt.implicitWidth + 10
                   height: 20
                   radius: 10
-                  color: defaultHover.containsMouse ? Style.surfaceHover : Style.surface
-                  border.color: Style.border
+                  color: sinkDelegateItem.rowIsDefault
+                    ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.18)
+                    : (defaultHover.containsMouse ? Style.surfaceHover : Style.surface)
+                  border.color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.border
                   border.width: 1
 
                   Text {
                     id: defaultTxt
                     anchors.centerIn: parent
-                    text: "Varsayılan"
+                    text: sinkDelegateItem.rowIsDefault ? "✓ Varsayılan" : "Varsayılan"
                     font.pixelSize: 9
-                    font.weight: Font.Medium
-                    color: Style.textSecondary
+                    font.weight: sinkDelegateItem.rowIsDefault ? Font.DemiBold : Font.Medium
+                    color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.textSecondary
                   }
 
                   MouseArea {
@@ -830,7 +1059,7 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.setDefaultSink(modelData.name || modelData.id)
+                    onClicked: root.setDefaultSink(sinkDelegateItem.rowName, sinkDelegateItem.rowId)
                   }
                 }
 
@@ -839,15 +1068,15 @@ Item {
                   width: 24
                   height: 24
                   radius: 12
-                  color: sinkDelegateItem.localMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (sinkMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: sinkDelegateItem.localMute ? Style.accentRed : Style.border
+                  color: sinkDelegateItem.rowMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (sinkMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
+                  border.color: sinkDelegateItem.rowMute ? Style.accentRed : Style.border
                   border.width: 1
 
                   Text {
                     anchors.centerIn: parent
-                    text: sinkDelegateItem.localMute ? "󰖁" : (sinkDelegateItem.localVol > 50 ? "󰕾" : (sinkDelegateItem.localVol > 0 ? "󰖀" : "󰕿"))
+                    text: sinkDelegateItem.rowMute ? "󰖁" : (sinkDelegateItem.rowVol > 50 ? "󰕾" : (sinkDelegateItem.rowVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: sinkDelegateItem.localMute ? Style.accentRed : Style.textPrimary
+                    color: sinkDelegateItem.rowMute ? Style.accentRed : Style.textPrimary
                   }
 
                   MouseArea {
@@ -855,109 +1084,26 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                      sinkDelegateItem.localMute = !sinkDelegateItem.localMute
-                      root.toggleSinkMute(modelData.id)
-                    }
+                    onClicked: root.toggleItemMute(false, sinkDelegateItem.rowKey, sinkDelegateItem.rowId, sinkDelegateItem.rowMute)
                   }
                 }
               }
 
               // Master Sink Volume Slider Capsule
-              Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 18
-                radius: 6
-                color: Style.surface
-                border.color: Style.border
-                border.width: 1
-                clip: true
-
-                Rectangle {
-                  height: parent.height
-                  width: sinkDelegateItem.localMute ? 0 : Math.max(0, Math.min(parent.width, parent.width * (sinkDelegateItem.localVol / Config.audioMaxVolume)))
-                  radius: 6
-                  color: (!sinkDelegateItem.localMute && sinkDelegateItem.localVol >= 135)
-                    ? Style.accentRed
-                    : ((!sinkDelegateItem.localMute && sinkDelegateItem.localVol > 100) ? Style.accentOrange : Style.accent)
-                  opacity: 0.85
-
-                  Behavior on width {
-                    enabled: !sinkSliderMouse.pressed
-                    NumberAnimation { duration: 100 }
-                  }
+              VolumeCapsuleSlider {
+                volume: sinkDelegateItem.rowVol
+                muted: sinkDelegateItem.rowMute
+                onDragStarted: {
+                  root.activeDragKey = sinkDelegateItem.rowKey
+                  root.isDragging = true
                 }
-
-                // 100% Threshold Marker (Over-Amplification)
-                Rectangle {
-                  visible: Config.audioOverAmplification
-                  x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
-                  anchors.top: parent.top
-                  anchors.bottom: parent.bottom
-                  anchors.topMargin: 3
-                  anchors.bottomMargin: 3
-                  width: 1.5
-                  radius: 1
-                  color: Style.textMuted
-                  opacity: 0.65
+                onVolumeEdited: newVol => root.setItemVolume(false, sinkDelegateItem.rowKey, sinkDelegateItem.rowId, newVol, false)
+                onDragFinished: {
+                  root.isDragging = false
+                  root.activeDragKey = ""
+                  root.flushTargetVolume(false, sinkDelegateItem.rowKey)
                 }
-
-                Text {
-                  anchors.right: parent.right
-                  anchors.rightMargin: 6
-                  anchors.verticalCenter: parent.verticalCenter
-                  text: sinkDelegateItem.localMute ? "Sessiz" : `%${sinkDelegateItem.localVol}`
-                  font.pixelSize: 9
-                  font.weight: Font.Bold
-                  color: sinkDelegateItem.localMute ? Style.accentRed : (sinkDelegateItem.localVol >= 135 ? Style.accentRed : (sinkDelegateItem.localVol > 100 ? Style.accentOrange : Style.textPrimary))
-                }
-
-                MouseArea {
-                  id: sinkSliderMouse
-                  anchors.fill: parent
-                  preventStealing: true
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  acceptedButtons: Qt.LeftButton
-
-                  function updateSinkVol(mouse) {
-                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, Math.round((mouse.x / width) * Config.audioMaxVolume)))
-                    sinkDelegateItem.localVol = pct
-                    root.queueSinkVolume(modelData.id, pct)
-                  }
-
-                  onPressed: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                      root.isDragging = true
-                      updateSinkVol(mouse)
-                    }
-                  }
-                  onPositionChanged: mouse => {
-                    if (pressed && (mouse.buttons & Qt.LeftButton)) {
-                      updateSinkVol(mouse)
-                    }
-                  }
-                  onReleased: mouse => {
-                    if (mouse.button === Qt.LeftButton) {
-                      root.isDragging = false
-                      root.flushSinkVolume(modelData.id)
-                    }
-                  }
-                  onCanceled: {
-                    root.isDragging = false
-                    root.flushSinkVolume(modelData.id)
-                  }
-                  onClicked: mouse => {
-                    if (mouse.button === Qt.LeftButton) updateSinkVol(mouse)
-                  }
-                  onWheel: wheel => {
-                    let delta = wheel.angleDelta.y > 0 ? 5 : -5
-                    let pct = Math.max(0, Math.min(Config.audioMaxVolume, sinkDelegateItem.localVol + delta))
-                    sinkDelegateItem.localVol = pct
-                    root.queueSinkVolume(modelData.id, pct)
-                    root.flushSinkVolume(modelData.id)
-                  }
-                }
+                onWheelStepped: newVol => root.setItemVolume(false, sinkDelegateItem.rowKey, sinkDelegateItem.rowId, newVol, true)
               }
             }
           }
