@@ -395,7 +395,7 @@ graph TD
             subgraph CC_Subviews ["Control Center Subviews (views/)"]
                 VIEW_WIFI["[WifiView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/WifiView.qml)"]
                 VIEW_BT["[BluetoothView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/BluetoothView.qml)"]
-                VIEW_AUDIO["[AudioMixerView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/AudioMixerView.qml)"]
+                VIEW_AUDIO["[AudioMixerView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/AudioMixerView.qml)<br/>& [VolumeCapsuleSlider.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/VolumeCapsuleSlider.qml)"]
                 VIEW_THEMES["[ThemesView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/ThemesView.qml)"]
                 VIEW_NOTIF["[NotificationsView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/NotificationsView.qml)"]
                 VIEW_CLIP["[ClipboardView.qml](file:///home/excalibur/WorkSpace/projects/OgsShell-qs/shell/components/widgets/controlcenter/views/ClipboardView.qml)"]
