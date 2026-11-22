@@ -929,10 +929,8 @@ Item {
     anchors.rightMargin: -root.notchEarW
     visible: Config.isNotch
 
-    // 8x Hardware Multi-Sample Anti-Aliasing for razor-sharp Retina/4K lines
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    // GPU CurveRenderer for crisp anti-aliased Bezier notch without 4x MSAA FBO overhead
+    preferredRendererType: Shape.CurveRenderer
 
     // Pure Solid Fill Path (Zero outer border)
     ShapePath {

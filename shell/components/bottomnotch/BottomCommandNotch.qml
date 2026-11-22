@@ -72,7 +72,15 @@ FocusScope {
   y: Math.round((1.0 - slideProgress) * (root.height + 24))
   opacity: Math.max(0.0, Math.min(1.0, slideProgress * 1.2))
 
-  // Auto focus when opened
+  // Auto focus when opened (handles both LazyLoader cold-open and live signal)
+  Component.onCompleted: {
+    if (BottomNotchService.isOpen) {
+      cmdInput.text = BottomNotchService.initialQuery || ""
+      cmdInput.forceActiveFocus()
+      updateSuggestions()
+    }
+  }
+
   Connections {
     target: BottomNotchService
     function onOpened() {
@@ -136,9 +144,7 @@ FocusScope {
     anchors.rightMargin: -root.notchEarW
 
     // 8x/4x Multi-Sample Anti-Aliasing for razor-sharp Retina lines
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       strokeWidth: 0
@@ -215,9 +221,7 @@ FocusScope {
   Shape {
     id: invertedNotchBorder
     anchors.fill: invertedNotchShape
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    preferredRendererType: Shape.CurveRenderer
     opacity: 0.25
 
     ShapePath {

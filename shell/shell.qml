@@ -219,6 +219,7 @@ Scope {
       PanelWindow {
         id: reservedSpacerWindow
         screen: screenScope.modelData
+        visible: !Config.focusMode
         color: "transparent"
         WlrLayershell.layer: WlrLayer.Bottom
 
@@ -237,50 +238,58 @@ Scope {
       }
 
       // =========================================================================
-      // Backdrop Window: Covers screen only when EXPANDED to catch outside clicks
+      // Backdrop Window (Lazy Loaded): Covers screen only when EXPANDED to catch outside clicks
       // =========================================================================
-      PanelWindow {
-        id: backdropWindow
-        screen: screenScope.modelData
-        visible: (island.stateMode === "EXPANDED") || (topRightTrayHud && topRightTrayHud.isExpanded) || (BottomNotchService.isOpen && screenScope.isFocusedMonitor)
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Top
+      LazyLoader {
+        id: backdropLoader
+        active: (island.stateMode === "EXPANDED") || (topRightTrayHud && topRightTrayHud.isExpanded) || (BottomNotchService.isOpen && screenScope.isFocusedMonitor)
 
-        anchors {
-          top: true
-          bottom: true
-          left: true
-          right: true
-        }
+        PanelWindow {
+          id: backdropWindow
+          screen: screenScope.modelData
+          color: "transparent"
+          WlrLayershell.layer: WlrLayer.Top
 
-        exclusionMode: ExclusionMode.Ignore
+          anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+          }
 
-        MouseArea {
-          anchors.fill: parent
-          onClicked: {
-            island.collapse()
-            if (topRightTrayHud && topRightTrayHud.isExpanded) {
-              if (topRightTrayHud.isMenuOpen) {
-                topRightTrayHud.closeMenu()
-              } else {
-                topRightTrayHud.collapse()
+          exclusionMode: ExclusionMode.Ignore
+
+          MouseArea {
+            anchors.fill: parent
+            onClicked: {
+              island.collapse()
+              if (topRightTrayHud && topRightTrayHud.isExpanded) {
+                if (topRightTrayHud.isMenuOpen) {
+                  topRightTrayHud.closeMenu()
+                } else {
+                  topRightTrayHud.collapse()
+                }
               }
-            }
-            if (BottomNotchService.isOpen) {
-              BottomNotchService.close()
+              if (BottomNotchService.isOpen) {
+                BottomNotchService.close()
+              }
             }
           }
         }
       }
 
       // =========================================================================
-      // Island Window: Stable, non-reallocating top overlay canvas
+      // Unified Top Overlay Window: Hosts DynamicIsland, PinnedMetrics, Top-Left
+      // CornerIslandHUD, and Top-Right Tray/Corner in ONE EGL surface per monitor
+      // (Eliminates 4 redundant NVIDIA EGL PanelWindow contexts across 2 monitors)
       // =========================================================================
       PanelWindow {
         id: islandWindow
         screen: screenScope.modelData
         color: "transparent"
-        WlrLayershell.layer: island.stateMode === "EXPANDED" ? WlrLayer.Overlay : WlrLayer.Top
+        WlrLayershell.layer: (island.stateMode === "EXPANDED"
+          || (topLeftCornerHud && topLeftCornerHud.isExpanded)
+          || (topRightTrayHud && topRightTrayHud.isExpanded)) ? WlrLayer.Overlay : WlrLayer.Top
         WlrLayershell.keyboardFocus: {
           if (island.stateMode === "EXPANDED" && (island.expandedActiveTab === "LAUNCHER" || island.expandedActiveTab === "KEYRING")) {
             return WlrKeyboardFocus.Exclusive
@@ -299,15 +308,20 @@ Scope {
 
         exclusionMode: ExclusionMode.Ignore
 
-        // Fixed high-performance GPU canvas (prevents Wayland surface resize roundtrip latency)
-        implicitHeight: 560
+        // Fixed GPU canvas covering max expanded island (440px) + top corners/tray
+        implicitHeight: 470
 
-        // Zero click-blocking: Precision Wayland input mask conforms strictly to island bounds
+        // Precision Multi-Region Wayland Input Mask: Only Island & Top-Right Tray receive clicks
         mask: Region {
-          item: activeInputEnvelope
+          Region {
+            item: activeInputEnvelope
+          }
+          Region {
+            item: activeTrayInputEnvelope
+          }
         }
 
-        // Precision Wayland Input Envelope
+        // Precision Wayland Input Envelope for Dynamic Island
         Rectangle {
           id: activeInputEnvelope
           anchors.top: parent.top
@@ -325,6 +339,59 @@ Scope {
             return Math.max(screenScope.shouldAutoHide ? 12 : 0, Math.round(island.y + island.height + (island.extraStackHeight || 0)))
           }
           color: "transparent"
+        }
+
+        // Precision Wayland Input Envelope for Top-Right Tray HUD
+        Item {
+          id: activeTrayInputEnvelope
+          anchors.top: parent.top
+          anchors.right: parent.right
+          readonly property bool trayActive: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled && !SnippingService.isOpen
+          width: trayActive && topRightTrayHud
+            ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? Math.max(topRightTrayHud.width, 155) : topRightTrayHud.width) : Math.max(topRightTrayHud.radius + 12, 28))
+            : 0
+          height: trayActive && topRightTrayHud
+            ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? (topRightTrayHud.height + 72) : topRightTrayHud.height) : Math.max(topRightTrayHud.radius + 12, 28))
+            : 0
+        }
+
+        // Top-Left Corner Cutout & Dynamic OSD HUD (Click-through)
+        ScreenCorners {
+          id: topLeftCornerHud
+          anchors.top: parent.top
+          anchors.left: parent.left
+          width: 380
+          height: 90
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopLeft
+          screen: screenScope.modelData
+          hyprMonitor: screenScope.hyprMonitor
+          radius: Config.screenCornersRadius
+          cornerColor: Config.screenCornersColor
+          cornerMode: "TOP_LEFT"
+          hudService: cornerHudService
+        }
+
+        // Top-Right Static Corner Cutout (Only when Tray HUD is disabled)
+        ScreenCorners {
+          anchors.top: parent.top
+          anchors.right: parent.right
+          width: Config.screenCornersRadius
+          height: Config.screenCornersRadius
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopRight && !Config.cornerTrayEnabled
+          radius: Config.screenCornersRadius
+          cornerColor: Config.screenCornersColor
+          cornerMode: "TOP_RIGHT"
+        }
+
+        // Top-Right Interactive System Tray HUD
+        TopRightTrayHUD {
+          id: topRightTrayHud
+          parentWindow: islandWindow
+          anchors.top: parent.top
+          anchors.right: parent.right
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled
+          radius: Config.screenCornersRadius
+          cornerColor: Config.screenCornersColor
         }
 
         // Slim 12px Top Edge Reveal Trigger Hotspot (Active only when auto-hide is armed)
@@ -425,179 +492,155 @@ Scope {
       }
 
       // =========================================================================
-      // Screen Corners Window: Subtle black rounded bezel on 4 display corners
-      // Zero click-blocking (mask: Region {}) passes all clicks to apps underneath
+      // Bottom Corners Strip Window: Single thin 14px window for both bottom corners
+      // (Replaces fullscreen 1920x1080 window AND avoids separate BL/BR EGL contexts)
       // =========================================================================
-      PanelWindow {
-        id: screenCornersWindow
-        screen: screenScope.modelData
-        visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0)
-        color: "transparent"
-        WlrLayershell.layer: (screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+      LazyLoader {
+        active: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && (Config.screenCornerBottomLeft || Config.screenCornerBottomRight)
 
-        anchors {
-          top: true
-          bottom: true
-          left: true
-          right: true
-        }
-
-        exclusionMode: ExclusionMode.Ignore
-
-        // Zero click-blocking: completely empty input mask passes all clicks to windows below
-        mask: Region {}
-
-        ScreenCorners {
-          id: screenCorners
-          anchors.fill: parent
+        PanelWindow {
+          id: bottomCornersWindow
           screen: screenScope.modelData
-          hyprMonitor: screenScope.hyprMonitor
-          radius: Config.screenCornersRadius
-          cornerColor: Config.screenCornersColor
-          topLeft: Config.screenCornerTopLeft
-          topRight: Config.screenCornerTopRight
-          bottomLeft: Config.screenCornerBottomLeft
-          bottomRight: Config.screenCornerBottomRight
-          hudService: cornerHudService
-        }
-      }
-
-      // =========================================================================
-      // Top-Right Corner Tray Window: Interactive Background App HUD
-      // =========================================================================
-      PanelWindow {
-        id: topRightTrayWindow
-        screen: screenScope.modelData
-        visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled
-        color: "transparent"
-        WlrLayershell.layer: (topRightTrayHud && topRightTrayHud.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-
-        anchors {
-          top: true
-          right: true
-        }
-
-        exclusionMode: ExclusionMode.Ignore
-
-        // Fixed canvas preventing Wayland surface reconfiguration stutter during animation
-        implicitWidth: 420
-        implicitHeight: 130
-
-        // Precision Wayland input mask strictly conforms to tray HUD bounds
-        mask: Region {
-          item: activeTrayInputEnvelope
-        }
-
-        Item {
-          id: activeTrayInputEnvelope
-          anchors.top: parent.top
-          anchors.right: parent.right
-          width: topRightTrayHud ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? Math.max(topRightTrayHud.width, 155) : topRightTrayHud.width) : Math.max(topRightTrayHud.radius + 12, 28)) : 28
-          height: topRightTrayHud ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? (topRightTrayHud.height + 72) : topRightTrayHud.height) : Math.max(topRightTrayHud.radius + 12, 28)) : 28
-        }
-
-        TopRightTrayHUD {
-          id: topRightTrayHud
-          parentWindow: topRightTrayWindow
-          anchors.top: parent.top
-          anchors.right: parent.right
-          radius: Config.screenCornersRadius
-          cornerColor: Config.screenCornersColor
-        }
-      }
-
-      // =========================================================================
-      // Power Overlay Window: Fullscreen Dark Glass Session Modal
-      // =========================================================================
-      PanelWindow {
-        id: powerOverlayWindow
-        screen: screenScope.modelData
-        visible: PowerService.isPowerMenuOpen
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: PowerService.isPowerMenuOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-        anchors {
-          top: true
-          bottom: true
-          left: true
-          right: true
-        }
-
-        exclusionMode: ExclusionMode.Ignore
-
-        PowerOverlay {
-          anchors.fill: parent
-        }
-      }
-
-      // =========================================================================
-      // Bottom Command Notch Window: Inverted Notch & Shell Command Runner
-      // =========================================================================
-      PanelWindow {
-        id: bottomNotchWindow
-        screen: screenScope.modelData
-        visible: BottomNotchService.isOpen && screenScope.isFocusedMonitor
-        color: "transparent"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: (BottomNotchService.isOpen && screenScope.isFocusedMonitor) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-        anchors {
-          bottom: true
-          left: true
-          right: true
-        }
-
-        exclusionMode: ExclusionMode.Ignore
-
-        implicitHeight: 480
-
-        // Zero click-blocking: Precision Wayland input mask conforms strictly to bottom notch bounds
-        mask: Region {
-          item: activeBottomInputEnvelope
-        }
-
-        Rectangle {
-          id: activeBottomInputEnvelope
-          anchors.bottom: parent.bottom
-          anchors.horizontalCenter: parent.horizontalCenter
-          width: bottomNotch.width + 16
-          height: bottomNotch.height + 10
           color: "transparent"
-        }
+          WlrLayershell.layer: WlrLayer.Top
+          WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-        BottomCommandNotch {
-          id: bottomNotch
+          anchors {
+            bottom: true
+            left: true
+            right: true
+          }
+
+          implicitHeight: Config.screenCornersRadius
+          exclusionMode: ExclusionMode.Ignore
+          mask: Region {}
+
+          ScreenCorners {
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            width: Config.screenCornersRadius
+            height: Config.screenCornersRadius
+            visible: Config.screenCornerBottomLeft
+            radius: Config.screenCornersRadius
+            cornerColor: Config.screenCornersColor
+            cornerMode: "BOTTOM_LEFT"
+          }
+
+          ScreenCorners {
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+            width: Config.screenCornersRadius
+            height: Config.screenCornersRadius
+            visible: Config.screenCornerBottomRight
+            radius: Config.screenCornersRadius
+            cornerColor: Config.screenCornersColor
+            cornerMode: "BOTTOM_RIGHT"
+          }
+        }
+      }
+
+      // =========================================================================
+      // Power Overlay Window (Lazy Loaded): Fullscreen Dark Glass Session Modal
+      // =========================================================================
+      LazyLoader {
+        active: PowerService.isPowerMenuOpen
+
+        PanelWindow {
+          id: powerOverlayWindow
+          screen: screenScope.modelData
+          color: "transparent"
+          WlrLayershell.layer: WlrLayer.Overlay
+          WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+          anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+          }
+
+          exclusionMode: ExclusionMode.Ignore
+
+          PowerOverlay {
+            anchors.fill: parent
+          }
+        }
+      }
+
+      // =========================================================================
+      // Bottom Command Notch Window (Lazy Loaded & Compact Centered Surface)
+      // =========================================================================
+      LazyLoader {
+        active: BottomNotchService.isOpen && screenScope.isFocusedMonitor
+
+        PanelWindow {
+          id: bottomNotchWindow
+          screen: screenScope.modelData
+          color: "transparent"
+          WlrLayershell.layer: WlrLayer.Overlay
+          WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+
+          anchors {
+            bottom: true
+          }
+
+          exclusionMode: ExclusionMode.Ignore
+
+          implicitWidth: 640
+          implicitHeight: 400
+
+          mask: Region {
+            item: activeBottomInputEnvelope
+          }
+
+          Rectangle {
+            id: activeBottomInputEnvelope
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: bottomNotch.width + 16
+            height: bottomNotch.height + 10
+            color: "transparent"
+          }
+
+          BottomCommandNotch {
+            id: bottomNotch
+            ipc: ipcService
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+          }
+        }
+      }
+
+      // =========================================================================
+      // Snipping & Freeze Overlay Window (Lazy Loaded): 0 MB RAM when idle
+      // =========================================================================
+      LazyLoader {
+        active: SnippingService.isOpen
+
+        SnippingOverlay {
+          id: snippingOverlayWindow
+          screen: screenScope.modelData
+          monitorName: screenScope.modelData.name
+          hyprMonitor: screenScope.hyprMonitor
           ipc: ipcService
-          anchors.bottom: parent.bottom
-          anchors.horizontalCenter: parent.horizontalCenter
+          isFocusedScreen: screenScope.isFocusedMonitor
         }
       }
 
       // =========================================================================
-      // Snipping & Freeze Overlay Window: Fullscreen Capture & Snapping Canvas
+      // Window Inspector Overlay (Lazy Loaded): 0 MB RAM when idle
       // =========================================================================
-      SnippingOverlay {
-        id: snippingOverlayWindow
-        screen: screenScope.modelData
-        monitorName: screenScope.modelData.name
-        hyprMonitor: screenScope.hyprMonitor
-        ipc: ipcService
-        isFocusedScreen: screenScope.isFocusedMonitor
-      }
+      LazyLoader {
+        active: WindowInspectorService.isOpen
 
-      // =========================================================================
-      // Window Inspector Overlay: Fast Class Identifier & Clipboard Copy
-      // =========================================================================
-      WindowInspectorOverlay {
-        id: inspectorOverlayWindow
-        screen: screenScope.modelData
-        monitorName: screenScope.modelData.name
-        hyprMonitor: screenScope.hyprMonitor
-        ipc: ipcService
-        isFocusedScreen: screenScope.isFocusedMonitor
+        WindowInspectorOverlay {
+          id: inspectorOverlayWindow
+          screen: screenScope.modelData
+          monitorName: screenScope.modelData.name
+          hyprMonitor: screenScope.hyprMonitor
+          ipc: ipcService
+          isFocusedScreen: screenScope.isFocusedMonitor
+        }
       }
     }
   }

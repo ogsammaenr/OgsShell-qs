@@ -8,7 +8,7 @@ tags:
   - multimonitor
   - dynamic-island
 created: 2026-08-14
-updated: 2026-10-07
+updated: 2026-11-22
 status: implemented
 related_notes:
   - "[[Dynamic-Island-Component]]"
@@ -40,37 +40,24 @@ related_notes:
    * **Girdi:** `mask: Region {}` (Boş maske sayesinde fare tıklamalarını kesinlikle engellemez, tamamen şeffaftır).
    * Hyprland/Wayland kompozitörüne adanın idle yüksekliği kadar boşluk rezerve ettirerek pencerelerin ada altına girmesini engeller.
 
-2. **`backdropWindow` (Arka Plan Kapanış Katmanı):**
-   * **Katman:** `WlrLayershell.layer: WlrLayer.Top`
-   * **Exclusion Mode:** `ExclusionMode.Ignore`
-   * Yalnızca `stateMode === "EXPANDED"` iken açılır ve ada dışına tıklandığında `island.collapse()` tetikler.
+2. **`backdropWindow` (Lazy Loaded Arka Plan Kapanış Katmanı):**
+   * `LazyLoader` ile sarılıdır; yalnızca `stateMode === "EXPANDED"`, `topRightTrayHud.isExpanded` veya `BottomNotchService.isOpen` iken oluşturulur ve kapandığında GPU/EGL belleğini tamamen serbest bırakır.
+   * **Katman:** `WlrLayershell.layer: WlrLayer.Top`, `ExclusionMode.Ignore`.
 
-3. **`islandWindow` (Dynamic Island Yüzeyi):**
-   * **Dinamik Katman:** `WlrLayershell.layer: island.stateMode === "EXPANDED" ? WlrLayer.Overlay : WlrLayer.Top`
-     * `IDLE`/`HOVER` durumlarında `Top` katmanında kalarak tam ekran uygulamaların (oyun, video) altında otomatik gizlenir.
-     * `EXPANDED` durumunda `Overlay` katmanına çıkarak `backdropWindow`'un (`Top`) üzerinde yer alır; açık uygulamanın tüm interaktif kontrolleri sorunsuz tıklanabilir.
+3. **`islandWindow` (Birleşik Üst Overlay Yüzeyi):**
+   * **Tek EGL Yüzeyinde 4 Bileşen:** `DynamicIsland`, `PinnedMetricsWidget`, sol-üst `CornerIslandHUD` ve sağ-üst `TopRightTrayHUD` (veya statik köşe) tek bir üst `PanelWindow` (`implicitHeight: 470`) içinde birleştirilmiştir. Bu yapı çift monitörlü NVIDIA EGL ortamında 4 ayrı OpenGL/EGL bağlamını (~55+ MB özel RAM) ortadan kaldırır.
+   * **Dinamik Katman:** `island.stateMode === "EXPANDED"`, `topLeftCornerHud.isExpanded` veya `topRightTrayHud.isExpanded` durumlarında `WlrLayer.Overlay`; aksi halde `WlrLayer.Top` (tam ekran uygulamaların altına düşer).
    * **Exclusion Mode:** `ExclusionMode.Ignore` (Ada genişlediğinde pencereleri aşağı itip titretmez).
-   * **Canvas:** Sabit `560px` GPU yüzeyi.
-   * **Girdi Maskesi (`mask: Region { item: activeInputEnvelope }`):**
-     * Ada görünürken (`isRevealed`): `width: island.width + (Config.isNotch ? 10 : 0)`, `height: Math.max(screenScope.shouldAutoHide ? 12 : 0, Math.round(island.y + island.height))`. IDLE, HOVER, EXPANDED ve TRANSIENT modlarında adanın piksel sınırlarına tam oturur; adanın altındaki veya yanındaki masaüstü alanında sıfır ölü bölge (zero deadzone) bırakır.
-     * Ada gizliyken (Focus Mode Autohide): Sadece ekranın en üst 12px hotspot alanını (`topHotspot.width`, `12px`) kapsar; alttaki pencerelerin tıklanmasını engellemez.
+   * **Çoklu Bölge Girdi Maskesi (`mask: Region { Region { item: activeInputEnvelope }; Region { item: activeTrayInputEnvelope } }`):**
+     * Sadece Dynamic Island (veya Focus Mode gizli hotspot) ve Sağ-Üst Tepsi HUD sınırları tıklama alır; üst şeridin geri kalanı ve sol-üst köşe HUD tamamen click-through çalışır.
 
-4. **`powerOverlayWindow` (Tam Ekran Güç Menüsü):**
-   * **Katman:** `WlrLayershell.layer: WlrLayer.Overlay`
-   * **Odak:** `WlrKeyboardFocus.Exclusive`
-   * Klavye ve fare odaklı OLED cam oturum modalı.
+4. **İsteğe Bağlı `LazyLoader` Overlay Yüzeyleri (Boşta 0 MB RAM):**
+   * **`powerOverlayWindow`:** Yalnızca `PowerService.isPowerMenuOpen` iken yüklenir (`WlrLayer.Overlay`, `WlrKeyboardFocus.Exclusive`).
+   * **`bottomNotchWindow`:** Yalnızca `BottomNotchService.isOpen && screenScope.isFocusedMonitor` iken ortalanmış kompakt `640×400` yüzey olarak yüklenir.
+   * **`snippingOverlayWindow` & `inspectorOverlayWindow`:** Yalnızca `SnippingService.isOpen` veya `WindowInspectorService.isOpen` olduğunda yüklenip kapandığında bellekten düşer.
 
-5. **`screenCornersWindow` (Ekran Köşeleri & Sol-Üst Dynamic OSD Yüzeyi):**
-   * **Dinamik Katman:** `WlrLayershell.layer: (screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top`
-   * **Exclusion Mode:** `ExclusionMode.Ignore`
-   * **Girdi:** `mask: Region {}` (Sıfır tıklama engelleme).
-   * Normalde `WlrLayer.Top` katmanında yer alarak herhangi bir uygulama tam ekran yapıldığında diğer köşelerin (sol-üst, sol-alt, sağ-alt) tam ekran pencerenin altına düşmesini sağlar. Sol-üst köşe OSD bildirimi aktifken geçici olarak `WlrLayer.Overlay` katmanına yükselir.
-
-6. **`topRightTrayWindow` (Sağ-Üst Sistem Tepsisi HUD Yüzeyi):**
-   * **Dinamik Katman:** `WlrLayershell.layer: (topRightTrayHud && topRightTrayHud.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top`
-   * **Exclusion Mode:** `ExclusionMode.Ignore`
-   * **Girdi Maskesi:** `mask: Region { item: activeTrayInputEnvelope }`
-   * Normalde `WlrLayer.Top` katmanında durarak tam ekran uygulamalarda alta düşer; tıklandığında `Overlay` katmanına çıkarak tepsiyi açar.
+5. **`bottomCornersWindow` (İnce Alt Köşe Şeridi):**
+   * Eski tam ekran `1920×1080` `screenCornersWindow` yerine yalnızca `radius` (`14px`) yüksekliğinde tek bir alt şerit penceresi (`LazyLoader`, `mask: Region {}`) ile hem sol-alt hem sağ-alt kavisli köşeleri çizer.
 
 ```mermaid
 graph TD

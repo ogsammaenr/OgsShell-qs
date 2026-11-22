@@ -11,16 +11,23 @@ Item {
   property var hudService: null
   property int radius: 14
   property color cornerColor: "#000000"
+  // "ALL" | "TOP_LEFT" | "TOP_RIGHT" | "BOTTOM_LEFT" | "BOTTOM_RIGHT"
+  property string cornerMode: "ALL"
   property bool topLeft: true
   property bool topRight: true
   property bool bottomLeft: true
   property bool bottomRight: true
 
-  // Reflect corner HUD expanded state for dynamic Wayland layer-shell tiering
-  readonly property bool isExpanded: tlCornerHud ? tlCornerHud.isExpanded : false
+  readonly property bool showTopLeft: (cornerMode === "ALL" || cornerMode === "TOP_LEFT") && topLeft && radius > 0
+  readonly property bool showTopRight: (cornerMode === "ALL" ? (topRight && !Config.cornerTrayEnabled) : (cornerMode === "TOP_RIGHT")) && radius > 0
+  readonly property bool showBottomLeft: (cornerMode === "ALL" || cornerMode === "BOTTOM_LEFT") && bottomLeft && radius > 0
+  readonly property bool showBottomRight: (cornerMode === "ALL" || cornerMode === "BOTTOM_RIGHT") && bottomRight && radius > 0
 
-  // Workspace Tracking Isolated to this Screen & Monitor
-  readonly property int currentWsId: (hyprMonitor && hyprMonitor.activeWorkspace) ? hyprMonitor.activeWorkspace.id : -1
+  // Reflect corner HUD expanded state for dynamic Wayland layer-shell tiering
+  readonly property bool isExpanded: (tlCornerHudLoader.item && tlCornerHudLoader.item.isExpanded) ? true : false
+
+  // Workspace Tracking Isolated to this Screen & Monitor (active only for TOP_LEFT / ALL)
+  readonly property int currentWsId: (showTopLeft && hyprMonitor && hyprMonitor.activeWorkspace) ? hyprMonitor.activeWorkspace.id : -1
   property int lastWsId: -1
   property bool isReady: false
 
@@ -28,7 +35,7 @@ Item {
     id: startupReadyTimer
     interval: 1000
     repeat: false
-    running: true
+    running: root.showTopLeft
     onTriggered: {
       root.lastWsId = root.currentWsId
       root.isReady = true
@@ -36,6 +43,7 @@ Item {
   }
 
   readonly property var monitorWorkspaces: {
+    if (!root.showTopLeft) return []
     let list = []
     if (Hyprland.workspaces && Hyprland.workspaces.values) {
       let allWs = Hyprland.workspaces.values
@@ -62,7 +70,6 @@ Item {
       return list
     }
 
-    // Fallback heuristic based on currentWsId
     if (root.currentWsId > 0) {
       let base = Math.floor((root.currentWsId - 1) / 5) * 5 + 1
       return [base, base + 1, base + 2, base + 3, base + 4]
@@ -71,37 +78,38 @@ Item {
   }
 
   onCurrentWsIdChanged: {
-    if (!root.isReady) return
+    if (!root.showTopLeft || !root.isReady) return
     if (currentWsId > 0 && currentWsId !== lastWsId) {
       lastWsId = currentWsId
       let scrName = root.screen ? root.screen.name : ""
-      tlCornerHud.showWorkspaceHUD(currentWsId, scrName, root.monitorWorkspaces)
+      if (tlCornerHudLoader.item) {
+        tlCornerHudLoader.item.showWorkspaceHUD(currentWsId, scrName, root.monitorWorkspaces)
+      }
     }
   }
 
-  // Top-Left Dynamic Corner Island HUD (Morphs between Concave Cutout & HUD Capsule)
-  CornerIslandHUD {
-    id: tlCornerHud
+  // Top-Left Dynamic Corner Island HUD (Loaded only when TOP_LEFT / ALL)
+  Loader {
+    id: tlCornerHudLoader
+    active: root.showTopLeft
     anchors.top: parent.top
     anchors.left: parent.left
-    radius: root.radius
-    cornerColor: root.cornerColor
-    hudService: root.hudService
-    visible: root.topLeft && root.radius > 0
+    sourceComponent: CornerIslandHUD {
+      radius: root.radius
+      cornerColor: root.cornerColor
+      hudService: root.hudService
+    }
   }
 
-  // Top-Right Inverted Corner Cutout
+  // Top-Right Inverted Corner Cutout (CurveRenderer: zero offscreen MSAA FBO)
   Shape {
     id: trCorner
     anchors.top: parent.top
     anchors.right: parent.right
     width: root.radius
     height: root.radius
-    visible: root.topRight && root.radius > 0 && !Config.cornerTrayEnabled
-
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    visible: root.showTopRight
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       fillColor: root.cornerColor
@@ -110,10 +118,7 @@ Item {
       startX: root.radius
       startY: 0
 
-      PathLine {
-        x: 0
-        y: 0
-      }
+      PathLine { x: 0; y: 0 }
       PathArc {
         x: root.radius
         y: root.radius
@@ -121,10 +126,7 @@ Item {
         radiusY: root.radius
         direction: PathArc.Clockwise
       }
-      PathLine {
-        x: root.radius
-        y: 0
-      }
+      PathLine { x: root.radius; y: 0 }
     }
   }
 
@@ -135,11 +137,8 @@ Item {
     anchors.left: parent.left
     width: root.radius
     height: root.radius
-    visible: root.bottomLeft && root.radius > 0
-
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    visible: root.showBottomLeft
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       fillColor: root.cornerColor
@@ -148,10 +147,7 @@ Item {
       startX: 0
       startY: root.radius
 
-      PathLine {
-        x: 0
-        y: 0
-      }
+      PathLine { x: 0; y: 0 }
       PathArc {
         x: root.radius
         y: root.radius
@@ -159,10 +155,7 @@ Item {
         radiusY: root.radius
         direction: PathArc.Counterclockwise
       }
-      PathLine {
-        x: 0
-        y: root.radius
-      }
+      PathLine { x: 0; y: root.radius }
     }
   }
 
@@ -173,11 +166,8 @@ Item {
     anchors.right: parent.right
     width: root.radius
     height: root.radius
-    visible: root.bottomRight && root.radius > 0
-
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    visible: root.showBottomRight
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       fillColor: root.cornerColor
@@ -186,10 +176,7 @@ Item {
       startX: root.radius
       startY: root.radius
 
-      PathLine {
-        x: root.radius
-        y: 0
-      }
+      PathLine { x: root.radius; y: 0 }
       PathArc {
         x: 0
         y: root.radius
@@ -197,10 +184,7 @@ Item {
         radiusY: root.radius
         direction: PathArc.Clockwise
       }
-      PathLine {
-        x: root.radius
-        y: root.radius
-      }
+      PathLine { x: root.radius; y: root.radius }
     }
   }
 }

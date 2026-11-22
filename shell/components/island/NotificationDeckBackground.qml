@@ -102,9 +102,7 @@ Item {
     anchors.fill: parent
     visible: root.isNotch
 
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       strokeWidth: root.strokeWidth

@@ -7,7 +7,7 @@ tags:
   - wayland/layershell
   - dynamic-island/ui
 created: 2026-09-06
-updated: 2026-10-07
+updated: 2026-11-22
 status: active
 related_notes:
   - "[[Configuration-System-Spec]]"
@@ -25,9 +25,9 @@ related_notes:
 
 ## 1. Overview & Architecture
 
-* **Wayland Layer:** `PanelWindow` (`screenCornersWindow`) barındırılır. Katman hiyerarşisi dinamik olarak `(screenCorners && screenCorners.isExpanded) ? WlrLayer.Overlay : WlrLayer.Top` şeklindedir (`exclusionMode: ExclusionMode.Ignore`). Normal/IDLE modda `WlrLayer.Top` olarak çalışır; böylece tam ekran (fullscreen) bir uygulama açıldığında diğer 3 köşe (veya tray kapalıysa 4 köşe de) tam ekran uygulamanın altına düşer. Yalnızca sol-üst köşe OSD bildirimi (`CornerIslandHUD`) aktif olduğunda geçici olarak `WlrLayer.Overlay` katmanına yükselir.
+* **Wayland Layer & Consolidated Surfaces:** Tam ekran `1920×1080` yüzey yerine üst köşeler (`TOP_LEFT` + `TOP_RIGHT`) birleşik `islandWindow` içine, alt köşeler (`BOTTOM_LEFT` + `BOTTOM_RIGHT`) ise `LazyLoader` destekli ince `radius` (`14px`) yüksekliğindeki `bottomCornersWindow` şeridine yerleştirilmiştir. Böylece hem tam ekran framebuffer hem de ekstra NVIDIA EGL bağlam maliyeti ortadan kaldırılır.
 * **Zero Click-Blocking (`mask: Region {}`):** Configured with an empty Wayland input region so that all mouse clicks, drag events, and scrolling pass 100% transparently to underlying tiling and floating applications.
-* **Hardware Anti-Aliasing:** Uses `QtQuick.Shapes` vector paths with `layer.samples: 4` and `layer.smooth: true` to prevent pixelation on high-DPI displays.
+* **Hardware Anti-Aliasing:** Uses `QtQuick.Shapes` vector paths with Qt 6 `preferredRendererType: Shape.CurveRenderer` (zero 4x MSAA offscreen FBO memory overhead).
 * **Per-Corner Granularity:** Supports toggling individual corners (`topLeft`, `topRight`, `bottomLeft`, `bottomRight`).
 * **Top-Left Dynamic Morphing HUD:** Sol-üst köşede statik kavis yerine `CornerIslandHUD` barındırır.
 * **Top-Right Dynamic System Tray HUD:** Sağ-üst köşede `TopRightTrayHUD` barındırır; tıklandığında arka plandaki tepsi uygulamalarını (Steam, Discord vb.) açar.

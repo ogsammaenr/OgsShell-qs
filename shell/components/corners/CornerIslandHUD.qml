@@ -91,9 +91,7 @@ Item {
       NumberAnimation { duration: root.isExpanded ? 200 : 240; easing.type: Easing.OutQuad }
     }
 
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       fillColor: root.cornerColor
@@ -152,9 +150,7 @@ Item {
       NumberAnimation { duration: root.isExpanded ? 240 : 180; easing.type: Easing.OutQuad }
     }
 
-    layer.enabled: true
-    layer.samples: 4
-    layer.smooth: true
+    preferredRendererType: Shape.CurveRenderer
 
     ShapePath {
       fillColor: "#000000"

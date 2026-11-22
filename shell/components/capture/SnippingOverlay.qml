@@ -59,6 +59,12 @@ PanelWindow {
 
   exclusionMode: ExclusionMode.Ignore
 
+  Component.onCompleted: {
+    if (visible) {
+      keyHandler.forceActiveFocus();
+    }
+  }
+
   onVisibleChanged: {
     if (visible) {
       keyHandler.forceActiveFocus();

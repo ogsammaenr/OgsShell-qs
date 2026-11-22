@@ -415,6 +415,7 @@ Item {
           visible: root.activeWallpapersList.length > 0
           cellWidth: Math.floor(wallpapersGrid.width / 2)
           cellHeight: Math.floor(wallpapersGrid.cellWidth * 0.58)
+          cacheBuffer: 120
           boundsBehavior: Flickable.StopAtBounds
           clip: true
           model: root.activeWallpapersList
@@ -459,8 +460,9 @@ Item {
                 source: "file://" + wpPath
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                sourceSize.width: 320
-                sourceSize.height: 190
+                cache: false
+                sourceSize.width: 240
+                sourceSize.height: 140
                 smooth: true
               }
 

@@ -31,14 +31,12 @@
 │  - Config.qml (Dynamic config.json watcher singleton)  │
 │  - Scope (Root container coordinating multi-windows)   │
 │  - reservedSpacerWindow (Top exclusive tiling spacer)  │
-│  - backdropWindow (Fullscreen click-outside dismiss)   │
-│  - islandWindow (Fixed 540x360 stable Wayland surface) │
-│  - screenCornersWindow (Dynamic Top/Overlay Bezel HUD) │
-│  - topRightTrayWindow (Fixed 420x130 stable Tray surface)│
-│  - TopRightTrayHUD (Mirrored System Tray HUD & Close Popover)│
-│  - bottomNotchWindow (Inverted Bottom Command Notch)   │
-│  - BottomCommandNotch (Mirrored G2 Bezier Shell Runner)│
-│  - inspectorOverlayWindow (Window Inspector & Class HUD)│
+│  - backdropWindow (LazyLoader click-outside dismiss)   │
+│  - islandWindow (Unified Top Overlay: Island + Corners │
+│    + TopRightTrayHUD via multi-Region input mask)      │
+│  - bottomCornersWindow (LazyLoader 14px bottom strip)  │
+│  - bottomNotchWindow / power / snipping / inspector    │
+│    (LazyLoader on-demand overlays: 0 MB RAM when idle) │
 │  - DynamicIsland (Island vs Notch presentation modes)  │
 │  - DaemonIPC (Socket & SplitParser JSON receiver)      │
 │  - Style.qml (Catppuccin & Pure OLED Black tokens)     │
