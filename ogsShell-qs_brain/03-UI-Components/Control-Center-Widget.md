@@ -8,7 +8,7 @@ tags:
   - dynamic-island/ui
   - system-controls
 created: 2026-08-14
-updated: 2026-09-11
+updated: 2026-11-22
 status: active
 related_notes:
   - "[[Pinned-Metrics-Widget]]"
@@ -68,12 +68,16 @@ graph TD
 
 ## 2. Component Modules
 
-1. **`ControlCenterMain.qml`:**
+1. **Shared Apple HIG Primitives (`views/`):**
+   * **`CCViewHeader.qml`:** Tüm alt görünümlerde ortak kullanılan dairesel geri butonu (`󰅁`), `Style.fontDisplay` / `Style.fontText` başlık-alt başlık hiyerarşisi ve sağ aksiyon slotu.
+   * **`CCSegmentedControl.qml`:** `[[Apple-HIG-Minimal-Design-System]]` standardına uygun, tek parçalı yarı saydam ray üzerinde `SpringAnimation` (`spring: 28.0`, `damping: 0.78`, `epsilon: 0.01`) ile kayan seçim kapsülü (`WifiView` ve `AudioMixerView`).
+
+2. **`ControlCenterMain.qml`:**
    * **Row 1 - Split Connectivity & Toggles:**
-     * Left Column: Grouped Apple-style card for **Wi-Fi** and **Bluetooth** with circular status badges and navigation chevrons (`›`).
-     * Right Column: 2x2 squircle quick action grid (**GameMode**, **Bildirimler**, **Tema**, **Pano**).
+     * Left Column: Grouped Apple-style frosted card (`Style.borderSubtle` hairline keylines) for **Wi-Fi / Kablolu Ağ** and **Bluetooth** with circular status badges, active device subtitle, and vector chevrons (`󰅂`).
+     * Right Column: 2x2 squircle quick action grid (**Odak Modu**, **Bildirim** — okunmamış nokta göstergesi & sessizde vurgusu, **Tema** — aktif tema vurgu noktası + kısa adı, sağ tıkla sıradaki duvar kağıdı geçişi, **Pano**). Tüm aktif durumlar 7 temada (Monochrome dahil) yüksek kontrastlı yumuşak cam vurguları kullanır.
    * **Row 2 & 3 - Apple Capsule Sliders:**
-     * **Ekran Parlaklığı (Brightness):** Thick, interactive rounded capsule slider with embedded glyph (`󰃟`) and percentage.
+     * **Ekran Parlaklığı (Brightness):** Thick, interactive rounded frosted capsule slider with embedded glyph (`󰃟`) and smooth width transitions.
      * **Ses Seviyesi (Volume) & Canlı Reaktif PipeWire Entegrasyonu:**
        - `Quickshell.Services.Pipewire` (`PwObjectTracker`) ile varsayılan ses çıkış cihazını (`Pipewire.defaultAudioSink`) anlık izler.
        - Harici klavye kısayollarından, ses düğmelerinden veya başka uygulamalardan (`pactl`, `wpctl`, `pavucontrol`) ses değiştirildiğinde veya sessize alındığında (`muted`), kontrol merkezi açıkken ses kapsülü ve yüzde göstergesi **0 milisaniye gecikme ile anlık ve reaktif** olarak güncellenir.
@@ -81,28 +85,22 @@ graph TD
        - `Config.audioOverAmplification` aktifken kaydırıcı `%0–%150` ölçeğine genişler, `%100` noktasında dikey eşik çizgisi gösterir ve `%100` üzerini turuncu/kırmızı boost tonuyla vurgular. (`[[Configuration-System-Spec]]`, `[[Settings-Application-Component]]`)
    * **Row 4 - Status Footer:**
      * **Klavye Düzeni:** Clickable `[ 󰌌 TR ]` pill. Hem Go backend `switch_keyboard_layout` hem de `hyprctl switchxkblayout` fallback'i ile anında TR/US/DE/FR düzenleri arasında geçiş yapar.
-     * **Minimalist Telemetri:** `CPU %12 • RAM %34 • GPU %0 • NET 1.2 MB/s` (Go `sys_metrics` stream'inden reaktif okur ve `[[Pinned-Metrics-Widget]]` ile senkronize çalışır).
-     * **Güç Butonu (`󰐥`):** Tıklandığında adayı kapatıp tam ekran koyu cam blurlu `[[Power-Overlay-Component]]` menüsünü açar.
+     * **Minimalist Telemetri:** `CPU 12% · RAM 34% · GPU 0% · 1.2 MB/s` (Go `sys_metrics` stream'inden reaktif okur; sabitlendiğinde sade `󰐃` rozeti ile `[[Pinned-Metrics-Widget]]` ile senkronize çalışır).
+     * **Ayarlar (`󰒓`) & Güç Butonu (`󰐥`):** Ayarlar uygulamasını veya tam ekran koyu cam blurlu `[[Power-Overlay-Component]]` menüsünü açar.
 
-2. **Sub-Application Views (`views/`):**
+3. **Sub-Application Views (`views/`):**
+   - **`ThemesView.qml` (Split Studio Görünüm & Adaptör Yöneticisi):**
+     - Sol sütunda 7 temanın tamamını kaydırmasız sunan çift tonlu dairesel swatch (`bg` + `accent`) listesi; sağ sütunda normal dikey mouse tekerleği ile kaydırılabilen **2 sütunlu geniş duvar kağıdı galerisi** (aynı anda 6 önizleme, hover/aktif dosya adı scrim'i ve aktif `󰄬` rozeti).
+     - Üst çubukta aktif temanın 5 renkli palet hapı, `󰒟 Sıradaki` duvar kağıdı geçiş butonu ve Go daemon'un `enabledThemeAdapters` (`Hyprland`, `Kitty`, `Zed`, `Vesktop`, `Neovim`, `GTK 3/4`, `Qt/Dolphin`, `Tmux`, `Starship`, `Btop`, `IntelliJ`, `Android Studio`) senkronizasyon anahtarlarını açıp kapatan `󰏖` çekmece görünümü.
    - **`WifiView.qml` (Ağ ve Bağlantı Yöneticisi):**
-     - Apple HIG tarzı Segmented Tab Selector (`[ 󰈀 Kablolu ]` ve `[ 󰤨 Wi-Fi ]`).
-     - **Kablolu (Ethernet) Yönetimi:**
-       - `nmcli` entegrasyonu ile sistemdeki tüm fiziksel ethernet adaptörlerini (`enp0s20f0u4`, `eth0`, `enp6s0` vb.) ve kayıtlı profilleri dinamik listeler.
-       - Aktif ethernet bağlantısı kartı: Bağlantı adı, adaptör, IP adresi (`10.70.71.62/24`), Ağ Geçidi ve MAC adresi telemetrisi.
-       - Canlı bağlantı kontrolü: "Bağlan" ve "Bağlantıyı Kes" butonları (`nmcli device connect/disconnect`, `nmcli connection up/down`).
-       - Taşıyıcı ve kablo durumu göstergeleri (Bağlı, Kablo Takılı Değil/Kullanılamıyor, Bağlantıya Hazır).
-     - **Kablosuz (Wi-Fi) Yönetimi:**
-       - Taranan Wi-Fi ağları, sinyal seviyeleri, bant/güvenlik rozetleri ve şifreli ağlar için dahili parola giriş modalı.
-       - Aktif Wi-Fi bağlantısı ve donanım açma/kapatma kontrolleri.
-       - **Canlı Tarama Animasyonu:** `↻` yenileme butonuna tıklandığında buton `RotationAnimation` ile kesintisiz dönerek arka plandaki `scan_wifi` ve arayüz tarama sürecini görselleştirir; Go daemon'dan sonuçlar geldiğinde durup 0° açısına sıfırlanır.
-   - **`BluetoothView.qml`:** Bluetooth cihazları ve eşleşme durumu.
-   - **`NotificationsView.qml`:**
-     - Bildirim kartları geçmişi, DND toggle ve tümünü temizleme aksiyonu.
-     - **Sağ Tık (veya Sol Tık) Detay İnceleme:** Bildirimin üzerine sağ tıklandığında tam başlık, kaydırılabilir ve seçilebilir tam gövde metni, zaman damgası ve silme aksiyonu içeren dahili inceleme sayfası (`detailModal`) açılır.
-   - **`ClipboardView.qml`:** Pano geçmişi ve favoriler.
-   - **`KeyboardLayoutView.qml`:** Klavye düzeni seçimi.
-   - **`ThemesView.qml`:** Tema galerisi ve duvar kağıdı yöneticisi.
+     - `CCSegmentedControl` ile kayan `[ 󰈀 Kablolu | 󰤨 Wi-Fi ]` sekme geçişi ve kenarlıksız tek parça liste yüzeyi.
+     - **Kablolu (Ethernet) Yönetimi:** `nmcli` entegrasyonu ile fiziksel ethernet adaptörleri, IP/Geçit telemetrisi ve canlı Bağlan/Kes kontrolü.
+     - **Kablosuz (Wi-Fi) Yönetimi:** Taranan Wi-Fi ağları, şifreli ağlar için kilit göstergesi (`󰌾`) ve satır içi parola girişi, dönen `󰑐` tarama animasyonu.
+   - **`BluetoothView.qml`:** Saf monokrom Nerd Font cihaz ikonları (`󰋋`, `󰌌`, `󰍽`, `󰏲`, `󰂯`), Apple tarzı yay animasyonlu güç anahtarı ve dönen `󰑐` tarama butonu.
+   - **`NotificationsView.qml`:** Sıfır emoji, uygulama bazlı vektör ikonlar, okunmamış bildirimler için minimal nokta göstergesi, DND kapsülü ve tek parça detay okuma sayfası.
+   - **`ClipboardView.qml`:** Vektör sabitleme ikonları (`󰐃`/`󰐄`), sade liste satırları ve başlıkta hızlı kopyalama aksiyonlu tam metin önizleme sayfası.
+   - **`KeyboardLayoutView.qml`:** `CCViewHeader` ile birleştirilmiş düzen listesi ve hızlı `󰑐 Sonraki` geçiş kapsülü.
+   - **`AudioMixerView.qml` & `VolumeCapsuleSlider.qml`:** `CCSegmentedControl` sekme çubuğu, uygulama/çıkış aygıtı ses kapsülleri ve `%150` over-amplification desteği.
    - **`PowerOverlay.qml`:** Bağımsız tam ekran oturum ve güç katmanı (`[[Power-Overlay-Component]]`).
 
 ---

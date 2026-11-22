@@ -9,7 +9,7 @@ Item {
   property var ipc
   signal backRequested()
 
-  property int activeTab: 0 // 0: Themes, 1: Wallpapers
+  property bool showAdapters: false
 
   Component.onCompleted: {
     if (ipc) {
@@ -25,23 +25,23 @@ Item {
     }
   }
 
-  // Fallback 6 shared preset themes list matching shared/themes/themes.json
+  // Fallback 7 shared preset themes list matching shared/themes/themes.json
   readonly property var fallbackThemes: [
     {
       "id": "nord",
       "name": "Nord",
       "author": "Arctic Ice Studio",
-      "colors": { "bg": "#2e3440", "surface": "#3b4252", "card_bg": "#3b4252", "fg": "#eceff4", "accent": "#88c0d0", "border": "#88c0d0", "cyan": "#88c0d0" }
+      "colors": { "bg": "#2e3440", "surface": "#3b4252", "card_bg": "#3b4252", "fg": "#eceff4", "accent": "#88c0d0", "border": "#88c0d0", "cyan": "#8fbcbb" }
     },
     {
       "id": "catppuccin",
-      "name": "Catppuccin Macchiato",
+      "name": "Catppuccin",
       "author": "Catppuccin Org",
       "colors": { "bg": "#24273a", "surface": "#363a4f", "card_bg": "#363a4f", "fg": "#cad3f5", "accent": "#c6a0f6", "border": "#c6a0f6", "cyan": "#8aadf4" }
     },
     {
       "id": "everforest",
-      "name": "Everforest Dark",
+      "name": "Everforest",
       "author": "sainnhe",
       "colors": { "bg": "#2d353b", "surface": "#343f44", "card_bg": "#343f44", "fg": "#d3c6aa", "accent": "#a7c080", "border": "#a7c080", "cyan": "#83c092" }
     },
@@ -53,13 +53,13 @@ Item {
     },
     {
       "id": "gruvbox",
-      "name": "Gruvbox Dark",
+      "name": "Gruvbox",
       "author": "morhetz",
       "colors": { "bg": "#282828", "surface": "#3c3836", "card_bg": "#32302f", "fg": "#ebdbb2", "accent": "#d65d0e", "border": "#d65d0e", "cyan": "#689d6a" }
     },
     {
       "id": "monochrome",
-      "name": "Monochrome Minimal",
+      "name": "Monochrome",
       "author": "ogsShell",
       "colors": { "bg": "#121212", "surface": "#1e1e1e", "card_bg": "#1e1e1e", "fg": "#f0f0f0", "accent": "#e0e0e0", "border": "#e0e0e0", "cyan": "#ffffff" }
     },
@@ -71,11 +71,54 @@ Item {
     }
   ]
 
+  readonly property var adapterCatalog: [
+    { "id": "hyprland", "label": "Hyprland", "icon": "󰖲" },
+    { "id": "kitty", "label": "Kitty", "icon": "󰆍" },
+    { "id": "zed", "label": "Zed Editor", "icon": "󰨞" },
+    { "id": "vesktop", "label": "Vesktop", "icon": "󰙯" },
+    { "id": "nvim", "label": "Neovim", "icon": "" },
+    { "id": "gtk", "label": "GTK 3/4", "icon": "󰔎" },
+    { "id": "qt_dolphin", "label": "Qt / Dolphin", "icon": "󰉋" },
+    { "id": "tmux", "label": "Tmux", "icon": "" },
+    { "id": "starship", "label": "Starship", "icon": "󱓞" },
+    { "id": "btop", "label": "Btop", "icon": "󰄪" },
+    { "id": "intellij", "label": "IntelliJ", "icon": "󰬷" },
+    { "id": "android_studio", "label": "Android Studio", "icon": "󰀲" }
+  ]
+
   readonly property var activeThemesList: (ipc && ipc.availableThemes && ipc.availableThemes.length > 0) ? ipc.availableThemes : fallbackThemes
   readonly property string currentActiveThemeId: (ipc && ipc.currentTheme && ipc.currentTheme.id) ? ipc.currentTheme.id : (Style.activeThemeId || "everforest")
   readonly property string currentActiveThemeName: (ipc && ipc.currentTheme && ipc.currentTheme.name) ? ipc.currentTheme.name : (Style.activeThemeName || "Everforest Dark")
   readonly property var activeWallpapersList: (ipc && ipc.themeWallpapers) ? ipc.themeWallpapers : []
   readonly property string activeWallpaperPath: (ipc && ipc.activeWallpaper) ? ipc.activeWallpaper : ""
+  readonly property var enabledAdaptersMap: (ipc && ipc.enabledThemeAdapters) ? ipc.enabledThemeAdapters : ({})
+
+  readonly property var currentThemeObj: {
+    for (let i = 0; i < activeThemesList.length; i++) {
+      if (activeThemesList[i].id === currentActiveThemeId) return activeThemesList[i]
+    }
+    return activeThemesList.length > 0 ? activeThemesList[0] : fallbackThemes[2]
+  }
+
+  readonly property var activePaletteColors: {
+    let c = (currentThemeObj && currentThemeObj.colors) ? currentThemeObj.colors : ({})
+    return {
+      "bg": c.bg || Style.appBackground,
+      "surface": c.surface || c.card_bg || Style.appCard,
+      "fg": c.fg || Style.textPrimary,
+      "accent": c.accent || Style.accent,
+      "cyan": c.cyan || Style.accentCyan
+    }
+  }
+
+  function shortThemeName(rawName) {
+    if (!rawName) return ""
+    if (rawName.indexOf("Catppuccin") !== -1) return "Catppuccin"
+    if (rawName.indexOf("Everforest") !== -1) return "Everforest"
+    if (rawName.indexOf("Monochrome") !== -1) return "Monochrome"
+    if (rawName.indexOf("Gruvbox") !== -1) return "Gruvbox"
+    return rawName
+  }
 
   function getBaseFileName(path) {
     if (!path) return ""
@@ -83,619 +126,506 @@ Item {
     return parts[parts.length - 1]
   }
 
+  function isAdapterEnabled(adapterId) {
+    if (!enabledAdaptersMap || enabledAdaptersMap[adapterId] === undefined) return true
+    return !!enabledAdaptersMap[adapterId]
+  }
+
   ColumnLayout {
     anchors.fill: parent
-    spacing: 6
+    spacing: 10
 
     // =========================================================================
-    // 1. Header Bar: Navigation, Title & Active Theme Pill
+    // 1. Unified Apple HIG Header
     // =========================================================================
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 8
+    CCViewHeader {
+      title: root.showAdapters ? "Uygulama Adaptörleri" : "Görünüm"
+      subtitle: root.showAdapters
+        ? "Otomatik tema senkronizasyonu"
+        : (root.activeWallpapersList.length > 0
+            ? (root.currentActiveThemeName + " · " + root.activeWallpapersList.length + " duvar kağıdı")
+            : root.currentActiveThemeName)
+      onBackRequested: {
+        if (root.showAdapters) root.showAdapters = false
+        else root.backRequested()
+      }
 
-      // Back Button
+      // Active Theme Compact Palette Capsule
       Rectangle {
-        width: 26
-        height: 26
-        radius: 13
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-        border.color: backHover.containsMouse ? Style.borderHover : Style.border
+        visible: !root.showAdapters
+        Layout.preferredHeight: 24
+        Layout.preferredWidth: hdrSwatchRow.implicitWidth + 14
+        radius: 12
+        color: Style.surface
+        border.color: Style.borderSubtle
         border.width: 1
 
-        Behavior on color { ColorAnimation { duration: 150 } }
-        Behavior on border.color { ColorAnimation { duration: 150 } }
-
-        Text {
+        Row {
+          id: hdrSwatchRow
           anchors.centerIn: parent
-          text: "‹"
-          font.pixelSize: 16
-          font.weight: Font.Bold
-          color: Style.textPrimary
+          spacing: 4
+
+          Repeater {
+            model: [
+              root.activePaletteColors.bg,
+              root.activePaletteColors.surface,
+              root.activePaletteColors.accent,
+              root.activePaletteColors.cyan,
+              root.activePaletteColors.fg
+            ]
+
+            Rectangle {
+              width: 7
+              height: 7
+              radius: 3.5
+              color: modelData
+              border.color: Qt.rgba(1, 1, 1, 0.18)
+              border.width: 0.5
+            }
+          }
+        }
+      }
+
+      // Next Wallpaper Quick Shuffle Button
+      Rectangle {
+        visible: !root.showAdapters && root.activeWallpapersList.length > 0
+        Layout.preferredHeight: 26
+        Layout.preferredWidth: nextWpRow.implicitWidth + 16
+        radius: 13
+        color: nextHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
+
+        Row {
+          id: nextWpRow
+          anchors.centerIn: parent
+          spacing: 5
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "󰒟"
+            font.pixelSize: 12
+            color: Style.textSecondary
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Sıradaki"
+            font.family: Style.fontDisplay
+            font.pixelSize: 10
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
+          }
         }
 
         MouseArea {
-          id: backHover
+          id: nextHover
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
+          onClicked: {
+            if (ipc) ipc.nextWallpaper(root.currentActiveThemeId)
+          }
         }
       }
 
-      // Title & Subtitle Stack
-      Column {
-        Layout.fillWidth: true
-        spacing: 1
-
-        Text {
-          text: root.activeTab === 0 ? "Tema Galerisi" : "Duvar Kağıtları"
-          color: Style.textPrimary
-          font.pixelSize: 13
-          font.weight: Font.Bold
-        }
-
-        Text {
-          text: root.activeTab === 0 ? "Sistem ve uygulama renk temaları" : (root.currentActiveThemeName + " havuzu")
-          color: Style.textMuted
-          font.pixelSize: 10
-        }
-      }
-
-      // Active Theme Chip
+      // Adapters Drawer Toggle Button
       Rectangle {
-        height: 24
-        radius: 12
-        color: Style.surfaceHover
-        border.color: Style.accentCyan
+        Layout.preferredWidth: 26
+        Layout.preferredHeight: 26
+        radius: 13
+        color: root.showAdapters
+          ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.22)
+          : (adaptBtnHover.containsMouse ? Style.surfaceHover : Style.surface)
+        border.color: root.showAdapters
+          ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.35)
+          : Style.borderSubtle
         border.width: 1
-        implicitWidth: activeChipRow.implicitWidth + 16
 
-        Row {
-          id: activeChipRow
+        Behavior on color { ColorAnimation { duration: 140 } }
+
+        Text {
           anchors.centerIn: parent
-          spacing: 6
+          text: root.showAdapters ? "󰔎" : "󰏖"
+          font.pixelSize: 13
+          color: root.showAdapters ? Style.accent : Style.textPrimary
+        }
 
-          Rectangle {
-            width: 7
-            height: 7
-            radius: 3.5
-            color: Style.accentCyan
-            anchors.verticalCenter: parent.verticalCenter
-          }
-
-          Text {
-            text: root.currentActiveThemeName
-            color: Style.textPrimary
-            font.pixelSize: 10
-            font.weight: Font.Bold
-            anchors.verticalCenter: parent.verticalCenter
-          }
+        MouseArea {
+          id: adaptBtnHover
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.showAdapters = !root.showAdapters
         }
       }
     }
 
     // =========================================================================
-    // 2. Segmented Tab Switcher (Temalar vs Duvar Kağıtları)
+    // 2. SPLIT STUDIO: Left Theme List + Right 2-Column Vertical Wallpaper Grid
     // =========================================================================
-    Rectangle {
-      Layout.fillWidth: true
-      height: 30
-      radius: 8
-      color: Style.surfaceVariant
-      border.color: Style.border
-      border.width: 1
-
-      RowLayout {
-        anchors.fill: parent
-        anchors.margins: 2
-        spacing: 4
-
-        // Tab 0: Temalar
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 6
-          color: root.activeTab === 0 ? Style.surfaceActive : (tab0Hover.containsMouse ? Style.surfaceHover : "transparent")
-          border.color: root.activeTab === 0 ? Style.accentCyan : "transparent"
-          border.width: root.activeTab === 0 ? 1 : 0
-
-          Behavior on color { ColorAnimation { duration: 150 } }
-
-          Row {
-            anchors.centerIn: parent
-            spacing: 6
-
-            Text {
-              text: "🎨"
-              font.pixelSize: 12
-              anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Text {
-              text: "Temalar"
-              color: root.activeTab === 0 ? Style.textPrimary : Style.textMuted
-              font.pixelSize: 11
-              font.weight: root.activeTab === 0 ? Font.Bold : Font.Medium
-              anchors.verticalCenter: parent.verticalCenter
-            }
-          }
-
-          MouseArea {
-            id: tab0Hover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.activeTab = 0
-          }
-        }
-
-        // Tab 1: Duvar Kağıtları
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 6
-          color: root.activeTab === 1 ? Style.surfaceActive : (tab1Hover.containsMouse ? Style.surfaceHover : "transparent")
-          border.color: root.activeTab === 1 ? Style.accentCyan : "transparent"
-          border.width: root.activeTab === 1 ? 1 : 0
-
-          Behavior on color { ColorAnimation { duration: 150 } }
-
-          Row {
-            anchors.centerIn: parent
-            spacing: 6
-
-            Text {
-              text: "🖼️"
-              font.pixelSize: 12
-              anchors.verticalCenter: parent.verticalCenter
-            }
-
-            Text {
-              text: "Duvar Kağıtları"
-              color: root.activeTab === 1 ? Style.textPrimary : Style.textMuted
-              font.pixelSize: 11
-              font.weight: root.activeTab === 1 ? Font.Bold : Font.Medium
-              anchors.verticalCenter: parent.verticalCenter
-            }
-          }
-
-          MouseArea {
-            id: tab1Hover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              root.activeTab = 1
-              if (ipc) {
-                ipc.requestThemeWallpapers(root.currentActiveThemeId)
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // 3. TAB 0 CONTENT: 2-Column Responsive Theme Cards Grid
-    // =========================================================================
-    Rectangle {
+    RowLayout {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      visible: root.activeTab === 0
-      radius: 10
-      color: Style.surface
-      border.color: Style.border
-      border.width: 1
-      clip: true
+      spacing: 10
+      visible: !root.showAdapters
 
-      GridView {
-        id: themesGrid
-        anchors.fill: parent
-        anchors.margins: 6
-        cellWidth: Math.floor(themesGrid.width / 2)
-        cellHeight: 90
-        boundsBehavior: Flickable.StopAtBounds
+      // Left Column: Seamless 7-Theme Selector List
+      Rectangle {
+        Layout.preferredWidth: 158
+        Layout.fillHeight: true
+        radius: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+        border.color: Style.borderSubtle
+        border.width: 1
+        clip: true
 
-        model: root.activeThemesList
+        ListView {
+          id: themesList
+          anchors.fill: parent
+          anchors.margins: 5
+          spacing: 2
+          boundsBehavior: Flickable.StopAtBounds
+          model: root.activeThemesList
 
-        delegate: Item {
-          width: themesGrid.cellWidth
-          height: themesGrid.cellHeight
+          delegate: Rectangle {
+            width: themesList.width
+            height: 36
+            radius: 10
 
-          readonly property var themeItem: modelData
-          readonly property var themeColors: themeItem.colors || ({})
-          readonly property bool isActive: root.currentActiveThemeId === themeItem.id
+            readonly property var themeItem: modelData
+            readonly property var themeColors: themeItem.colors || ({})
+            readonly property bool isActive: root.currentActiveThemeId === themeItem.id
+            readonly property color thmBg: themeColors.bg ? themeColors.bg : "#1e1e2e"
+            readonly property color thmAccent: themeColors.accent ? themeColors.accent : "#89b4fa"
 
-          readonly property color thmBg: themeColors.bg ? themeColors.bg : "#1e1e2e"
-          readonly property color thmSurface: themeColors.surface ? themeColors.surface : (themeColors.card_bg ? themeColors.card_bg : "#313244")
-          readonly property color thmFg: themeColors.fg ? themeColors.fg : "#cdd6f4"
-          readonly property color thmAccent: themeColors.accent ? themeColors.accent : "#89b4fa"
-          readonly property color thmCyan: themeColors.cyan ? themeColors.cyan : thmAccent
+            color: isActive
+              ? Qt.rgba(thmAccent.r, thmAccent.g, thmAccent.b, 0.16)
+              : (themeRowMouse.containsMouse ? Style.surfaceHover : "transparent")
 
-          Rectangle {
-            id: cardRect
-            anchors.fill: parent
-            anchors.margins: 3
-            radius: 8
-            color: isActive ? Style.surfaceActive : (cardMouseArea.containsMouse ? Style.surfaceHover : Style.surfaceVariant)
-            border.color: isActive ? Style.accentCyan : (cardMouseArea.containsMouse ? Style.borderHover : Style.border)
-            border.width: isActive ? 1.5 : 1
-
-            scale: cardMouseArea.containsMouse ? 1.015 : 1.0
-
-            Behavior on scale {
-              NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-            }
-            Behavior on color { ColorAnimation { duration: 150 } }
-            Behavior on border.color { ColorAnimation { duration: 150 } }
+            Behavior on color { ColorAnimation { duration: 140 } }
 
             RowLayout {
               anchors.fill: parent
-              anchors.margins: 6
+              anchors.leftMargin: 8
+              anchors.rightMargin: 8
               spacing: 8
 
-              // Mini Window Mockup
+              // Dual-Tone Circular Swatch (Outer: Theme BG, Inner: Theme Accent)
               Rectangle {
-                Layout.preferredWidth: 64
-                Layout.fillHeight: true
-                radius: 6
+                Layout.preferredWidth: 20
+                Layout.preferredHeight: 20
+                radius: 10
                 color: thmBg
-                border.color: thmAccent
-                border.width: 1
-                clip: true
+                border.color: isActive ? thmAccent : Qt.rgba(1, 1, 1, 0.18)
+                border.width: isActive ? 1.5 : 1
 
-                Column {
-                  anchors.fill: parent
-                  anchors.margins: 3
-                  spacing: 3
-
-                  // Mockup Window Header
-                  Row {
-                    width: parent.width
-                    spacing: 2
-                    Rectangle { width: 4; height: 4; radius: 2; color: "#ff5f56" }
-                    Rectangle { width: 4; height: 4; radius: 2; color: "#ffbd2e" }
-                    Rectangle { width: 4; height: 4; radius: 2; color: "#27c93f" }
-                  }
-
-                  // Mockup Content Cards
-                  Rectangle {
-                    width: parent.width
-                    height: 12
-                    radius: 3
-                    color: thmSurface
-                    Rectangle {
-                      anchors.left: parent.left
-                      anchors.leftMargin: 3
-                      anchors.verticalCenter: parent.verticalCenter
-                      width: 14
-                      height: 3
-                      radius: 1.5
-                      color: thmAccent
-                    }
-                  }
-
-                  Rectangle {
-                    width: parent.width
-                    height: 16
-                    radius: 3
-                    color: thmSurface
-                    Row {
-                      anchors.centerIn: parent
-                      spacing: 3
-                      Rectangle { width: 6; height: 6; radius: 3; color: thmCyan }
-                      Rectangle { width: 18; height: 3; radius: 1.5; color: thmFg; opacity: 0.8 }
-                    }
-                  }
+                Rectangle {
+                  anchors.centerIn: parent
+                  width: 8
+                  height: 8
+                  radius: 4
+                  color: thmAccent
                 }
               }
 
-              // Theme Info & Color Swatches
-              ColumnLayout {
+              Text {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-                spacing: 2
+                text: root.shortThemeName(themeItem.name || themeItem.id)
+                font.family: Style.fontDisplay
+                font.pixelSize: 11
+                font.weight: isActive ? Font.DemiBold : Font.Medium
+                color: isActive ? Style.textPrimary : Style.textSecondary
+                elide: Text.ElideRight
+              }
 
-                RowLayout {
-                  Layout.fillWidth: true
-                  spacing: 4
-
-                  Text {
-                    text: themeItem.name || themeItem.id
-                    color: Style.textPrimary
-                    font.pixelSize: 12
-                    font.weight: Font.Bold
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                  }
-
-                  Rectangle {
-                    visible: isActive
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: Style.accentCyan
-
-                    Text {
-                      anchors.centerIn: parent
-                      text: "✓"
-                      color: "#000000"
-                      font.pixelSize: 9
-                      font.weight: Font.Bold
-                    }
-                  }
-                }
-
-                Text {
-                  text: themeItem.author ? ("by " + themeItem.author) : "ogsShell"
-                  color: Style.textMuted
-                  font.pixelSize: 10
-                  elide: Text.ElideRight
-                }
-
-                Item { Layout.fillHeight: true }
-
-                // Color Swatches
-                Row {
-                  spacing: 4
-                  Layout.topMargin: 2
-                  Rectangle { width: 10; height: 10; radius: 5; color: thmBg; border.color: "#ffffff"; border.width: 0.6 }
-                  Rectangle { width: 10; height: 10; radius: 5; color: thmSurface }
-                  Rectangle { width: 10; height: 10; radius: 5; color: thmAccent }
-                  Rectangle { width: 10; height: 10; radius: 5; color: thmCyan }
-                }
+              Text {
+                visible: isActive
+                text: "󰄬"
+                font.pixelSize: 12
+                color: thmAccent
               }
             }
 
             MouseArea {
-              id: cardMouseArea
+              id: themeRowMouse
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
               onClicked: {
-                if (ipc) {
-                  ipc.setActiveTheme(themeItem.id)
-                }
+                if (ipc) ipc.setActiveTheme(themeItem.id)
               }
             }
           }
         }
       }
-    }
 
-    // =========================================================================
-    // 4. TAB 1 CONTENT: Active Theme Wallpaper Gallery
-    // =========================================================================
-    Rectangle {
-      Layout.fillWidth: true
-      Layout.fillHeight: true
-      visible: root.activeTab === 1
-      radius: 10
-      color: Style.surface
-      border.color: Style.border
-      border.width: 1
-      clip: true
+      // Right Column: 2-Column Vertically Scrollable Wallpaper Gallery
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        radius: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+        border.color: Style.borderSubtle
+        border.width: 1
+        clip: true
 
-      ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 6
-        spacing: 6
-
-        // Sub-Header: Action Bar (Next Wallpaper button & Counter)
-        RowLayout {
-          Layout.fillWidth: true
+        // Empty State (Minimal Palette Preview + Folder Hint)
+        Column {
+          visible: root.activeWallpapersList.length === 0
+          anchors.centerIn: parent
           spacing: 8
+          width: parent.width - 36
 
           Text {
-            text: root.activeWallpapersList.length + " Duvar Kağıdı Bulundu"
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "󰸉"
+            font.pixelSize: 24
             color: Style.textMuted
+          }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Bu tema için duvar kağıdı yok"
+            font.family: Style.fontDisplay
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            color: Style.textSecondary
+          }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            text: "~/Pictures/Wallpapers/" + root.shortThemeName(root.currentActiveThemeName) + "/ klasörüne görsel ekleyebilirsiniz."
+            font.family: Style.fontText
             font.pixelSize: 10
-            Layout.fillWidth: true
-          }
-
-          // Next Wallpaper Quick Button
-          Rectangle {
-            height: 24
-            radius: 6
-            color: nextHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-            border.color: nextHover.containsMouse ? Style.accentCyan : Style.border
-            border.width: 1
-            implicitWidth: nextBtnRow.implicitWidth + 14
-
-            Behavior on color { ColorAnimation { duration: 150 } }
-
-            Row {
-              id: nextBtnRow
-              anchors.centerIn: parent
-              spacing: 5
-
-              Text {
-                text: "🎲"
-                font.pixelSize: 11
-                anchors.verticalCenter: parent.verticalCenter
-              }
-
-              Text {
-                text: "Sıradaki Görsel"
-                color: Style.textPrimary
-                font.pixelSize: 10
-                font.weight: Font.Bold
-                anchors.verticalCenter: parent.verticalCenter
-              }
-            }
-
-            MouseArea {
-              id: nextHover
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                if (ipc) {
-                  ipc.nextWallpaper(root.currentActiveThemeId)
-                }
-              }
-            }
+            color: Style.textMuted
           }
         }
 
-        // Empty State Handler
-        Item {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          visible: root.activeWallpapersList.length === 0
-
-          Column {
-            anchors.centerIn: parent
-            spacing: 6
-            width: Math.min(260, parent.width - 20)
-
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: "🖼️"
-              font.pixelSize: 32
-            }
-
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: "Bu tema için görsel bulunamadı"
-              color: Style.textPrimary
-              font.pixelSize: 12
-              font.weight: Font.Bold
-              horizontalAlignment: Text.AlignHCenter
-            }
-
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: "~/Pictures/Wallpapers/" + root.currentActiveThemeName.split(" ")[0] + "/ klasörüne resim ekleyebilirsiniz."
-              color: Style.textMuted
-              font.pixelSize: 10
-              wrapMode: Text.Wrap
-              horizontalAlignment: Text.AlignHCenter
-              width: parent.width
-            }
-          }
-        }
-
-        // 2-Column Responsive Wallpaper Preview Grid
+        // 2-Column Responsive Vertical Wallpaper Grid (Native Mouse Wheel Scroll)
         GridView {
           id: wallpapersGrid
-          Layout.fillWidth: true
-          Layout.fillHeight: true
+          anchors.fill: parent
+          anchors.margins: 5
           visible: root.activeWallpapersList.length > 0
           cellWidth: Math.floor(wallpapersGrid.width / 2)
-          cellHeight: Math.floor(wallpapersGrid.cellWidth * 0.62)
+          cellHeight: Math.floor(wallpapersGrid.cellWidth * 0.58)
           boundsBehavior: Flickable.StopAtBounds
           clip: true
-
           model: root.activeWallpapersList
+
+          ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+            width: 3
+            interactive: false
+            contentItem: Rectangle {
+              implicitWidth: 3
+              radius: 2
+              color: Style.textMuted
+              opacity: 0.45
+            }
+          }
 
           delegate: Item {
             width: wallpapersGrid.cellWidth
             height: wallpapersGrid.cellHeight
 
-            readonly property string wallpaperPath: modelData
-            readonly property bool isCurrentActive: root.activeWallpaperPath === wallpaperPath
-            readonly property string fileName: root.getBaseFileName(wallpaperPath)
+            readonly property string wpPath: modelData
+            readonly property bool isCurrent: root.activeWallpaperPath === wpPath
+            readonly property string fileName: root.getBaseFileName(wpPath)
 
             Rectangle {
-              id: wpCardRect
               anchors.fill: parent
-              anchors.margins: 4
-              radius: 8
+              anchors.margins: 3
+              radius: 10
               color: Style.surfaceVariant
-              border.color: isCurrentActive ? Style.accentCyan : (wpMouseArea.containsMouse ? Style.borderHover : Style.border)
-              border.width: isCurrentActive ? 2 : 1
+              border.color: isCurrent
+                ? Style.accent
+                : (wpCardHover.containsMouse ? Qt.rgba(1, 1, 1, 0.30) : Style.borderSubtle)
+              border.width: isCurrent ? 1.5 : 1
               clip: true
 
-              scale: wpMouseArea.containsMouse ? 1.02 : 1.0
+              scale: wpCardHover.containsMouse ? 1.02 : 1.0
+              Behavior on scale { NumberAnimation { duration: 130; easing.type: Easing.OutCubic } }
+              Behavior on border.color { ColorAnimation { duration: 140 } }
 
-              Behavior on scale {
-                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
-              }
-              Behavior on border.color { ColorAnimation { duration: 150 } }
-
-              // Asynchronous Image Preview
               Image {
                 anchors.fill: parent
-                source: "file://" + wallpaperPath
+                source: "file://" + wpPath
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 sourceSize.width: 320
-                sourceSize.height: 180
+                sourceSize.height: 190
                 smooth: true
               }
 
-              // Subtle bottom gradient bar with filename
+              // Subtle Hover / Active Filename Scrim
               Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 24
-                color: "#cc11111b"
+                opacity: (wpCardHover.containsMouse || isCurrent) ? 1.0 : 0.0
+                Behavior on opacity { NumberAnimation { duration: 130 } }
+
+                gradient: Gradient {
+                  GradientStop { position: 0.0; color: "#00000000" }
+                  GradientStop { position: 1.0; color: "#cc000000" }
+                }
 
                 Text {
                   anchors.left: parent.left
-                  anchors.leftMargin: 6
+                  anchors.leftMargin: 7
                   anchors.right: parent.right
-                  anchors.rightMargin: 6
-                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.rightMargin: 7
+                  anchors.bottom: parent.bottom
+                  anchors.bottomMargin: 4
                   text: fileName
-                  color: Style.textPrimary
-                  font.pixelSize: 10
-                  font.weight: Font.DemiBold
+                  font.family: Style.fontText
+                  font.pixelSize: 9
+                  font.weight: Font.Medium
+                  color: "#ffffff"
                   elide: Text.ElideMiddle
                 }
               }
 
-              // Active Badge
+              // Minimal Active Check Badge
               Rectangle {
-                visible: isCurrentActive
+                visible: isCurrent
                 anchors.top: parent.top
                 anchors.topMargin: 5
                 anchors.right: parent.right
                 anchors.rightMargin: 5
-                height: 16
-                radius: 8
-                color: "#e611111b"
-                border.color: Style.accentCyan
+                width: 18
+                height: 18
+                radius: 9
+                color: Qt.rgba(0, 0, 0, 0.70)
+                border.color: Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.55)
                 border.width: 1
-                implicitWidth: activeBadgeRow.implicitWidth + 10
 
-                Row {
-                  id: activeBadgeRow
+                Text {
                   anchors.centerIn: parent
-                  spacing: 3
-
-                  Rectangle {
-                    width: 5
-                    height: 5
-                    radius: 2.5
-                    color: Style.accentCyan
-                    anchors.verticalCenter: parent.verticalCenter
-                  }
-
-                  Text {
-                    text: "Aktif ✓"
-                    color: Style.textPrimary
-                    font.pixelSize: 8
-                    font.weight: Font.Bold
-                    anchors.verticalCenter: parent.verticalCenter
-                  }
+                  text: "󰄬"
+                  font.pixelSize: 11
+                  color: Style.accent
                 }
               }
 
-              // Click Handler
               MouseArea {
-                id: wpMouseArea
+                id: wpCardHover
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
-                  if (ipc) {
-                    ipc.setWallpaper(root.currentActiveThemeId, wallpaperPath)
+                  if (ipc) ipc.setWallpaper(root.currentActiveThemeId, wpPath)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 3. APP ADAPTERS SYNC DRAWER (Go ThemeManager Multi-App Toggles)
+    // =========================================================================
+    Rectangle {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      visible: root.showAdapters
+      radius: 14
+      color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+      border.color: Style.borderSubtle
+      border.width: 1
+      clip: true
+
+      GridView {
+        id: adaptersGrid
+        anchors.fill: parent
+        anchors.margins: 6
+        cellWidth: Math.floor(adaptersGrid.width / 2)
+        cellHeight: 44
+        boundsBehavior: Flickable.StopAtBounds
+        model: root.adapterCatalog
+
+        delegate: Item {
+          width: adaptersGrid.cellWidth
+          height: adaptersGrid.cellHeight
+
+          readonly property bool isOn: root.isAdapterEnabled(modelData.id)
+
+          Rectangle {
+            anchors.fill: parent
+            anchors.margins: 3
+            radius: 10
+            color: adaptRowHover.containsMouse ? Style.surfaceHover : "transparent"
+
+            Behavior on color { ColorAnimation { duration: 140 } }
+
+            RowLayout {
+              anchors.fill: parent
+              anchors.leftMargin: 10
+              anchors.rightMargin: 10
+              spacing: 9
+
+              Text {
+                text: modelData.icon
+                font.pixelSize: 14
+                color: isOn ? Style.accent : Style.textMuted
+              }
+
+              Text {
+                Layout.fillWidth: true
+                text: modelData.label
+                font.family: Style.fontDisplay
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                color: isOn ? Style.textPrimary : Style.textMuted
+                elide: Text.ElideRight
+              }
+
+              // Minimal Apple-Style Toggle Switch
+              Rectangle {
+                Layout.preferredWidth: 32
+                Layout.preferredHeight: 18
+                radius: 9
+                color: isOn
+                  ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.85)
+                  : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.14)
+
+                Behavior on color { ColorAnimation { duration: 160 } }
+
+                Rectangle {
+                  width: 14
+                  height: 14
+                  radius: 7
+                  y: 2
+                  x: isOn ? (parent.width - width - 2) : 2
+                  color: "#ffffff"
+
+                  Behavior on x {
+                    SpringAnimation {
+                      spring: 28.0
+                      damping: 0.78
+                      epsilon: 0.01
+                    }
                   }
                 }
+              }
+            }
+
+            MouseArea {
+              id: adaptRowHover
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (ipc) ipc.toggleThemeAdapter(modelData.id, !isOn)
               }
             }
           }

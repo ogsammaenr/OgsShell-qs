@@ -16,10 +16,8 @@ Rectangle {
 
   Layout.fillWidth: true
   Layout.preferredHeight: 18
-  radius: 6
-  color: Style.surface
-  border.color: Style.border
-  border.width: 1
+  radius: 9
+  color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.07)
   clip: true
 
   Component.onDestruction: {
@@ -33,11 +31,12 @@ Rectangle {
   Rectangle {
     height: parent.height
     width: sliderRoot.muted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (sliderRoot.volume / Config.audioMaxVolume)))
-    radius: 6
+    radius: 9
     color: (!sliderRoot.muted && sliderRoot.volume >= 135)
-      ? Style.accentRed
-      : ((!sliderRoot.muted && sliderRoot.volume > 100) ? Style.accentOrange : Style.accent)
-    opacity: 0.85
+      ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.45)
+      : ((!sliderRoot.muted && sliderRoot.volume > 100)
+        ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.42)
+        : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.22))
 
     Behavior on width {
       enabled: !sliderRoot.dragging
@@ -56,18 +55,19 @@ Rectangle {
     width: 1.5
     radius: 1
     color: Style.textMuted
-    opacity: 0.65
+    opacity: 0.50
   }
 
   // Percentage Text
   Text {
     anchors.right: parent.right
-    anchors.rightMargin: 6
+    anchors.rightMargin: 8
     anchors.verticalCenter: parent.verticalCenter
     text: sliderRoot.muted ? "Sessiz" : `%${sliderRoot.volume}`
+    font.family: Style.fontDisplay
     font.pixelSize: 9
-    font.weight: Font.Bold
-    color: sliderRoot.muted ? Style.accentRed : (sliderRoot.volume >= 135 ? Style.accentRed : (sliderRoot.volume > 100 ? Style.accentOrange : Style.textPrimary))
+    font.weight: Font.DemiBold
+    color: sliderRoot.muted ? Style.accentRed : (sliderRoot.volume >= 135 ? Style.accentRed : (sliderRoot.volume > 100 ? Style.accentOrange : Style.textSecondary))
   }
 
   // Slider Mouse & Wheel Handler (no redundant onClicked after onReleased)

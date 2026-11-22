@@ -33,6 +33,17 @@ Item {
     return `${hh}:${mm}`
   }
 
+  function appGlyph(appName) {
+    let n = (appName || "").toLowerCase()
+    if (n.indexOf("discord") !== -1 || n.indexOf("vesktop") !== -1) return "󰙯"
+    if (n.indexOf("telegram") !== -1) return "󰀨"
+    if (n.indexOf("spotify") !== -1) return "󰓇"
+    if (n.indexOf("firefox") !== -1 || n.indexOf("zen") !== -1 || n.indexOf("chrome") !== -1) return "󰖟"
+    if (n.indexOf("mail") !== -1 || n.indexOf("thunderbird") !== -1) return "󰇮"
+    if (n.indexOf("capture") !== -1 || n.indexOf("screenshot") !== -1 || n.indexOf("ocr") !== -1) return "󰄀"
+    return "󰂚"
+  }
+
   Component.onCompleted: {
     if (ipc) {
       ipc.requestNotifications()
@@ -41,67 +52,60 @@ Item {
   }
 
   // =========================================================================
-  // 1. PRIMARY VIEW: Notifications List & Action Header
+  // 1. PRIMARY VIEW: Notifications List
   // =========================================================================
   ColumnLayout {
     anchors.fill: parent
-    spacing: 6
+    spacing: 10
     visible: !root.showDetailModal
 
-    // Header
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
+    CCViewHeader {
+      title: "Bildirimler"
+      onBackRequested: root.backRequested()
 
+      // DND Toggle Capsule (Pure Vector Nerd Font)
       Rectangle {
-        width: 24
-        height: 24
+        id: dndPill
+        readonly property bool isDnd: !!(ipc && ipc.dndEnabled)
+        Layout.preferredHeight: 24
+        Layout.preferredWidth: dndRow.implicitWidth + 16
         radius: 12
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+        color: dndPill.isDnd
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20)
+          : (dndHover.containsMouse ? Style.surfaceHover : Style.surface)
+        border.color: dndPill.isDnd
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.35)
+          : Style.borderSubtle
+        border.width: 1
 
-        Text {
+        Behavior on color { ColorAnimation { duration: 140 } }
+
+        Row {
+          id: dndRow
           anchors.centerIn: parent
-          text: "‹"
-          font.pixelSize: 16
-          font.weight: Font.Bold
-          color: Style.textPrimary
+          spacing: 5
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: dndPill.isDnd ? "󰂛" : "󰂚"
+            font.pixelSize: 11
+            color: dndPill.isDnd ? Style.accentRed : Style.textSecondary
+          }
+
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: dndPill.isDnd ? "Sessizde" : "Rahatsız Etme"
+            font.family: Style.fontDisplay
+            font.pixelSize: 10
+            font.weight: Font.DemiBold
+            color: dndPill.isDnd ? Style.accentRed : Style.textSecondary
+          }
         }
 
         MouseArea {
-          id: backHover
+          id: dndHover
           anchors.fill: parent
           hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      Text {
-        text: "Bildirim Merkezi"
-        color: Style.textPrimary
-        font.pixelSize: 13
-        font.weight: Font.Bold
-        Layout.fillWidth: true
-      }
-
-      // DND Toggle Pill
-      Rectangle {
-        Layout.preferredHeight: 22
-        Layout.preferredWidth: dndTxt.implicitWidth + 14
-        radius: 11
-        color: (ipc && ipc.dndEnabled) ? Style.accentRed : Style.surfaceVariant
-
-        Text {
-          id: dndTxt
-          anchors.centerIn: parent
-          text: (ipc && ipc.dndEnabled) ? "🔕 DND Açık" : "🔔 DND"
-          font.pixelSize: 10
-          font.weight: Font.Medium
-          color: (ipc && ipc.dndEnabled) ? "#ffffff" : Style.textSecondary
-        }
-
-        MouseArea {
-          anchors.fill: parent
           cursorShape: Qt.PointingHandCursor
           onClicked: {
             if (ipc) ipc.toggleDND()
@@ -109,20 +113,24 @@ Item {
         }
       }
 
-      // Clear All Button
+      // Clear All Capsule
       Rectangle {
-        Layout.preferredHeight: 22
-        Layout.preferredWidth: clearTxt.implicitWidth + 14
-        radius: 6
-        color: clearHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+        visible: notifList.count > 0
+        Layout.preferredHeight: 24
+        Layout.preferredWidth: clearTxt.implicitWidth + 16
+        radius: 12
+        color: clearHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
 
         Text {
           id: clearTxt
           anchors.centerIn: parent
           text: "Temizle"
+          font.family: Style.fontDisplay
           font.pixelSize: 10
           font.weight: Font.Medium
-          color: Style.textMuted
+          color: clearHover.containsMouse ? Style.textPrimary : Style.textMuted
         }
 
         MouseArea {
@@ -137,71 +145,89 @@ Item {
       }
     }
 
-    // Notifications List
+    // Continuous Notifications List Surface
     Rectangle {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      radius: 8
-      color: Style.surface
-      border.color: Style.border
+      radius: 14
+      color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+      border.color: Style.borderSubtle
       border.width: 1
       clip: true
 
       ListView {
         id: notifList
         anchors.fill: parent
-        anchors.margins: 4
-        spacing: 4
+        anchors.margins: 5
+        spacing: 2
         reuseItems: true
         cacheBuffer: 60
+        boundsBehavior: Flickable.StopAtBounds
         model: (ipc && ipc.notifications) ? ipc.notifications : []
 
         delegate: Rectangle {
           id: delegateCard
           width: notifList.width
-          height: 48
-          radius: 6
-          color: cardMouse.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-          border.color: cardMouse.containsMouse ? Style.borderHover : (modelData.read ? "transparent" : Style.accentCyan)
-          border.width: modelData.read ? 0 : 1
+          height: 52
+          radius: 10
+          color: cardMouse.containsMouse ? Style.surfaceHover : "transparent"
 
-          Behavior on color { ColorAnimation { duration: 120 } }
-          Behavior on border.color { ColorAnimation { duration: 120 } }
+          Behavior on color { ColorAnimation { duration: 130 } }
 
           RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 8
             anchors.rightMargin: 8
-            spacing: 8
+            spacing: 10
 
-            // App / Notification Icon
-            Rectangle {
-              Layout.preferredWidth: 28
-              Layout.preferredHeight: 28
-              radius: 14
-              color: Style.surfaceActive
+            // Subtle Unread Dot + Vector App Badge
+            Item {
+              Layout.preferredWidth: 30
+              Layout.preferredHeight: 30
 
-              Text {
+              Rectangle {
                 anchors.centerIn: parent
-                text: "💬"
-                font.pixelSize: 13
+                width: 28
+                height: 28
+                radius: 14
+                color: !modelData.read
+                  ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.18)
+                  : Style.surfaceVariant
+
+                Text {
+                  anchors.centerIn: parent
+                  text: root.appGlyph(modelData.app_name)
+                  font.pixelSize: 13
+                  color: !modelData.read ? Style.accent : Style.textSecondary
+                }
+              }
+
+              Rectangle {
+                visible: !modelData.read
+                anchors.top: parent.top
+                anchors.right: parent.right
+                width: 7
+                height: 7
+                radius: 3.5
+                color: Style.accent
               }
             }
 
-            // Notification Info Text Stack
+            // Notification Info Stack
             Column {
               Layout.fillWidth: true
               spacing: 1
 
               RowLayout {
                 width: parent.width
-                spacing: 4
+                spacing: 6
 
                 Text {
                   text: modelData.app_name || "Sistem"
+                  font.family: Style.fontDisplay
                   font.pixelSize: 10
-                  font.weight: Font.Bold
-                  color: Style.accentCyan
+                  font.weight: Font.DemiBold
+                  color: !modelData.read ? Style.accent : Style.textMuted
                   elide: Text.ElideRight
                 }
 
@@ -210,39 +236,45 @@ Item {
                 Text {
                   visible: !!modelData.timestamp
                   text: root.formatTime(modelData.timestamp)
-                  font.pixelSize: 10
+                  font.family: Style.fontText
+                  font.pixelSize: 9
                   color: Style.textMuted
                 }
               }
 
               Text {
+                width: parent.width
                 text: modelData.summary || "Bildirim"
-                font.pixelSize: 12
+                font.family: Style.fontDisplay
+                font.pixelSize: 11
                 font.weight: Font.DemiBold
                 color: Style.textPrimary
                 elide: Text.ElideRight
-                width: parent.width - 28
               }
 
               Text {
-                text: (modelData.body && modelData.body.length > 0) ? modelData.body : "Sağ tıkla detayları gör"
+                visible: !!(modelData.body && modelData.body.length > 0)
+                width: parent.width
+                text: modelData.body || ""
+                font.family: Style.fontText
                 font.pixelSize: 10
-                color: Style.textMuted
+                color: Style.textSecondary
                 elide: Text.ElideRight
-                width: parent.width - 28
               }
             }
 
-            // Delete item button
+            // Minimal Delete Action
             Rectangle {
-              Layout.preferredWidth: 22
-              Layout.preferredHeight: 22
-              radius: 11
-              color: delNotifHover.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.25) : "transparent"
+              Layout.preferredWidth: 24
+              Layout.preferredHeight: 24
+              radius: 12
+              color: delNotifHover.containsMouse
+                ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.22)
+                : "transparent"
 
               Text {
                 anchors.centerIn: parent
-                text: "✕"
+                text: "󰅖"
                 font.pixelSize: 11
                 color: delNotifHover.containsMouse ? Style.accentRed : Style.textMuted
               }
@@ -259,29 +291,37 @@ Item {
             }
           }
 
-          // Main MouseArea: Right-click (or Left-click) opens full notification detail view
           MouseArea {
             id: cardMouse
             anchors.fill: parent
-            anchors.rightMargin: 32 // Keep delete button clickable
+            anchors.rightMargin: 34
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
-            onClicked: mouse => {
-              root.openDetail(modelData)
-            }
+            onClicked: root.openDetail(modelData)
           }
         }
 
-        // Empty state
+        // Empty State
         Item {
           anchors.centerIn: parent
           visible: notifList.count === 0
-          Text {
+          Column {
             anchors.centerIn: parent
-            text: "Yeni bildirim bulunmuyor"
-            color: Style.textMuted
-            font.pixelSize: 11
+            spacing: 4
+            Text {
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: "󰂚"
+              font.pixelSize: 22
+              color: Style.textMuted
+            }
+            Text {
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: "Yeni bildirim yok"
+              font.family: Style.fontText
+              color: Style.textMuted
+              font.pixelSize: 11
+            }
           }
         }
       }
@@ -289,105 +329,90 @@ Item {
   }
 
   // =========================================================================
-  // 2. DETAIL MODAL VIEW: Full Text & Inspection Sheet
+  // 2. DETAIL SHEET: Full Notification Reading View
   // =========================================================================
-  Rectangle {
-    id: detailModal
+  ColumnLayout {
     anchors.fill: parent
-    radius: 10
-    color: Style.bgPrimary
-    border.color: Style.border
-    border.width: 1
+    spacing: 10
     visible: root.showDetailModal
-    clip: true
 
-    ColumnLayout {
-      anchors.fill: parent
-      anchors.margins: 10
-      spacing: 8
+    CCViewHeader {
+      title: root.detailNotification ? (root.detailNotification.app_name || "Bildirim") : "Bildirim"
+      subtitle: (root.detailNotification && root.detailNotification.timestamp) ? root.formatTime(root.detailNotification.timestamp) : ""
+      onBackRequested: root.closeDetail()
 
-      // Modal Header
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
-
-        // Back / Close Button
-        Rectangle {
-          width: 24
-          height: 24
-          radius: 12
-          color: detBackHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-
-          Text {
-            anchors.centerIn: parent
-            text: "‹"
-            font.pixelSize: 16
-            font.weight: Font.Bold
-            color: Style.textPrimary
-          }
-
-          MouseArea {
-            id: detBackHover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.closeDetail()
-          }
-        }
+      // Delete Action Button in Header
+      Rectangle {
+        Layout.preferredHeight: 26
+        Layout.preferredWidth: 26
+        radius: 13
+        color: detDelHover.containsMouse
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24)
+          : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
 
         Text {
-          text: root.detailNotification ? (root.detailNotification.app_name || "Bildirim Detayı") : "Bildirim Detayı"
+          anchors.centerIn: parent
+          text: "󰩺"
           font.pixelSize: 13
-          font.weight: Font.Bold
-          color: Style.accentCyan
-          Layout.fillWidth: true
-          elide: Text.ElideRight
+          color: Style.accentRed
         }
 
-        Text {
-          visible: !!(root.detailNotification && root.detailNotification.timestamp)
-          text: root.formatTime(root.detailNotification ? root.detailNotification.timestamp : 0)
-          font.pixelSize: 11
-          color: Style.textMuted
+        MouseArea {
+          id: detDelHover
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            if (ipc && root.detailNotification) {
+              ipc.deleteNotification(root.detailNotification.id)
+              root.closeDetail()
+            }
+          }
         }
       }
+    }
 
-      // Summary / Title Card
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: summaryTxt.implicitHeight + 14
-        radius: 6
-        color: Style.surfaceVariant
+    // Single Continuous Reading Sheet
+    Rectangle {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      radius: 14
+      color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+      border.color: Style.borderSubtle
+      border.width: 1
+      clip: true
+
+      ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 12
+        spacing: 8
 
         Text {
-          id: summaryTxt
-          anchors.fill: parent
-          anchors.margins: 8
+          Layout.fillWidth: true
           text: root.detailNotification ? (root.detailNotification.summary || "Başlık Yok") : ""
-          font.pixelSize: 12
-          font.weight: Font.Bold
+          font.family: Style.fontDisplay
+          font.pixelSize: 13
+          font.weight: Font.DemiBold
           color: Style.textPrimary
           wrapMode: Text.Wrap
         }
-      }
 
-      // Scrollable Full Body Text
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        radius: 8
-        color: Style.surfaceVariant
-        border.color: Style.border
-        border.width: 1
-        clip: true
+        Rectangle {
+          Layout.fillWidth: true
+          height: 1
+          color: Style.borderSubtle
+        }
 
         Flickable {
           id: bodyFlick
-          anchors.fill: parent
-          anchors.margins: 8
+          Layout.fillWidth: true
+          Layout.fillHeight: true
           contentWidth: width
-          contentHeight: bodyTextEdit.implicitHeight + 16
+          contentHeight: bodyTextEdit.implicitHeight + 8
           boundsBehavior: Flickable.StopAtBounds
+          clip: true
 
           TextEdit {
             id: bodyTextEdit
@@ -396,74 +421,16 @@ Item {
               if (!root.detailNotification) return ""
               let b = root.detailNotification.body
               if (b && b.trim().length > 0) return b
-              return "Bu bildirim için ek metin içeriği bulunmuyor."
+              return "Bu bildirim için ek içerik bulunmuyor."
             }
+            font.family: Style.fontText
             font.pixelSize: 12
-            color: (root.detailNotification && root.detailNotification.body && root.detailNotification.body.trim().length > 0) ? Style.textPrimary : Style.textMuted
+            color: (root.detailNotification && root.detailNotification.body && root.detailNotification.body.trim().length > 0)
+              ? Style.textSecondary
+              : Style.textMuted
             wrapMode: TextEdit.WrapAnywhere
             readOnly: true
             selectByMouse: true
-          }
-        }
-      }
-
-      // Bottom Action Bar
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
-
-        // Close Button
-        Rectangle {
-          Layout.preferredWidth: 84
-          Layout.preferredHeight: 30
-          radius: 6
-          color: detCloseHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-
-          Text {
-            anchors.centerIn: parent
-            text: "Kapat"
-            font.pixelSize: 12
-            font.weight: Font.Medium
-            color: Style.textSecondary
-          }
-
-          MouseArea {
-            id: detCloseHover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.closeDetail()
-          }
-        }
-
-        // Delete Notification Button
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 30
-          radius: 6
-          color: detDelHover.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.30) : Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.18)
-          border.color: Style.accentRed
-          border.width: 1
-
-          Text {
-            anchors.centerIn: parent
-            text: "Bildirimi Sil"
-            font.pixelSize: 12
-            font.weight: Font.DemiBold
-            color: Style.accentRed
-          }
-
-          MouseArea {
-            id: detDelHover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-              if (ipc && root.detailNotification) {
-                ipc.deleteNotification(root.detailNotification.id)
-                root.closeDetail()
-              }
-            }
           }
         }
       }

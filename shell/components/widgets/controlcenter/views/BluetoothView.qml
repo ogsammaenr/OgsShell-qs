@@ -11,97 +11,59 @@ Item {
   readonly property bool isPowered: !!(ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered)
   readonly property bool isDiscovering: !!(ipc && ipc.bluetooth && ipc.bluetooth.discovering)
 
+  function deviceGlyph(iconName) {
+    let ic = (iconName || "").toLowerCase()
+    if (ic.indexOf("headset") !== -1 || ic.indexOf("headphone") !== -1 || ic.indexOf("audio") !== -1) return "󰋋"
+    if (ic.indexOf("keyboard") !== -1) return "󰌌"
+    if (ic.indexOf("mouse") !== -1) return "󰍽"
+    if (ic.indexOf("gaming") !== -1 || ic.indexOf("joystick") !== -1) return "󰊴"
+    if (ic.indexOf("phone") !== -1) return "󰏲"
+    if (ic.indexOf("computer") !== -1) return "󰍹"
+    return "󰂯"
+  }
+
   Component.onCompleted: {
-    if (ipc) {
-      ipc.sendAction("get_bluetooth_state", {})
-    }
+    if (ipc) ipc.sendAction("get_bluetooth_state", {})
   }
 
   ColumnLayout {
     anchors.fill: parent
-    spacing: 6
+    spacing: 10
 
-    // Header
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 6
+    // Unified Apple HIG Header
+    CCViewHeader {
+      title: "Bluetooth"
+      subtitle: root.isPowered ? (root.isDiscovering ? "Cihazlar taranıyor..." : "Açık") : "Kapalı"
+      onBackRequested: root.backRequested()
 
+      // Rescan Circular Button
       Rectangle {
-        width: 24
-        height: 24
-        radius: 12
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-
-        Text {
-          anchors.centerIn: parent
-          text: "‹"
-          font.pixelSize: 16
-          font.weight: Font.Bold
-          color: Style.textPrimary
-        }
-
-        MouseArea {
-          id: backHover
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      Text {
-        text: "Bluetooth Aygıtları"
-        color: Style.textPrimary
-        font.pixelSize: 13
-        font.weight: Font.Bold
-        Layout.fillWidth: true
-      }
-
-      // Power Toggle Pill
-      Rectangle {
-        Layout.preferredHeight: 22
-        Layout.preferredWidth: btPwrTxt.implicitWidth + 16
-        radius: 11
-        color: root.isPowered ? Style.accentGreen : Style.surfaceHover
-
-        Text {
-          id: btPwrTxt
-          anchors.centerIn: parent
-          text: root.isPowered ? "Açık" : "Kapalı"
-          font.pixelSize: 10
-          font.weight: Font.Bold
-          color: root.isPowered ? "#000000" : Style.textMuted
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            if (ipc) ipc.sendAction("toggle_bluetooth", {})
-          }
-        }
-      }
-
-      // Rescan Button
-      Rectangle {
-        width: 26
-        height: 26
+        visible: root.isPowered
+        Layout.preferredWidth: 26
+        Layout.preferredHeight: 26
         radius: 13
-        color: scanBtHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+        color: scanBtHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Text {
           id: scanIcon
           anchors.centerIn: parent
-          text: "↻"
-          font.pixelSize: 14
-          color: root.isDiscovering ? Style.accentCyan : Style.textPrimary
+          text: "󰑐"
+          font.pixelSize: 13
+          color: root.isDiscovering ? Style.accent : Style.textPrimary
 
           RotationAnimation on rotation {
             running: root.isDiscovering
             loops: Animation.Infinite
             from: 0
             to: 360
-            duration: 1000
+            duration: 900
+            onRunningChanged: {
+              if (!running) scanIcon.rotation = 0
+            }
           }
         }
 
@@ -112,44 +74,82 @@ Item {
           cursorShape: Qt.PointingHandCursor
           onClicked: {
             if (ipc) {
-              if (root.isDiscovering) {
-                ipc.sendAction("stop_bluetooth_scan", {})
-              } else {
-                ipc.sendAction("start_bluetooth_scan", {})
-              }
+              if (root.isDiscovering) ipc.sendAction("stop_bluetooth_scan", {})
+              else ipc.sendAction("start_bluetooth_scan", {})
             }
+          }
+        }
+      }
+
+      // Minimal Apple-Style Power Toggle Switch
+      Rectangle {
+        Layout.preferredWidth: 36
+        Layout.preferredHeight: 20
+        radius: 10
+        color: root.isPowered
+          ? Qt.rgba(Style.accentCyan.r, Style.accentCyan.g, Style.accentCyan.b, 0.85)
+          : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.14)
+
+        Behavior on color { ColorAnimation { duration: 160 } }
+
+        Rectangle {
+          width: 16
+          height: 16
+          radius: 8
+          y: 2
+          x: root.isPowered ? (parent.width - width - 2) : 2
+          color: "#ffffff"
+
+          Behavior on x {
+            SpringAnimation {
+              spring: 28.0
+              damping: 0.78
+              epsilon: 0.01
+            }
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            if (ipc) ipc.sendAction("toggle_bluetooth", {})
           }
         }
       }
     }
 
-    // Device List Canvas
+    // Continuous Grouped Device List
     Rectangle {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      radius: 8
-      color: Style.surface
-      border.color: Style.border
+      radius: 14
+      color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+      border.color: Style.borderSubtle
       border.width: 1
       clip: true
 
       ListView {
         id: btList
         anchors.fill: parent
-        anchors.margins: 4
-        spacing: 4
+        anchors.margins: 5
+        spacing: 2
         reuseItems: true
         cacheBuffer: 60
+        boundsBehavior: Flickable.StopAtBounds
         model: (ipc && ipc.bluetooth && ipc.bluetooth.devices) ? ipc.bluetooth.devices : []
 
         delegate: Rectangle {
           id: devDelegate
           width: btList.width
-          height: 42
-          radius: 6
-          color: modelData.connected ? Style.surfaceActive : (devHover.containsMouse ? Style.surfaceVariant : "transparent")
+          height: 46
+          radius: 10
+          color: modelData.connected
+            ? Qt.rgba(Style.accentCyan.r, Style.accentCyan.g, Style.accentCyan.b, 0.14)
+            : (devHover.containsMouse ? Style.surfaceHover : "transparent")
 
-          // Base background click area for row selection / connecting
+          Behavior on color { ColorAnimation { duration: 140 } }
+
           MouseArea {
             id: devHover
             anchors.fill: parent
@@ -165,56 +165,66 @@ Item {
 
           RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 8
-            anchors.rightMargin: 8
-            spacing: 8
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            spacing: 10
             z: 2
 
-            Text {
-              text: {
-                let ic = modelData.icon || ""
-                if (ic.indexOf("headset") !== -1 || ic.indexOf("audio") !== -1) return "🎧"
-                if (ic.indexOf("keyboard") !== -1) return "⌨"
-                if (ic.indexOf("mouse") !== -1) return "🖱"
-                if (ic.indexOf("phone") !== -1) return "📱"
-                return "󰂯"
+            // Circular Vector Device Icon
+            Rectangle {
+              Layout.preferredWidth: 28
+              Layout.preferredHeight: 28
+              radius: 14
+              color: modelData.connected ? Style.accentCyan : Style.surfaceVariant
+
+              Text {
+                anchors.centerIn: parent
+                text: root.deviceGlyph(modelData.icon)
+                font.pixelSize: 14
+                color: modelData.connected ? "#000000" : Style.textSecondary
               }
-              font.pixelSize: 14
             }
 
             Column {
               Layout.fillWidth: true
               spacing: 1
+
               Text {
+                width: parent.width
                 text: modelData.name || modelData.mac || "Bilinmeyen Cihaz"
-                font.pixelSize: 12
-                font.weight: modelData.connected ? Font.Bold : Font.Medium
-                color: modelData.connected ? Style.accentCyan : Style.textPrimary
+                font.family: Style.fontDisplay
+                font.pixelSize: 11
+                font.weight: modelData.connected ? Font.DemiBold : Font.Medium
+                color: Style.textPrimary
                 elide: Text.ElideRight
-                width: btList.width - 130
               }
+
               Text {
-                text: modelData.connected ? "Bağlı" : (modelData.paired ? "Eşleşmiş" : "Eşleşmemiş (Yeni)")
+                text: modelData.connected ? "Bağlı" : (modelData.paired ? "Eşleşmiş" : "Yeni Cihaz")
+                font.family: Style.fontText
                 font.pixelSize: 10
-                color: modelData.connected ? Style.accentGreen : (modelData.paired ? Style.textSecondary : Style.textMuted)
+                color: modelData.connected ? Style.accentCyan : Style.textMuted
               }
             }
 
-            // Connect / Disconnect Action Pill (Explicit high z-index & isolated MouseArea)
+            // Connect / Disconnect Tinted Capsule
             Rectangle {
               id: actionPill
               Layout.preferredHeight: 24
-              Layout.preferredWidth: modelData.connected ? 52 : 62
-              radius: 6
-              color: modelData.connected ? (btnMouse.containsMouse ? Style.surfaceHover : Style.surfaceVariant) : (btnMouse.containsMouse ? Style.accentHover : Style.accent)
+              Layout.preferredWidth: modelData.connected ? 48 : 58
+              radius: 12
+              color: modelData.connected
+                ? (btnMouse.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24) : Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.14))
+                : (btnMouse.containsMouse ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.28) : Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.18))
               z: 10
 
               Text {
                 anchors.centerIn: parent
                 text: modelData.connected ? "Kes" : "Bağlan"
+                font.family: Style.fontDisplay
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
-                color: modelData.connected ? Style.accentRed : "#ffffff"
+                color: modelData.connected ? Style.accentRed : Style.accent
               }
 
               MouseArea {
@@ -224,11 +234,8 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: {
                   if (ipc) {
-                    if (modelData.connected) {
-                      ipc.sendAction("disconnect_bluetooth", { "mac": modelData.mac })
-                    } else {
-                      ipc.sendAction("connect_bluetooth", { "mac": modelData.mac })
-                    }
+                    if (modelData.connected) ipc.sendAction("disconnect_bluetooth", { "mac": modelData.mac })
+                    else ipc.sendAction("connect_bluetooth", { "mac": modelData.mac })
                   }
                 }
               }
@@ -236,15 +243,26 @@ Item {
           }
         }
 
-        // Empty state
+        // Empty State
         Item {
           anchors.centerIn: parent
           visible: btList.count === 0
-          Text {
+          Column {
             anchors.centerIn: parent
-            text: !root.isPowered ? "Bluetooth Kapalı" : (root.isDiscovering ? "Cihazlar taranıyor..." : "Cihaz Bulunamadı")
-            color: Style.textMuted
-            font.pixelSize: 11
+            spacing: 4
+            Text {
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: root.isPowered ? "󰂯" : "󰂲"
+              font.pixelSize: 22
+              color: Style.textMuted
+            }
+            Text {
+              anchors.horizontalCenter: parent.horizontalCenter
+              text: !root.isPowered ? "Bluetooth kapalı" : (root.isDiscovering ? "Cihazlar taranıyor..." : "Cihaz bulunamadı")
+              font.family: Style.fontText
+              color: Style.textMuted
+              font.pixelSize: 11
+            }
           }
         }
       }

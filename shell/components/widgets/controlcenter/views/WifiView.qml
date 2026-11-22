@@ -28,6 +28,7 @@ Item {
     return null
   }
   readonly property bool isEthConnected: !!activeEthDevice
+  readonly property bool isWifiConnected: !!(ipc && ipc.wifi && ipc.wifi.connected)
 
   // Wi-Fi Password Modal State
   property bool showPasswordModal: false
@@ -44,22 +45,15 @@ Item {
     id: manualRefreshTimer
     interval: 800
     repeat: false
-    onTriggered: {
-      root.isManualRefreshing = false
-    }
+    onTriggered: root.isManualRefreshing = false
   }
 
-  // ==========================================
   // Process: Ethernet Device Status
-  // ==========================================
   Process {
     id: ethStatusProc
     command: ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,IP4-CONNECTIVITY,CONNECTION,CON-UUID", "device", "status"]
     stdout: SplitParser {
-      onRead: data => {
-        // Collect full output in accumulator
-        ethStatusAccum += data + "\n"
-      }
+      onRead: data => { ethStatusAccum += data + "\n" }
     }
     onExited: {
       parseEthStatus(ethStatusAccum)
@@ -68,16 +62,12 @@ Item {
   }
   property string ethStatusAccum: ""
 
-  // ==========================================
   // Process: Ethernet Device Details (IP, Gateway, MAC)
-  // ==========================================
   Process {
     id: ethDetailsProc
     command: ["nmcli", "-t", "-f", "GENERAL.DEVICE,IP4.ADDRESS,IP4.GATEWAY,GENERAL.HWADDR", "device", "show"]
     stdout: SplitParser {
-      onRead: data => {
-        ethDetailsAccum += data + "\n"
-      }
+      onRead: data => { ethDetailsAccum += data + "\n" }
     }
     onExited: {
       parseEthDetails(ethDetailsAccum)
@@ -86,16 +76,12 @@ Item {
   }
   property string ethDetailsAccum: ""
 
-  // ==========================================
   // Process: Saved Ethernet Profiles
-  // ==========================================
   Process {
     id: ethProfilesProc
     command: ["nmcli", "-t", "-f", "NAME,UUID,TYPE,DEVICE", "connection", "show"]
     stdout: SplitParser {
-      onRead: data => {
-        ethProfilesAccum += data + "\n"
-      }
+      onRead: data => { ethProfilesAccum += data + "\n" }
     }
     onExited: {
       parseEthProfiles(ethProfilesAccum)
@@ -104,36 +90,25 @@ Item {
   }
   property string ethProfilesAccum: ""
 
-  // ==========================================
   // Process: Connect / Disconnect Actions
-  // ==========================================
   Process {
     id: ethActionProc
-    onExited: {
-      actionRefreshTimer.restart()
-    }
+    onExited: actionRefreshTimer.restart()
   }
 
   Timer {
     id: actionRefreshTimer
     interval: 400
     repeat: false
-    onTriggered: {
-      refreshAll()
-    }
+    onTriggered: refreshAll()
   }
 
-  // ==========================================
-  // Live Refresh & Polling
-  // ==========================================
   Timer {
     id: liveSyncTimer
     interval: 3000
     repeat: true
     running: root.visible
-    onTriggered: {
-      refreshEthernet()
-    }
+    onTriggered: refreshEthernet()
   }
 
   function parseEthDetails(output) {
@@ -176,16 +151,11 @@ Item {
       if (!line) continue
       let parts = line.split(":")
       if (parts.length >= 3 && parts[1] === "ethernet") {
-        let devName = parts[0]
-        let state = parts[2]
-        let connName = (parts.length > 4) ? parts[4] : ""
-        let uuid = (parts.length > 5) ? parts[5] : ""
-
         rawList.push({
-          "device": devName,
-          "state": state,
-          "connection": connName,
-          "uuid": uuid,
+          "device": parts[0],
+          "state": parts[2],
+          "connection": (parts.length > 4) ? parts[4] : "",
+          "uuid": (parts.length > 5) ? parts[5] : "",
           "ip": "",
           "gateway": "",
           "hwaddr": ""
@@ -272,22 +242,7 @@ Item {
     ethActionProc.running = true
   }
 
-  function activateProfile(uuidOrName) {
-    if (!uuidOrName) return
-    ethActionProc.command = ["nmcli", "connection", "up", uuidOrName]
-    ethActionProc.running = true
-  }
-
-  function deactivateProfile(uuidOrName) {
-    if (!uuidOrName) return
-    ethActionProc.command = ["nmcli", "connection", "down", uuidOrName]
-    ethActionProc.running = true
-  }
-
-  Component.onCompleted: {
-    refreshAll()
-  }
-
+  Component.onCompleted: refreshAll()
   onVisibleChanged: {
     if (visible) refreshAll()
   }
@@ -297,172 +252,39 @@ Item {
   // ==========================================
   ColumnLayout {
     anchors.fill: parent
-    spacing: 8
+    spacing: 10
 
-    // Header Row: Back Button + Segmented Switcher + Rescan Button
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 8
-
-      // Back Button
-      Rectangle {
-        width: 24
-        height: 24
-        radius: 12
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-
-        Text {
-          anchors.centerIn: parent
-          text: "‹"
-          font.pixelSize: 16
-          font.weight: Font.Bold
-          color: Style.textPrimary
-        }
-
-        MouseArea {
-          id: backHover
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      // Segmented Tab Selector (Apple HIG Style)
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: 28
-        radius: 14
-        color: Style.surfaceVariant
-        border.color: Style.border
-        border.width: 1
-
-        RowLayout {
-          anchors.fill: parent
-          anchors.margins: 2
-          spacing: 2
-
-          // Tab 1: Kablolu (Ethernet)
-          Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: 12
-            color: root.activeTab === "WIRED" ? Style.surfaceActive : (ethTabHover.containsMouse ? Style.surfaceHover : "transparent")
-            border.color: root.activeTab === "WIRED" ? Style.accent : "transparent"
-            border.width: 1
-
-            Behavior on color { ColorAnimation { duration: 150 } }
-
-            RowLayout {
-              anchors.centerIn: parent
-              spacing: 5
-
-              Text {
-                text: "󰈀"
-                font.pixelSize: 12
-                color: root.isEthConnected ? Style.accentGreen : (root.activeTab === "WIRED" ? Style.textPrimary : Style.textMuted)
-              }
-
-              Text {
-                text: "Kablolu"
-                font.pixelSize: 11
-                font.weight: root.activeTab === "WIRED" ? Font.Bold : Font.Medium
-                color: root.activeTab === "WIRED" ? Style.textPrimary : Style.textMuted
-              }
-
-              // Connected Green Dot
-              Rectangle {
-                width: 5
-                height: 5
-                radius: 2.5
-                color: Style.accentGreen
-                visible: root.isEthConnected
-              }
-            }
-
-            MouseArea {
-              id: ethTabHover
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: root.activeTab = "WIRED"
-            }
-          }
-
-          // Tab 2: Kablosuz (Wi-Fi)
-          Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            radius: 12
-            color: root.activeTab === "WIFI" ? Style.surfaceActive : (wifiTabHover.containsMouse ? Style.surfaceHover : "transparent")
-            border.color: root.activeTab === "WIFI" ? Style.accent : "transparent"
-            border.width: 1
-
-            Behavior on color { ColorAnimation { duration: 150 } }
-
-            RowLayout {
-              anchors.centerIn: parent
-              spacing: 5
-
-              Text {
-                text: "󰤨"
-                font.pixelSize: 12
-                color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : (root.activeTab === "WIFI" ? Style.textPrimary : Style.textMuted)
-              }
-
-              Text {
-                text: "Wi-Fi"
-                font.pixelSize: 11
-                font.weight: root.activeTab === "WIFI" ? Font.Bold : Font.Medium
-                color: root.activeTab === "WIFI" ? Style.textPrimary : Style.textMuted
-              }
-
-              // Connected Cyan Dot
-              Rectangle {
-                width: 5
-                height: 5
-                radius: 2.5
-                color: Style.accentCyan
-                visible: !!(ipc && ipc.wifi && ipc.wifi.connected)
-              }
-            }
-
-            MouseArea {
-              id: wifiTabHover
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: root.activeTab = "WIFI"
-            }
-          }
-        }
-      }
+    // Unified Header
+    CCViewHeader {
+      title: "Ağ Bağlantıları"
+      onBackRequested: root.backRequested()
 
       // Rescan Button
       Rectangle {
-        width: 26
-        height: 26
+        Layout.preferredWidth: 26
+        Layout.preferredHeight: 26
         radius: 13
-        color: scanHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+        color: scanHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Text {
           id: rescanIcon
           anchors.centerIn: parent
-          text: "↻"
-          font.pixelSize: 14
-          color: root.isScanning ? Style.accentCyan : Style.textPrimary
+          text: "󰑐"
+          font.pixelSize: 13
+          color: root.isScanning ? Style.accent : Style.textPrimary
 
           RotationAnimation on rotation {
-            id: scanAnim
             running: root.isScanning
             loops: Animation.Infinite
             from: 0
             to: 360
             duration: 800
             onRunningChanged: {
-              if (!running) {
-                rescanIcon.rotation = 0
-              }
+              if (!running) rescanIcon.rotation = 0
             }
           }
         }
@@ -473,290 +295,277 @@ Item {
           hoverEnabled: true
           cursorShape: root.isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor
           onClicked: {
-            if (!root.isScanning) {
-              root.refreshAll()
-            }
+            if (!root.isScanning) root.refreshAll()
           }
         }
       }
     }
 
+    // Spring-Animated Sliding Segmented Control
+    CCSegmentedControl {
+      currentIndex: root.activeTab === "WIRED" ? 0 : 1
+      items: [
+        {
+          "label": "Kablolu",
+          "icon": "󰈀",
+          "iconColor": root.isEthConnected ? Style.accentGreen : null,
+          "showDot": root.isEthConnected,
+          "dotColor": Style.accentGreen
+        },
+        {
+          "label": "Wi-Fi",
+          "icon": "󰤨",
+          "iconColor": root.isWifiConnected ? Style.accent : null,
+          "showDot": root.isWifiConnected,
+          "dotColor": Style.accent
+        }
+      ]
+      onSelected: idx => {
+        root.activeTab = (idx === 0) ? "WIRED" : "WIFI"
+      }
+    }
+
     // =========================================================================
-    // VIEW 1: KABLOLU (ETHERNET) VIEW
+    // VIEW 1: KABLOLU (ETHERNET)
     // =========================================================================
-    Item {
+    ColumnLayout {
       Layout.fillWidth: true
       Layout.fillHeight: true
+      spacing: 8
       visible: root.activeTab === "WIRED"
 
-      ColumnLayout {
-        anchors.fill: parent
-        spacing: 8
+      // Active Ethernet Status Strip
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 46
+        radius: 14
+        color: root.isEthConnected
+          ? Qt.rgba(Style.accentGreen.r, Style.accentGreen.g, Style.accentGreen.b, 0.12)
+          : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
 
-        // Active Ethernet Connection Banner Card
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 48
-          radius: 8
-          color: Style.surfaceVariant
-          border.color: root.isEthConnected ? Style.accentGreen : Style.border
-          border.width: 1
+        RowLayout {
+          anchors.fill: parent
+          anchors.leftMargin: 12
+          anchors.rightMargin: 10
+          spacing: 10
 
-          RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            spacing: 10
+          Rectangle {
+            Layout.preferredWidth: 28
+            Layout.preferredHeight: 28
+            radius: 14
+            color: root.isEthConnected ? Style.accentGreen : Style.surfaceVariant
 
             Text {
+              anchors.centerIn: parent
               text: root.isEthConnected ? "󰈀" : "󰌙"
-              font.pixelSize: 20
-              color: root.isEthConnected ? Style.accentGreen : Style.textMuted
+              font.pixelSize: 14
+              color: root.isEthConnected ? "#000000" : Style.textMuted
+            }
+          }
+
+          Column {
+            Layout.fillWidth: true
+            spacing: 1
+
+            Text {
+              width: parent.width
+              text: root.isEthConnected ? (root.activeEthDevice.connection || root.activeEthDevice.device) : "Kablolu Bağlantı Yok"
+              font.family: Style.fontDisplay
+              font.pixelSize: 12
+              font.weight: Font.DemiBold
+              color: Style.textPrimary
+              elide: Text.ElideRight
             }
 
-            Column {
-              Layout.fillWidth: true
-              spacing: 1
-
-              Text {
-                text: root.isEthConnected ? (root.activeEthDevice.connection || root.activeEthDevice.device) : "Kablolu Bağlantı Yok"
-                font.pixelSize: 12
-                font.weight: Font.Bold
-                color: Style.textPrimary
-                elide: Text.ElideRight
-              }
-
-              Text {
-                text: {
-                  if (root.isEthConnected) {
-                    let parts = [root.activeEthDevice.device]
-                    if (root.activeEthDevice.ip) parts.push(`IP: ${root.activeEthDevice.ip}`)
-                    if (root.activeEthDevice.gateway) parts.push(`Geçit: ${root.activeEthDevice.gateway}`)
-                    return parts.join(" • ")
-                  }
-                  return "Bir ethernet kablosu takın veya bağlantıyı etkinleştirin"
+            Text {
+              width: parent.width
+              text: {
+                if (root.isEthConnected) {
+                  let parts = [root.activeEthDevice.device]
+                  if (root.activeEthDevice.ip) parts.push(root.activeEthDevice.ip)
+                  if (root.activeEthDevice.gateway) parts.push(`Geçit ${root.activeEthDevice.gateway}`)
+                  return parts.join(" · ")
                 }
-                font.pixelSize: 10
-                color: root.isEthConnected ? Style.accentGreen : Style.textMuted
-                elide: Text.ElideRight
-                width: parent.width
+                return "Ethernet kablosu takılı değil"
               }
+              font.family: Style.fontText
+              font.pixelSize: 10
+              color: root.isEthConnected ? Style.textSecondary : Style.textMuted
+              elide: Text.ElideRight
+            }
+          }
+
+          Rectangle {
+            visible: root.isEthConnected
+            Layout.preferredHeight: 24
+            Layout.preferredWidth: 56
+            radius: 12
+            color: ethDisHover.containsMouse
+              ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24)
+              : Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.14)
+
+            Text {
+              anchors.centerIn: parent
+              text: "Kes"
+              font.family: Style.fontDisplay
+              font.pixelSize: 10
+              font.weight: Font.DemiBold
+              color: Style.accentRed
             }
 
-            // Disconnect Button
-            Rectangle {
-              visible: root.isEthConnected
-              Layout.preferredHeight: 26
-              Layout.preferredWidth: 80
-              radius: 6
-              color: ethDisHover.containsMouse ? Style.surfaceActive : Style.surface
-              border.color: Style.border
-              border.width: 1
-
-              Text {
-                anchors.centerIn: parent
-                text: "Bağlantıyı Kes"
-                font.pixelSize: 10
-                font.weight: Font.Medium
-                color: Style.accentRed
-              }
-
-              MouseArea {
-                id: ethDisHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (root.activeEthDevice) {
-                    root.disconnectEthernet(root.activeEthDevice.device)
-                  }
-                }
+            MouseArea {
+              id: ethDisHover
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (root.activeEthDevice) root.disconnectEthernet(root.activeEthDevice.device)
               }
             }
           }
         }
+      }
 
-        // Ethernet Adapters & Interfaces List Container
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 10
-          color: Style.surface
-          border.color: Style.border
-          border.width: 1
-          clip: true
+      // Continuous Grouped Ethernet List
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        radius: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+        border.color: Style.borderSubtle
+        border.width: 1
+        clip: true
 
-          ListView {
-            id: ethList
-            anchors.fill: parent
-            anchors.margins: 6
-            spacing: 4
-            reuseItems: true
-            model: root.ethDevices
+        ListView {
+          id: ethList
+          anchors.fill: parent
+          anchors.margins: 5
+          spacing: 2
+          reuseItems: true
+          boundsBehavior: Flickable.StopAtBounds
+          model: root.ethDevices
 
-            delegate: Rectangle {
-              width: ethList.width
-              height: 48
-              radius: 8
-              readonly property bool isConnected: modelData.state === "connected"
-              readonly property bool isUnavailable: modelData.state === "unavailable"
-              color: isConnected ? Style.surfaceActive : (ethItemHover.containsMouse ? Style.surfaceVariant : "transparent")
-              border.color: isConnected ? Style.accentGreen : "transparent"
-              border.width: 1
+          delegate: Rectangle {
+            width: ethList.width
+            height: 46
+            radius: 10
+            readonly property bool isConnected: modelData.state === "connected"
+            readonly property bool isUnavailable: modelData.state === "unavailable"
+            color: isConnected
+              ? Qt.rgba(Style.accentGreen.r, Style.accentGreen.g, Style.accentGreen.b, 0.12)
+              : (ethItemHover.containsMouse ? Style.surfaceHover : "transparent")
 
-              RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 10
+            Behavior on color { ColorAnimation { duration: 140 } }
 
-                // Device Icon
+            RowLayout {
+              anchors.fill: parent
+              anchors.leftMargin: 10
+              anchors.rightMargin: 10
+              spacing: 10
+
+              Text {
+                text: isConnected ? "󰈀" : (isUnavailable ? "󰌙" : "󰈂")
+                font.pixelSize: 16
+                color: isConnected ? Style.accentGreen : (isUnavailable ? Style.textMuted : Style.textPrimary)
+              }
+
+              Column {
+                Layout.fillWidth: true
+                spacing: 1
+
                 Text {
-                  text: isConnected ? "󰈀" : (isUnavailable ? "󰌙" : "󰈂")
-                  font.pixelSize: 18
-                  color: isConnected ? Style.accentGreen : (isUnavailable ? Style.textMuted : Style.textPrimary)
+                  width: parent.width
+                  text: modelData.connection ? `${modelData.device} · ${modelData.connection}` : modelData.device
+                  font.family: Style.fontDisplay
+                  font.pixelSize: 11
+                  font.weight: isConnected ? Font.DemiBold : Font.Medium
+                  color: Style.textPrimary
+                  elide: Text.ElideRight
                 }
 
-                // Device Info
-                Column {
-                  Layout.fillWidth: true
-                  spacing: 1
-
-                  RowLayout {
-                    spacing: 6
-                    Text {
-                      text: modelData.device
-                      font.pixelSize: 12
-                      font.weight: isConnected ? Font.Bold : Font.Medium
-                      color: isConnected ? Style.accentGreen : Style.textPrimary
-                    }
-                    Text {
-                      visible: !!modelData.connection
-                      text: `(${modelData.connection})`
-                      font.pixelSize: 11
-                      color: Style.textMuted
-                      elide: Text.ElideRight
-                    }
+                Text {
+                  width: parent.width
+                  text: {
+                    if (isConnected) return modelData.ip ? `Bağlı · ${modelData.ip}` : "Bağlı"
+                    if (isUnavailable) return "Kablo takılı değil"
+                    return "Bağlantıya hazır"
                   }
+                  font.family: Style.fontText
+                  font.pixelSize: 10
+                  color: isConnected ? Style.accentGreen : Style.textMuted
+                  elide: Text.ElideRight
+                }
+              }
 
-                  Text {
-                    text: {
-                      if (isConnected) {
-                        return modelData.ip ? `Bağlı • ${modelData.ip}` : "Bağlantı Aktif"
-                      }
-                      if (isUnavailable) {
-                        return "Kablo takılı değil (Kullanılamıyor)"
-                      }
-                      return "Bağlantıya hazır"
-                    }
-                    font.pixelSize: 10
-                    color: isConnected ? Style.accentGreen : Style.textMuted
-                  }
+              // Action Pill
+              Rectangle {
+                visible: !isUnavailable
+                Layout.preferredHeight: 24
+                Layout.preferredWidth: isConnected ? 48 : 58
+                radius: 12
+                color: isConnected
+                  ? (actionBtnHover.containsMouse ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24) : Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.14))
+                  : (actionBtnHover.containsMouse ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.28) : Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.18))
+
+                Text {
+                  anchors.centerIn: parent
+                  text: isConnected ? "Kes" : "Bağlan"
+                  font.family: Style.fontDisplay
+                  font.pixelSize: 10
+                  font.weight: Font.DemiBold
+                  color: isConnected ? Style.accentRed : Style.accent
                 }
 
-                // MAC Address badge (if available)
-                Rectangle {
-                  visible: !!modelData.hwaddr
-                  Layout.preferredHeight: 18
-                  Layout.preferredWidth: 92
-                  radius: 4
-                  color: Style.surfaceVariant
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: modelData.hwaddr
-                    font.pixelSize: 9
-                    font.family: "monospace"
-                    color: Style.textMuted
-                  }
-                }
-
-                // Action Button (Connect / Disconnect)
-                Rectangle {
-                  visible: !isUnavailable
-                  Layout.preferredHeight: 24
-                  Layout.preferredWidth: isConnected ? 64 : 54
-                  radius: 5
-                  color: isConnected ? (actionBtnHover.containsMouse ? Style.surfaceActive : Style.surfaceVariant) : (actionBtnHover.containsMouse ? Style.accentCyan : Style.surfaceVariant)
-                  border.color: isConnected ? Style.border : Style.accentCyan
-                  border.width: 1
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: isConnected ? "Kes" : "Bağlan"
-                    font.pixelSize: 10
-                    font.weight: Font.Bold
-                    color: isConnected ? Style.accentRed : (isConnected ? Style.textPrimary : Style.textPrimary)
-                  }
-
-                  MouseArea {
-                    id: actionBtnHover
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                      if (isConnected) {
-                        root.disconnectEthernet(modelData.device)
-                      } else {
-                        root.connectEthernet(modelData.device)
-                      }
-                    }
-                  }
-                }
-
-                // Unavailable Badge
-                Rectangle {
-                  visible: isUnavailable
-                  Layout.preferredHeight: 20
-                  Layout.preferredWidth: 64
-                  radius: 4
-                  color: Style.surfaceVariant
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: "Pasif"
-                    font.pixelSize: 9
-                    color: Style.textMuted
+                MouseArea {
+                  id: actionBtnHover
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    if (isConnected) root.disconnectEthernet(modelData.device)
+                    else root.connectEthernet(modelData.device)
                   }
                 }
               }
 
-              MouseArea {
-                id: ethItemHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: isUnavailable ? Qt.ArrowCursor : Qt.PointingHandCursor
-                onClicked: {
-                  if (isUnavailable) return
-                  if (isConnected) {
-                    root.disconnectEthernet(modelData.device)
-                  } else {
-                    root.connectEthernet(modelData.device)
-                  }
-                }
+              Text {
+                visible: isUnavailable
+                text: "Pasif"
+                font.family: Style.fontText
+                font.pixelSize: 10
+                color: Style.textMuted
               }
             }
 
-            // Empty state placeholder
-            Item {
+            MouseArea {
+              id: ethItemHover
+              anchors.fill: parent
+              anchors.rightMargin: 66
+              hoverEnabled: true
+              cursorShape: isUnavailable ? Qt.ArrowCursor : Qt.PointingHandCursor
+              onClicked: {
+                if (isUnavailable) return
+                if (isConnected) root.disconnectEthernet(modelData.device)
+                else root.connectEthernet(modelData.device)
+              }
+            }
+          }
+
+          Item {
+            anchors.centerIn: parent
+            visible: ethList.count === 0
+            Column {
               anchors.centerIn: parent
-              visible: ethList.count === 0
-              Column {
-                anchors.centerIn: parent
-                spacing: 4
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Kablolu Arayüz Taranıyor..."
-                  color: Style.textPrimary
-                  font.pixelSize: 12
-                  font.weight: Font.Bold
-                }
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Sistemdeki ethernet adaptörleri aranıyor."
-                  color: Style.textMuted
-                  font.pixelSize: 10
-                }
+              spacing: 4
+              Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "Ethernet arayüzü bulunamadı"
+                font.family: Style.fontDisplay
+                color: Style.textSecondary
+                font.pixelSize: 11
+                font.weight: Font.Medium
               }
             }
           }
@@ -765,308 +574,309 @@ Item {
     }
 
     // =========================================================================
-    // VIEW 2: KABLOSUZ (WI-FI) VIEW
+    // VIEW 2: KABLOSUZ (WI-FI)
     // =========================================================================
-    Item {
+    ColumnLayout {
       Layout.fillWidth: true
       Layout.fillHeight: true
+      spacing: 8
       visible: root.activeTab === "WIFI"
 
-      ColumnLayout {
-        anchors.fill: parent
-        spacing: 8
+      // Active Wi-Fi Status Strip
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 46
+        radius: 14
+        color: root.isWifiConnected
+          ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.12)
+          : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
 
-        // Active Wi-Fi Connection Banner
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 44
-          radius: 8
-          color: Style.surfaceVariant
-          border.color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.border
-          border.width: 1
+        RowLayout {
+          anchors.fill: parent
+          anchors.leftMargin: 12
+          anchors.rightMargin: 10
+          spacing: 10
 
-          RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            spacing: 10
+          Rectangle {
+            Layout.preferredWidth: 28
+            Layout.preferredHeight: 28
+            radius: 14
+            color: root.isWifiConnected ? Style.accent : Style.surfaceVariant
 
             Text {
-              text: (ipc && ipc.wifi && ipc.wifi.connected) ? "󰤨" : "󰤮"
-              font.pixelSize: 18
-              color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.textMuted
-            }
-
-            Column {
-              Layout.fillWidth: true
-              spacing: 1
-              Text {
-                text: (ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı") ? ipc.wifi.ssid : ((ipc && ipc.wifi && ipc.wifi.connected) ? "Bağlı Ağ" : "Bağlantı Yok")
-                font.pixelSize: 12
-                font.weight: Font.Bold
-                color: Style.textPrimary
-                elide: Text.ElideRight
-              }
-              Text {
-                text: (ipc && ipc.wifi && ipc.wifi.connected) ? `Sinyal Gücü: %${ipc.wifi.signal || 75}` : "Kullanılabilir bir ağ seçip bağlanın"
-                font.pixelSize: 10
-                color: (ipc && ipc.wifi && ipc.wifi.connected) ? Style.accentCyan : Style.textMuted
-              }
-            }
-
-            // Disconnect Button
-            Rectangle {
-              visible: !!(ipc && ipc.wifi && ipc.wifi.connected)
-              Layout.preferredHeight: 26
-              Layout.preferredWidth: 80
-              radius: 6
-              color: disHover.containsMouse ? Style.surfaceActive : Style.surface
-              border.color: Style.border
-              border.width: 1
-
-              Text {
-                anchors.centerIn: parent
-                text: "Bağlantıyı Kes"
-                font.pixelSize: 10
-                font.weight: Font.Medium
-                color: Style.accentRed
-              }
-
-              MouseArea {
-                id: disHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (ipc) ipc.sendAction("disconnect_wifi", {})
-                }
-              }
-            }
-          }
-        }
-
-        // Scanned Access Points List
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 10
-          color: Style.surface
-          border.color: Style.border
-          border.width: 1
-          clip: true
-
-          ListView {
-            id: wifiList
-            anchors.fill: parent
-            anchors.margins: 6
-            spacing: 4
-            reuseItems: true
-            cacheBuffer: 60
-            model: {
-              if (!ipc || !ipc.wifi) return []
-              let res = ipc.wifi.access_points || ipc.wifi.scan_results || []
-              return Array.isArray(res) ? res : []
-            }
-
-            delegate: Rectangle {
-              width: wifiList.width
-              height: 44
-              radius: 8
-              readonly property bool isActive: !!(modelData.is_active || modelData.is_connected)
-              color: isActive ? Style.surfaceActive : (itemHover.containsMouse ? Style.surfaceVariant : "transparent")
-              border.color: isActive ? Style.accentCyan : "transparent"
-              border.width: 1
-
-              RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 10
-                anchors.rightMargin: 10
-                spacing: 10
-
-                // Signal Icon
-                Text {
-                  text: (modelData.signal >= 70) ? "󰤨" : ((modelData.signal >= 45) ? "󰤥" : ((modelData.signal >= 20) ? "󰤢" : "󰤟"))
-                  font.pixelSize: 16
-                  color: isActive ? Style.accentCyan : Style.textPrimary
-                }
-
-                // Network Name & Info
-                Column {
-                  Layout.fillWidth: true
-                  spacing: 1
-                  Text {
-                    text: modelData.ssid || "Gizli Ağ (Hidden)"
-                    font.pixelSize: 12
-                    font.weight: isActive ? Font.Bold : Font.Medium
-                    color: isActive ? Style.accentCyan : Style.textPrimary
-                    elide: Text.ElideRight
-                    width: wifiList.width - 120
-                  }
-                  Text {
-                    text: `${modelData.band || "2.4/5GHz"} • Sinyal: %${modelData.signal || 0}`
-                    font.pixelSize: 10
-                    color: Style.textMuted
-                  }
-                }
-
-                // Security Badge / Icon
-                Rectangle {
-                  visible: !!(modelData.security && modelData.security !== "OPEN")
-                  Layout.preferredHeight: 20
-                  Layout.preferredWidth: 46
-                  radius: 4
-                  color: Style.surfaceVariant
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: modelData.security || "WPA2"
-                    font.pixelSize: 10
-                    font.weight: Font.Medium
-                    color: Style.textMuted
-                  }
-                }
-
-                // Active Checkmark
-                Text {
-                  visible: isActive
-                  text: "✓"
-                  font.pixelSize: 13
-                  color: Style.accentCyan
-                  font.weight: Font.Bold
-                }
-              }
-
-              MouseArea {
-                id: itemHover
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (isActive) return
-                  root.selectedSsid = modelData.ssid || ""
-                  if (modelData.security === "OPEN" || (modelData.is_saved && modelData.has_password !== false)) {
-                    if (ipc) ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
-                  } else {
-                    root.wifiPasswordInput = ""
-                    root.showPasswordModal = true
-                  }
-                }
-              }
-            }
-
-            // Empty state placeholder
-            Item {
               anchors.centerIn: parent
-              visible: wifiList.count === 0
-              Column {
-                anchors.centerIn: parent
-                spacing: 4
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Ağlar Taranıyor..."
-                  color: Style.textPrimary
-                  font.pixelSize: 12
-                  font.weight: Font.Bold
-                }
-                Text {
-                  anchors.horizontalCenter: parent.horizontalCenter
-                  text: "Çevredeki Wi-Fi ağları aranıyor, lütfen bekleyin."
-                  color: Style.textMuted
-                  font.pixelSize: 10
-                }
+              text: root.isWifiConnected ? "󰤨" : "󰤮"
+              font.pixelSize: 14
+              color: root.isWifiConnected ? "#000000" : Style.textMuted
+            }
+          }
+
+          Column {
+            Layout.fillWidth: true
+            spacing: 1
+
+            Text {
+              width: parent.width
+              text: (ipc && ipc.wifi && ipc.wifi.ssid && ipc.wifi.ssid !== "Kapalı")
+                ? ipc.wifi.ssid
+                : (root.isWifiConnected ? "Bağlı Ağ" : "Bağlantı Yok")
+              font.family: Style.fontDisplay
+              font.pixelSize: 12
+              font.weight: Font.DemiBold
+              color: Style.textPrimary
+              elide: Text.ElideRight
+            }
+
+            Text {
+              text: root.isWifiConnected
+                ? `Sinyal %${ipc.wifi.signal || 75}`
+                : "Bağlanmak için bir ağ seçin"
+              font.family: Style.fontText
+              font.pixelSize: 10
+              color: root.isWifiConnected ? Style.textSecondary : Style.textMuted
+            }
+          }
+
+          Rectangle {
+            visible: root.isWifiConnected
+            Layout.preferredHeight: 24
+            Layout.preferredWidth: 56
+            radius: 12
+            color: disHover.containsMouse
+              ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.24)
+              : Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.14)
+
+            Text {
+              anchors.centerIn: parent
+              text: "Kes"
+              font.family: Style.fontDisplay
+              font.pixelSize: 10
+              font.weight: Font.DemiBold
+              color: Style.accentRed
+            }
+
+            MouseArea {
+              id: disHover
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (ipc) ipc.sendAction("disconnect_wifi", {})
               }
             }
           }
         }
+      }
 
-        // Inline Password Input Sheet
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.preferredHeight: 42
-          radius: 8
-          color: Style.surfaceActive
-          border.color: Style.accentCyan
-          border.width: 1
-          visible: root.showPasswordModal
+      // Scanned Access Points Continuous List
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        radius: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+        border.color: Style.borderSubtle
+        border.width: 1
+        clip: true
 
-          RowLayout {
-            anchors.fill: parent
-            anchors.margins: 6
-            spacing: 6
+        ListView {
+          id: wifiList
+          anchors.fill: parent
+          anchors.margins: 5
+          spacing: 2
+          reuseItems: true
+          cacheBuffer: 60
+          boundsBehavior: Flickable.StopAtBounds
+          model: {
+            if (!ipc || !ipc.wifi) return []
+            let res = ipc.wifi.access_points || ipc.wifi.scan_results || []
+            return Array.isArray(res) ? res : []
+          }
 
-            TextInput {
-              id: passInput
-              Layout.fillWidth: true
-              verticalAlignment: TextInput.AlignVCenter
-              color: Style.textPrimary
-              font.pixelSize: 12
-              echoMode: TextInput.Password
-              text: root.wifiPasswordInput
-              onTextChanged: root.wifiPasswordInput = text
-              focus: root.showPasswordModal
-              onAccepted: {
+          delegate: Rectangle {
+            width: wifiList.width
+            height: 44
+            radius: 10
+            readonly property bool isActive: !!(modelData.is_active || modelData.is_connected)
+            color: isActive
+              ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.14)
+              : (itemHover.containsMouse ? Style.surfaceHover : "transparent")
+
+            Behavior on color { ColorAnimation { duration: 140 } }
+
+            RowLayout {
+              anchors.fill: parent
+              anchors.leftMargin: 10
+              anchors.rightMargin: 10
+              spacing: 10
+
+              Text {
+                text: (modelData.signal >= 70) ? "󰤨" : ((modelData.signal >= 45) ? "󰤥" : ((modelData.signal >= 20) ? "󰤢" : "󰤟"))
+                font.pixelSize: 15
+                color: isActive ? Style.accent : Style.textPrimary
+              }
+
+              Column {
+                Layout.fillWidth: true
+                spacing: 1
+
+                Text {
+                  width: parent.width
+                  text: modelData.ssid || "Gizli Ağ"
+                  font.family: Style.fontDisplay
+                  font.pixelSize: 11
+                  font.weight: isActive ? Font.DemiBold : Font.Medium
+                  color: Style.textPrimary
+                  elide: Text.ElideRight
+                }
+
+                Text {
+                  text: `${modelData.band || "2.4/5GHz"} · %${modelData.signal || 0}`
+                  font.family: Style.fontText
+                  font.pixelSize: 10
+                  color: Style.textMuted
+                }
+              }
+
+              // Subtle Lock Glyph for Encrypted Networks
+              Text {
+                visible: !!(modelData.security && modelData.security !== "OPEN")
+                text: "󰌾"
+                font.pixelSize: 11
+                color: Style.textMuted
+              }
+
+              // Active Checkmark
+              Text {
+                visible: isActive
+                text: "󰄬"
+                font.pixelSize: 13
+                color: Style.accent
+              }
+            }
+
+            MouseArea {
+              id: itemHover
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                if (isActive) return
+                root.selectedSsid = modelData.ssid || ""
+                if (modelData.security === "OPEN" || (modelData.is_saved && modelData.has_password !== false)) {
+                  if (ipc) ipc.sendAction("connect_wifi", { "ssid": modelData.ssid, "password": "" })
+                } else {
+                  root.wifiPasswordInput = ""
+                  root.showPasswordModal = true
+                }
+              }
+            }
+          }
+
+          Item {
+            anchors.centerIn: parent
+            visible: wifiList.count === 0
+            Text {
+              anchors.centerIn: parent
+              text: "Wi-Fi ağları taranıyor..."
+              font.family: Style.fontText
+              color: Style.textMuted
+              font.pixelSize: 11
+            }
+          }
+        }
+      }
+
+      // Inline Password Input Sheet
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 40
+        radius: 12
+        color: Style.surfaceVariant
+        border.color: Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.35)
+        border.width: 1
+        visible: root.showPasswordModal
+
+        RowLayout {
+          anchors.fill: parent
+          anchors.leftMargin: 12
+          anchors.rightMargin: 6
+          spacing: 6
+
+          TextInput {
+            id: passInput
+            Layout.fillWidth: true
+            verticalAlignment: TextInput.AlignVCenter
+            color: Style.textPrimary
+            font.family: Style.fontText
+            font.pixelSize: 12
+            echoMode: TextInput.Password
+            text: root.wifiPasswordInput
+            onTextChanged: root.wifiPasswordInput = text
+            focus: root.showPasswordModal
+            onAccepted: {
+              if (ipc && root.selectedSsid) {
+                ipc.sendAction("connect_wifi", { "ssid": root.selectedSsid, "password": root.wifiPasswordInput })
+              }
+              root.showPasswordModal = false
+            }
+
+            Text {
+              anchors.fill: parent
+              verticalAlignment: Text.AlignVCenter
+              text: `${root.selectedSsid} parolası...`
+              font.family: Style.fontText
+              color: Style.textMuted
+              font.pixelSize: 11
+              visible: !passInput.text && !passInput.activeFocus
+            }
+          }
+
+          Rectangle {
+            Layout.preferredWidth: 64
+            Layout.preferredHeight: 28
+            radius: 10
+            color: Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.24)
+
+            Text {
+              anchors.centerIn: parent
+              text: "Bağlan"
+              font.family: Style.fontDisplay
+              font.pixelSize: 11
+              font.weight: Font.DemiBold
+              color: Style.accent
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
                 if (ipc && root.selectedSsid) {
                   ipc.sendAction("connect_wifi", { "ssid": root.selectedSsid, "password": root.wifiPasswordInput })
                 }
                 root.showPasswordModal = false
               }
+            }
+          }
 
-              Text {
-                anchors.fill: parent
-                verticalAlignment: Text.AlignVCenter
-                text: `${root.selectedSsid} ağ parolası...`
-                color: Style.textMuted
-                font.pixelSize: 12
-                visible: !passInput.text && !passInput.activeFocus
-              }
+          Rectangle {
+            Layout.preferredWidth: 28
+            Layout.preferredHeight: 28
+            radius: 10
+            color: Style.surface
+
+            Text {
+              anchors.centerIn: parent
+              text: "󰅖"
+              font.pixelSize: 12
+              color: Style.textMuted
             }
 
-            // Connect Button
-            Rectangle {
-              Layout.preferredWidth: 68
-              Layout.preferredHeight: 28
-              radius: 6
-              color: Style.accent
-
-              Text {
-                anchors.centerIn: parent
-                text: "Bağlan"
-                font.pixelSize: 11
-                font.weight: Font.Bold
-                color: "#ffffff"
-              }
-
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (ipc && root.selectedSsid) {
-                    ipc.sendAction("connect_wifi", { "ssid": root.selectedSsid, "password": root.wifiPasswordInput })
-                  }
-                  root.showPasswordModal = false
-                }
-              }
-            }
-
-            // Cancel Button
-            Rectangle {
-              Layout.preferredWidth: 28
-              Layout.preferredHeight: 28
-              radius: 6
-              color: Style.surfaceVariant
-
-              Text {
-                anchors.centerIn: parent
-                text: "✕"
-                font.pixelSize: 11
-                color: Style.textMuted
-              }
-
-              MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.showPasswordModal = false
-              }
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.showPasswordModal = false
             }
           }
         }

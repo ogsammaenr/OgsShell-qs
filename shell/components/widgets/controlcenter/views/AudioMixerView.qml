@@ -532,81 +532,25 @@ Item {
   // =========================================================================
   ColumnLayout {
     anchors.fill: parent
-    spacing: 8
+    spacing: 10
 
-    // -----------------------------------------------------------------------
-    // 1. Header Bar: Navigation, Title & Refresh Action
-    // -----------------------------------------------------------------------
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 8
+    // 1. Unified Apple HIG Header
+    CCViewHeader {
+      title: "Ses Karıştırıcısı"
+      onBackRequested: root.backRequested()
 
-      // Back Button
       Rectangle {
-        width: 26
-        height: 26
+        Layout.preferredWidth: 26
+        Layout.preferredHeight: 26
         radius: 13
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-        border.color: backHover.containsMouse ? Style.borderHover : Style.border
+        color: refHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
         border.width: 1
 
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Text {
-          anchors.centerIn: parent
-          text: "󰁍"
-          font.pixelSize: 13
-          color: Style.textPrimary
-        }
-
-        MouseArea {
-          id: backHover
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      // Title & Badge
-      RowLayout {
-        Layout.fillWidth: true
-        spacing: 6
-
-        Rectangle {
-          width: 24
-          height: 24
-          radius: 6
-          color: Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.16)
-
-          Text {
-            anchors.centerIn: parent
-            text: "󰓃"
-            font.pixelSize: 14
-            color: Style.accent
-          }
-        }
-
-        Text {
-          text: "Ses Karıştırıcısı"
-          font.pixelSize: 13
-          font.weight: Font.Bold
-          color: Style.textPrimary
-        }
-      }
-
-      // Refresh Button
-      Rectangle {
-        width: 26
-        height: 26
-        radius: 13
-        color: refHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
-        border.color: refHover.containsMouse ? Style.borderHover : Style.border
-        border.width: 1
-
-        Behavior on color { ColorAnimation { duration: 150 } }
-
-        Text {
+          id: mixerRefIcon
           anchors.centerIn: parent
           text: "󰑐"
           font.pixelSize: 13
@@ -618,6 +562,9 @@ Item {
             from: 0
             to: 360
             duration: 800
+            onRunningChanged: {
+              if (!running) mixerRefIcon.rotation = 0
+            }
           }
         }
 
@@ -631,176 +578,64 @@ Item {
       }
     }
 
-    // -----------------------------------------------------------------------
-    // 2. Apple Segmented Pill Tab Bar (Uygulamalar / Çıkış Cihazları)
-    // -----------------------------------------------------------------------
-    Rectangle {
-      Layout.fillWidth: true
-      height: 30
-      radius: 8
-      color: Style.surfaceVariant
-      border.color: Style.border
-      border.width: 1
-
-      RowLayout {
-        anchors.fill: parent
-        anchors.margins: 2
-        spacing: 2
-
-        // Tab 0: Uygulamalar
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 6
-          color: root.activeTab === 0 ? Style.surfaceActive : "transparent"
-          border.color: root.activeTab === 0 ? Style.borderHover : "transparent"
-          border.width: root.activeTab === 0 ? 1 : 0
-
-          Behavior on color { ColorAnimation { duration: 150 } }
-
-          Row {
-            anchors.centerIn: parent
-            spacing: 6
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Uygulamalar"
-              font.pixelSize: 11
-              font.weight: root.activeTab === 0 ? Font.Bold : Font.Normal
-              color: root.activeTab === 0 ? Style.textPrimary : Style.textMuted
-            }
-
-            Rectangle {
-              anchors.verticalCenter: parent.verticalCenter
-              width: appBadgeTxt.implicitWidth + 8
-              height: 14
-              radius: 7
-              color: root.activeTab === 0 ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.25) : Style.surface
-              visible: streamsModel.count > 0
-
-              Text {
-                id: appBadgeTxt
-                anchors.centerIn: parent
-                text: "" + streamsModel.count
-                font.pixelSize: 9
-                font.weight: Font.DemiBold
-                color: root.activeTab === 0 ? Style.accent : Style.textMuted
-              }
-            }
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.activeTab = 0
-          }
+    // 2. Spring-Animated Sliding Segmented Control
+    CCSegmentedControl {
+      currentIndex: root.activeTab
+      items: [
+        {
+          "label": "Uygulamalar",
+          "badge": streamsModel.count > 0 ? String(streamsModel.count) : ""
+        },
+        {
+          "label": "Çıkış Aygıtları",
+          "badge": sinksModel.count > 0 ? String(sinksModel.count) : ""
         }
-
-        // Tab 1: Çıkış Cihazları
-        Rectangle {
-          Layout.fillWidth: true
-          Layout.fillHeight: true
-          radius: 6
-          color: root.activeTab === 1 ? Style.surfaceActive : "transparent"
-          border.color: root.activeTab === 1 ? Style.borderHover : "transparent"
-          border.width: root.activeTab === 1 ? 1 : 0
-
-          Behavior on color { ColorAnimation { duration: 150 } }
-
-          Row {
-            anchors.centerIn: parent
-            spacing: 6
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Çıkış Aygıtları"
-              font.pixelSize: 11
-              font.weight: root.activeTab === 1 ? Font.Bold : Font.Normal
-              color: root.activeTab === 1 ? Style.textPrimary : Style.textMuted
-            }
-
-            Rectangle {
-              anchors.verticalCenter: parent.verticalCenter
-              width: sinkBadgeTxt.implicitWidth + 8
-              height: 14
-              radius: 7
-              color: root.activeTab === 1 ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.25) : Style.surface
-              visible: sinksModel.count > 0
-
-              Text {
-                id: sinkBadgeTxt
-                anchors.centerIn: parent
-                text: "" + sinksModel.count
-                font.pixelSize: 9
-                font.weight: Font.DemiBold
-                color: root.activeTab === 1 ? Style.accent : Style.textMuted
-              }
-            }
-          }
-
-          MouseArea {
-            anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.activeTab = 1
-          }
-        }
+      ]
+      onSelected: idx => {
+        root.activeTab = idx
       }
     }
 
-    // -----------------------------------------------------------------------
     // 3. Tab Content View
-    // -----------------------------------------------------------------------
     Item {
       Layout.fillWidth: true
       Layout.fillHeight: true
 
-      // =====================================================================
       // VIEW 1: Active Application Streams
-      // =====================================================================
       Item {
         anchors.fill: parent
         visible: root.activeTab === 0
 
-        // Empty State: No active audio streams
         ColumnLayout {
           anchors.centerIn: parent
           visible: streamsModel.count === 0
-          spacing: 8
+          spacing: 6
 
-          Rectangle {
+          Text {
             Layout.alignment: Qt.AlignHCenter
-            width: 44
-            height: 44
-            radius: 22
-            color: Style.surfaceVariant
-            border.color: Style.border
-            border.width: 1
-
-            Text {
-              anchors.centerIn: parent
-              text: "󰎆"
-              font.pixelSize: 20
-              color: Style.textMuted
-            }
+            text: "󰎆"
+            font.pixelSize: 22
+            color: Style.textMuted
           }
 
           Text {
             Layout.alignment: Qt.AlignHCenter
             text: "Aktif ses akışı yok"
+            font.family: Style.fontDisplay
             font.pixelSize: 12
-            font.weight: Font.DemiBold
-            color: Style.textPrimary
+            font.weight: Font.Medium
+            color: Style.textSecondary
           }
 
           Text {
             Layout.alignment: Qt.AlignHCenter
             text: "Bir müzik, video veya oyun sesi başlatın"
+            font.family: Style.fontText
             font.pixelSize: 10
             color: Style.textMuted
           }
         }
 
-        // Active Streams List
         ListView {
           id: streamsList
           anchors.fill: parent
@@ -820,7 +655,7 @@ Item {
               implicitWidth: 3
               radius: 2
               color: Style.textMuted
-              opacity: 0.45
+              opacity: 0.4
             }
           }
 
@@ -828,9 +663,9 @@ Item {
             id: streamDelegateItem
             width: streamsList.width
             height: 64
-            radius: 10
-            color: Style.surfaceVariant
-            border.color: Style.border
+            radius: 12
+            color: Style.surface
+            border.color: Style.borderSubtle
             border.width: 1
 
             readonly property string rowKey: model.itemKey
@@ -844,36 +679,34 @@ Item {
             ColumnLayout {
               anchors.fill: parent
               anchors.margins: 8
-              spacing: 4
+              spacing: 5
 
-              // Stream Title Row
               RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
-                // App Glyph Badge
                 Rectangle {
-                  width: 22
-                  height: 22
-                  radius: 5
-                  color: Style.surface
+                  Layout.preferredWidth: 24
+                  Layout.preferredHeight: 24
+                  radius: 12
+                  color: Style.surfaceVariant
 
                   Text {
                     anchors.centerIn: parent
                     text: root.getAppGlyph(streamDelegateItem.rowName)
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                     color: Style.accent
                   }
                 }
 
-                // App Name & Subtitle
                 Column {
                   Layout.fillWidth: true
-                  spacing: 1
+                  spacing: 0
 
                   Text {
                     width: parent.width
                     text: streamDelegateItem.rowName || "Uygulama"
+                    font.family: Style.fontDisplay
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     color: Style.textPrimary
@@ -884,28 +717,28 @@ Item {
                     width: parent.width
                     text: {
                       let mediaTxt = (streamDelegateItem.rowMedia && streamDelegateItem.rowMedia !== "(null)") ? streamDelegateItem.rowMedia : "Ses Akışı"
-                      return streamDelegateItem.rowStreamCount > 1 ? (streamDelegateItem.rowStreamCount + " akış • " + mediaTxt) : mediaTxt
+                      return streamDelegateItem.rowStreamCount > 1 ? (streamDelegateItem.rowStreamCount + " akış · " + mediaTxt) : mediaTxt
                     }
+                    font.family: Style.fontText
                     font.pixelSize: 9
                     color: Style.textMuted
                     elide: Text.ElideRight
                   }
                 }
 
-                // Stream Mute Toggle Button
                 Rectangle {
-                  width: 24
-                  height: 24
+                  Layout.preferredWidth: 24
+                  Layout.preferredHeight: 24
                   radius: 12
-                  color: streamDelegateItem.rowMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (streamMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: streamDelegateItem.rowMute ? Style.accentRed : Style.border
-                  border.width: 1
+                  color: streamDelegateItem.rowMute
+                    ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20)
+                    : (streamMuteHover.containsMouse ? Style.surfaceHover : "transparent")
 
                   Text {
                     anchors.centerIn: parent
                     text: streamDelegateItem.rowMute ? "󰖁" : (streamDelegateItem.rowVol > 50 ? "󰕾" : (streamDelegateItem.rowVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: streamDelegateItem.rowMute ? Style.accentRed : Style.textPrimary
+                    color: streamDelegateItem.rowMute ? Style.accentRed : Style.textSecondary
                   }
 
                   MouseArea {
@@ -918,7 +751,6 @@ Item {
                 }
               }
 
-              // Stream Volume Slider Capsule
               VolumeCapsuleSlider {
                 volume: streamDelegateItem.rowVol
                 muted: streamDelegateItem.rowMute
@@ -939,9 +771,7 @@ Item {
         }
       }
 
-      // =====================================================================
       // VIEW 2: Output Sinks (Devices)
-      // =====================================================================
       Item {
         anchors.fill: parent
         visible: root.activeTab === 1
@@ -964,7 +794,7 @@ Item {
               implicitWidth: 3
               radius: 2
               color: Style.textMuted
-              opacity: 0.45
+              opacity: 0.4
             }
           }
 
@@ -972,9 +802,11 @@ Item {
             id: sinkDelegateItem
             width: sinksList.width
             height: 64
-            radius: 10
-            color: Style.surfaceVariant
-            border.color: sinkDelegateItem.rowIsDefault ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.45) : Style.border
+            radius: 12
+            color: sinkDelegateItem.rowIsDefault
+              ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.10)
+              : Style.surface
+            border.color: Style.borderSubtle
             border.width: 1
 
             readonly property string rowKey: model.itemKey
@@ -989,36 +821,34 @@ Item {
             ColumnLayout {
               anchors.fill: parent
               anchors.margins: 8
-              spacing: 4
+              spacing: 5
 
-              // Sink Device Header Row
               RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
-                // Device Glyph Badge
                 Rectangle {
-                  width: 22
-                  height: 22
-                  radius: 5
-                  color: Style.surface
+                  Layout.preferredWidth: 24
+                  Layout.preferredHeight: 24
+                  radius: 12
+                  color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.surfaceVariant
 
                   Text {
                     anchors.centerIn: parent
                     text: root.getSinkGlyph(sinkDelegateItem.rowName, sinkDelegateItem.rowDesc, sinkDelegateItem.rowPort)
-                    font.pixelSize: 13
-                    color: Style.accent
+                    font.pixelSize: 12
+                    color: sinkDelegateItem.rowIsDefault ? "#000000" : Style.textSecondary
                   }
                 }
 
-                // Device Description
                 Column {
                   Layout.fillWidth: true
-                  spacing: 1
+                  spacing: 0
 
                   Text {
                     width: parent.width
                     text: sinkDelegateItem.rowDesc || sinkDelegateItem.rowName
+                    font.family: Style.fontDisplay
                     font.pixelSize: 11
                     font.weight: Font.DemiBold
                     color: Style.textPrimary
@@ -1027,31 +857,41 @@ Item {
 
                   Text {
                     width: parent.width
-                    text: sinkDelegateItem.rowPort ? ("Port: " + sinkDelegateItem.rowPort) : "Çıkış Aygıtı"
+                    text: sinkDelegateItem.rowPort ? sinkDelegateItem.rowPort : "Çıkış Aygıtı"
+                    font.family: Style.fontText
                     font.pixelSize: 9
                     color: Style.textMuted
                     elide: Text.ElideRight
                   }
                 }
 
-                // Default Sink Set Button
                 Rectangle {
-                  width: defaultTxt.implicitWidth + 10
-                  height: 20
+                  Layout.preferredWidth: defaultRow.implicitWidth + 12
+                  Layout.preferredHeight: 20
                   radius: 10
                   color: sinkDelegateItem.rowIsDefault
-                    ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.18)
-                    : (defaultHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.border
-                  border.width: 1
+                    ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.20)
+                    : (defaultHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant)
 
-                  Text {
-                    id: defaultTxt
+                  Row {
+                    id: defaultRow
                     anchors.centerIn: parent
-                    text: sinkDelegateItem.rowIsDefault ? "✓ Varsayılan" : "Varsayılan"
-                    font.pixelSize: 9
-                    font.weight: sinkDelegateItem.rowIsDefault ? Font.DemiBold : Font.Medium
-                    color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.textSecondary
+                    spacing: 3
+                    Text {
+                      visible: sinkDelegateItem.rowIsDefault
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: "󰄬"
+                      font.pixelSize: 10
+                      color: Style.accent
+                    }
+                    Text {
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: "Varsayılan"
+                      font.family: Style.fontDisplay
+                      font.pixelSize: 9
+                      font.weight: sinkDelegateItem.rowIsDefault ? Font.DemiBold : Font.Medium
+                      color: sinkDelegateItem.rowIsDefault ? Style.accent : Style.textSecondary
+                    }
                   }
 
                   MouseArea {
@@ -1063,20 +903,19 @@ Item {
                   }
                 }
 
-                // Sink Mute Button
                 Rectangle {
-                  width: 24
-                  height: 24
+                  Layout.preferredWidth: 24
+                  Layout.preferredHeight: 24
                   radius: 12
-                  color: sinkDelegateItem.rowMute ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20) : (sinkMuteHover.containsMouse ? Style.surfaceHover : Style.surface)
-                  border.color: sinkDelegateItem.rowMute ? Style.accentRed : Style.border
-                  border.width: 1
+                  color: sinkDelegateItem.rowMute
+                    ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20)
+                    : (sinkMuteHover.containsMouse ? Style.surfaceHover : "transparent")
 
                   Text {
                     anchors.centerIn: parent
                     text: sinkDelegateItem.rowMute ? "󰖁" : (sinkDelegateItem.rowVol > 50 ? "󰕾" : (sinkDelegateItem.rowVol > 0 ? "󰖀" : "󰕿"))
                     font.pixelSize: 12
-                    color: sinkDelegateItem.rowMute ? Style.accentRed : Style.textPrimary
+                    color: sinkDelegateItem.rowMute ? Style.accentRed : Style.textSecondary
                   }
 
                   MouseArea {
@@ -1089,7 +928,6 @@ Item {
                 }
               }
 
-              // Master Sink Volume Slider Capsule
               VolumeCapsuleSlider {
                 volume: sinkDelegateItem.rowVol
                 muted: sinkDelegateItem.rowMute

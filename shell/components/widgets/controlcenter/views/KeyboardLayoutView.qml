@@ -18,15 +18,12 @@ Item {
       ipc.setConfiguredKeyboardLayouts([code, "tr", "us"], [])
       ipc.switchKeyboardLayout(code)
     }
-    // Direct hyprctl fallback
     hyprCmdProc.command = ["hyprctl", "switchxkblayout", "all", code]
     hyprCmdProc.running = true
   }
 
   function cycleNextLayout() {
-    if (ipc) {
-      ipc.switchKeyboardLayout("next")
-    }
+    if (ipc) ipc.switchKeyboardLayout("next")
     hyprCmdProc.command = ["hyprctl", "switchxkblayout", "all", "next"]
     hyprCmdProc.running = true
   }
@@ -40,125 +37,66 @@ Item {
 
   ColumnLayout {
     anchors.fill: parent
-    spacing: 8
+    spacing: 10
 
-    // Header
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 8
+    // Unified Apple HIG Header
+    CCViewHeader {
+      title: "Klavye Düzeni"
+      subtitle: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_keymap) ? ipc.keyboardLayout.current_keymap : "Türkçe (TR)"
+      onBackRequested: root.backRequested()
 
+      // Cycle Next Layout Capsule
       Rectangle {
-        width: 24
-        height: 24
-        radius: 12
-        color: backHover.containsMouse ? Style.surfaceHover : Style.surfaceVariant
+        Layout.preferredHeight: 26
+        Layout.preferredWidth: nextLayRow.implicitWidth + 16
+        radius: 13
+        color: nextLayoutHover.containsMouse ? Style.surfaceHover : Style.surface
+        border.color: Style.borderSubtle
+        border.width: 1
 
-        Text {
+        Behavior on color { ColorAnimation { duration: 140 } }
+
+        Row {
+          id: nextLayRow
           anchors.centerIn: parent
-          text: "‹"
-          font.pixelSize: 16
-          font.weight: Font.Bold
-          color: Style.textPrimary
+          spacing: 5
+          Text { anchors.verticalCenter: parent.verticalCenter; text: "󰑐"; font.pixelSize: 11; color: Style.textSecondary }
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "Sonraki"
+            font.family: Style.fontDisplay
+            font.pixelSize: 10
+            font.weight: Font.DemiBold
+            color: Style.textPrimary
+          }
         }
 
         MouseArea {
-          id: backHover
+          id: nextLayoutHover
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: root.backRequested()
-        }
-      }
-
-      Text {
-        text: "Klavye Düzeni"
-        color: Style.textPrimary
-        font.pixelSize: 13
-        font.weight: Font.Bold
-        Layout.fillWidth: true
-      }
-    }
-
-    // Active Layout Banner
-    Rectangle {
-      Layout.fillWidth: true
-      Layout.preferredHeight: 44
-      radius: 8
-      color: Style.surfaceVariant
-      border.color: Style.accentCyan
-      border.width: 1
-
-      RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 10
-
-        Text {
-          text: "󰌌"
-          font.pixelSize: 18
-          color: Style.accentCyan
-        }
-
-        Column {
-          Layout.fillWidth: true
-          spacing: 1
-          Text {
-            text: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_keymap) ? ipc.keyboardLayout.current_keymap : "Türkçe (TR)"
-            font.pixelSize: 12
-            font.weight: Font.Bold
-            color: Style.textPrimary
-          }
-          Text {
-            text: `Aktif Kısa Kod: ${(ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code : "TR"}`
-            font.pixelSize: 10
-            color: Style.textMuted
-          }
-        }
-
-        // Switch Next Layout Button
-        Rectangle {
-          Layout.preferredHeight: 26
-          Layout.preferredWidth: 88
-          radius: 6
-          color: nextLayoutHover.containsMouse ? Style.surfaceActive : Style.surface
-          border.color: Style.border
-          border.width: 1
-
-          Text {
-            anchors.centerIn: parent
-            text: "Sonraki (↻)"
-            font.pixelSize: 10
-            font.weight: Font.DemiBold
-            color: Style.accentCyan
-          }
-
-          MouseArea {
-            id: nextLayoutHover
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: root.cycleNextLayout()
-          }
+          onClicked: root.cycleNextLayout()
         }
       }
     }
 
-    // Configured Layouts List
+    // Continuous Layout List Surface
     Rectangle {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      radius: 10
-      color: Style.surface
-      border.color: Style.border
+      radius: 14
+      color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.04)
+      border.color: Style.borderSubtle
       border.width: 1
       clip: true
 
       ListView {
         id: layoutList
         anchors.fill: parent
-        anchors.margins: 6
-        spacing: 4
+        anchors.margins: 5
+        spacing: 2
+        boundsBehavior: Flickable.StopAtBounds
         model: [
           { "code": "tr", "name": "Türkçe (Q - Standart)", "short": "TR" },
           { "code": "us", "name": "English (US)", "short": "US" },
@@ -168,8 +106,8 @@ Item {
 
         delegate: Rectangle {
           width: layoutList.width
-          height: 44
-          radius: 8
+          height: 48
+          radius: 10
           readonly property bool isActive: {
             if (!ipc || !ipc.keyboardLayout) return modelData.code === "tr"
             let cur = (ipc.keyboardLayout.current_layout_code || "").toLowerCase()
@@ -177,44 +115,49 @@ Item {
             return cur === modelData.code || shortC === modelData.short
           }
 
-          color: isActive ? Style.surfaceActive : (layHover.containsMouse ? Style.surfaceVariant : "transparent")
-          border.color: isActive ? Style.accentCyan : "transparent"
-          border.width: 1
+          color: isActive
+            ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.14)
+            : (layHover.containsMouse ? Style.surfaceHover : "transparent")
+
+          Behavior on color { ColorAnimation { duration: 140 } }
 
           RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 10
-            anchors.rightMargin: 10
+            anchors.rightMargin: 12
             spacing: 10
 
             Rectangle {
-              width: 32
-              height: 24
-              radius: 5
-              color: isActive ? Style.accentCyan : Style.surfaceVariant
+              Layout.preferredWidth: 32
+              Layout.preferredHeight: 24
+              radius: 7
+              color: isActive ? Style.accent : Style.surfaceVariant
+
               Text {
                 anchors.centerIn: parent
                 text: modelData.short
-                font.pixelSize: 11
+                font.family: Style.fontDisplay
+                font.pixelSize: 10
                 font.weight: Font.Bold
-                color: isActive ? "#000000" : Style.textPrimary
+                color: isActive ? "#000000" : Style.textSecondary
               }
             }
 
             Text {
-              text: modelData.name
-              font.pixelSize: 12
-              font.weight: isActive ? Font.Bold : Font.Medium
-              color: isActive ? Style.accentCyan : Style.textPrimary
               Layout.fillWidth: true
+              text: modelData.name
+              font.family: Style.fontDisplay
+              font.pixelSize: 12
+              font.weight: isActive ? Font.DemiBold : Font.Medium
+              color: Style.textPrimary
+              elide: Text.ElideRight
             }
 
             Text {
               visible: isActive
-              text: "✓"
+              text: "󰄬"
               font.pixelSize: 13
-              color: Style.accentCyan
-              font.weight: Font.Bold
+              color: Style.accent
             }
           }
 

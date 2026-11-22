@@ -15,6 +15,8 @@ Item {
   property bool isMuted: false
   property int brightnessLevel: 70
   property bool gameModeActive: false
+  property bool isDraggingBrightness: false
+  property bool isDraggingVolume: false
 
   // Telemetry properties
   readonly property bool isWifiInterface: !!(ipc && ipc.net && ipc.net.interface && (ipc.net.interface.startsWith("wl") || ipc.net.interface.startsWith("wifi")))
@@ -26,7 +28,7 @@ Item {
   readonly property string networkTitleText: isEthernetConnected ? "Kablolu Ağ" : "Wi-Fi"
   readonly property string networkSubtitleText: {
     if (isEthernetConnected) {
-      return (ipc && ipc.net && ipc.net.interface) ? `Bağlı (${ipc.net.interface})` : "Kablolu Bağlantı Aktif"
+      return (ipc && ipc.net && ipc.net.interface) ? `Bağlı · ${ipc.net.interface}` : "Bağlı"
     }
     return root.wifiSsidText
   }
@@ -36,7 +38,27 @@ Item {
     return "󰤮"
   }
   readonly property bool isBtPowered: !!(ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered)
+  readonly property string btSubtitleText: {
+    if (!isBtPowered) return "Kapalı"
+    if (ipc && ipc.bluetooth && ipc.bluetooth.devices) {
+      for (let i = 0; i < ipc.bluetooth.devices.length; i++) {
+        if (ipc.bluetooth.devices[i].connected) {
+          return ipc.bluetooth.devices[i].name || "Bağlı"
+        }
+      }
+    }
+    return "Açık"
+  }
   readonly property int notifCount: (ipc && ipc.notifications) ? ipc.notifications.length : 0
+  readonly property int unreadNotifCount: (ipc && ipc.unreadNotificationCount !== undefined) ? ipc.unreadNotificationCount : 0
+  readonly property string activeThemeShortName: {
+    let raw = (ipc && ipc.currentTheme && ipc.currentTheme.name) ? ipc.currentTheme.name : (Style.activeThemeName || "Tema")
+    if (raw.indexOf("Catppuccin") !== -1) return "Catppuccin"
+    if (raw.indexOf("Everforest") !== -1) return "Everforest"
+    if (raw.indexOf("Monochrome") !== -1) return "Monochrome"
+    if (raw.indexOf("Gruvbox") !== -1) return "Gruvbox"
+    return raw
+  }
 
   // Native PipeWire Volume & Mute Tracking
   PwObjectTracker {
@@ -110,7 +132,6 @@ Item {
   Process { id: gameModeProc }
 
   function openSettingsApp() {
-    console.log("[ControlCenter] Settings button triggered! Calling SettingsService.open()...")
     SettingsService.open()
   }
 
@@ -159,16 +180,6 @@ Item {
     setBrightProc.running = true
   }
 
-  function toggleGameMode() {
-    root.gameModeActive = !root.gameModeActive
-    if (root.gameModeActive) {
-      gameModeProc.command = ["hyprctl", "--batch", "keyword animations:enabled 0; keyword decoration:blur:enabled 0; keyword decoration:drop_shadow 0"]
-    } else {
-      gameModeProc.command = ["hyprctl", "--batch", "keyword animations:enabled 1; keyword decoration:blur:enabled 1; keyword decoration:drop_shadow 1"]
-    }
-    gameModeProc.running = true
-  }
-
   function formatSpeed(bytes) {
     if (!bytes || bytes <= 0) return "0 B/s"
     if (bytes < 1024) return `${Math.round(bytes)} B/s`
@@ -204,20 +215,20 @@ Item {
     spacing: 10
 
     // ==========================================
-    // ROW 1: Split Connectivity Card + 2x2 Toggles Grid
+    // ROW 1: Grouped Connectivity Card + 2x2 Quick Action Tiles
     // ==========================================
     Row {
       width: parent.width
-      height: 122
+      height: 124
       spacing: 10
 
-      // 1.1 Left Card: Connectivity Group (Wi-Fi & Bluetooth)
+      // 1.1 Left Card: Connectivity Group (Network & Bluetooth)
       Rectangle {
-        width: parent.width - 186
-        height: 122
-        radius: 14
+        width: parent.width - 190
+        height: 124
+        radius: 16
         color: Style.surface
-        border.color: Style.border
+        border.color: Style.borderSubtle
         border.width: 1
 
         Column {
@@ -225,12 +236,14 @@ Item {
           anchors.margins: 6
           spacing: 2
 
-          // Wi-Fi Button
+          // Network (Wi-Fi / Ethernet) Row
           Rectangle {
             width: parent.width
-            height: 52
-            radius: 10
+            height: 54
+            radius: 11
             color: wifiMouse.containsMouse ? Style.surfaceHover : "transparent"
+
+            Behavior on color { ColorAnimation { duration: 140 } }
 
             Row {
               anchors.fill: parent
@@ -238,13 +251,16 @@ Item {
               anchors.rightMargin: 10
               spacing: 10
 
-              // Network (Wi-Fi / Ethernet) Icon Badge
               Rectangle {
-                width: 32
-                height: 32
-                radius: 16
+                width: 34
+                height: 34
+                radius: 17
                 anchors.verticalCenter: parent.verticalCenter
-                color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accentCyan) : Style.surfaceVariant
+                color: root.isNetworkConnected
+                  ? (root.isEthernetConnected ? Style.accentGreen : Style.accent)
+                  : Style.surfaceVariant
+
+                Behavior on color { ColorAnimation { duration: 160 } }
 
                 Text {
                   anchors.centerIn: parent
@@ -254,24 +270,23 @@ Item {
                 }
               }
 
-              // Labels
               Column {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - 64
+                width: parent.width - 68
                 spacing: 1
 
                 Text {
                   text: root.networkTitleText
                   font.family: Style.fontDisplay
                   font.pixelSize: 12
-                  font.weight: Style.fontWeightDisplay
+                  font.weight: Font.DemiBold
                   color: Style.textPrimary
                 }
                 Text {
                   text: root.networkSubtitleText
                   font.family: Style.fontText
                   font.pixelSize: 10
-                  color: root.isNetworkConnected ? (root.isEthernetConnected ? Style.accentGreen : Style.accentCyan) : Style.textMuted
+                  color: root.isNetworkConnected ? Style.textSecondary : Style.textMuted
                   elide: Text.ElideRight
                   width: parent.width
                 }
@@ -279,9 +294,9 @@ Item {
 
               Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "›"
-                font.pixelSize: 15
-                color: Style.textMuted
+                text: "󰅂"
+                font.pixelSize: 14
+                color: wifiMouse.containsMouse ? Style.textSecondary : Style.textMuted
               }
             }
 
@@ -294,21 +309,22 @@ Item {
             }
           }
 
-          // Divider
+          // Subtle Inset Hairline Divider
           Rectangle {
-            width: parent.width - 48
-            x: 42
+            width: parent.width - 54
+            x: 46
             height: 1
-            color: Style.border
-            opacity: 0.4
+            color: Style.borderSubtle
           }
 
-          // Bluetooth Button
+          // Bluetooth Row
           Rectangle {
             width: parent.width
-            height: 52
-            radius: 10
+            height: 54
+            radius: 11
             color: btMouse.containsMouse ? Style.surfaceHover : "transparent"
+
+            Behavior on color { ColorAnimation { duration: 140 } }
 
             Row {
               anchors.fill: parent
@@ -316,13 +332,14 @@ Item {
               anchors.rightMargin: 10
               spacing: 10
 
-              // Bluetooth Icon Badge
               Rectangle {
-                width: 32
-                height: 32
-                radius: 16
+                width: 34
+                height: 34
+                radius: 17
                 anchors.verticalCenter: parent.verticalCenter
                 color: root.isBtPowered ? Style.accentCyan : Style.surfaceVariant
+
+                Behavior on color { ColorAnimation { duration: 160 } }
 
                 Text {
                   anchors.centerIn: parent
@@ -332,32 +349,33 @@ Item {
                 }
               }
 
-              // Labels
               Column {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width - 64
+                width: parent.width - 68
                 spacing: 1
 
                 Text {
                   text: "Bluetooth"
                   font.family: Style.fontDisplay
                   font.pixelSize: 12
-                  font.weight: Style.fontWeightDisplay
+                  font.weight: Font.DemiBold
                   color: Style.textPrimary
                 }
                 Text {
-                  text: root.isBtPowered ? "Açık" : "Kapalı"
+                  text: root.btSubtitleText
                   font.family: Style.fontText
                   font.pixelSize: 10
-                  color: root.isBtPowered ? Style.accentCyan : Style.textMuted
+                  color: root.isBtPowered ? Style.textSecondary : Style.textMuted
+                  elide: Text.ElideRight
+                  width: parent.width
                 }
               }
 
               Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "›"
-                font.pixelSize: 15
-                color: Style.textMuted
+                text: "󰅂"
+                font.pixelSize: 14
+                color: btMouse.containsMouse ? Style.textSecondary : Style.textMuted
               }
             }
 
@@ -374,26 +392,31 @@ Item {
 
       // 1.2 Right 2x2 Action Tiles
       Column {
-        width: 176
-        height: 122
+        width: 180
+        height: 124
         spacing: 8
 
-        // Row 1: GameMode & Notifications
+        // Row 1: Focus Mode & Notifications
         Row {
           width: parent.width
-          height: 57
+          height: 58
           spacing: 8
 
           // Tile 1: Focus Mode (Odak Modu)
           Rectangle {
             width: (parent.width - 8) / 2
             height: parent.height
-            radius: 12
-            color: Config.focusMode ? Style.accent : (focusMouse.containsMouse ? Style.surfaceHover : Style.surface)
-            border.color: Config.focusMode ? Style.accent : Style.border
+            radius: 14
+            color: Config.focusMode
+              ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.22)
+              : (focusMouse.containsMouse ? Style.surfaceHover : Style.surface)
+            border.color: Config.focusMode
+              ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.35)
+              : Style.borderSubtle
             border.width: 1
 
             Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on border.color { ColorAnimation { duration: 150 } }
 
             Column {
               anchors.centerIn: parent
@@ -403,16 +426,16 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Config.focusMode ? "󰈈" : "󰈉"
                 font.pixelSize: 18
-                color: Config.focusMode ? "#ffffff" : Style.accentCyan
+                color: Config.focusMode ? Style.accent : Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Odak Modu"
+                text: "Odak"
                 font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Style.fontWeightDisplay
-                color: Config.focusMode ? "#ffffff" : Style.textPrimary
+                font.weight: Font.DemiBold
+                color: Config.focusMode ? Style.textPrimary : Style.textSecondary
               }
             }
 
@@ -421,20 +444,39 @@ Item {
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: {
-                Config.focusMode = !Config.focusMode
-              }
+              onClicked: Config.focusMode = !Config.focusMode
             }
           }
 
           // Tile 2: Notifications
           Rectangle {
+            id: notifTile
             width: (parent.width - 8) / 2
             height: parent.height
-            radius: 12
-            color: (ipc && ipc.dndEnabled) ? Style.surfaceActive : (notifMouse.containsMouse ? Style.surfaceHover : Style.surface)
-            border.color: (ipc && ipc.dndEnabled) ? Style.accentRed : Style.border
+            radius: 14
+            readonly property bool isDnd: !!(ipc && ipc.dndEnabled)
+            color: isDnd
+              ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.18)
+              : (notifMouse.containsMouse ? Style.surfaceHover : Style.surface)
+            border.color: isDnd
+              ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.32)
+              : Style.borderSubtle
             border.width: 1
+
+            Behavior on color { ColorAnimation { duration: 150 } }
+
+            // Subtle Unread Dot
+            Rectangle {
+              visible: !notifTile.isDnd && root.unreadNotifCount > 0
+              anchors.top: parent.top
+              anchors.topMargin: 8
+              anchors.right: parent.right
+              anchors.rightMargin: 8
+              width: 6
+              height: 6
+              radius: 3
+              color: Style.accent
+            }
 
             Column {
               anchors.centerIn: parent
@@ -442,18 +484,18 @@ Item {
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: (ipc && ipc.dndEnabled) ? "󰂛" : "󰂚"
+                text: notifTile.isDnd ? "󰂛" : "󰂚"
                 font.pixelSize: 18
-                color: (ipc && ipc.dndEnabled) ? Style.accentRed : Style.textPrimary
+                color: notifTile.isDnd ? Style.accentRed : Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Bildirimler"
+                text: notifTile.isDnd ? "Sessizde" : "Bildirim"
                 font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Style.fontWeightDisplay
-                color: Style.textPrimary
+                font.weight: Font.DemiBold
+                color: notifTile.isDnd ? Style.accentRed : Style.textSecondary
               }
             }
 
@@ -470,36 +512,54 @@ Item {
         // Row 2: Themes & Clipboard
         Row {
           width: parent.width
-          height: 57
+          height: 58
           spacing: 8
 
-          // Tile 3: Themes
+          // Tile 3: Appearance / Theme (Left: Open Gallery, Right: Next Wallpaper)
           Rectangle {
             width: (parent.width - 8) / 2
             height: parent.height
-            radius: 12
+            radius: 14
             color: themeMouse.containsMouse ? Style.surfaceHover : Style.surface
-            border.color: Style.border
+            border.color: Style.borderSubtle
             border.width: 1
+
+            Behavior on color { ColorAnimation { duration: 150 } }
+
+            // Live Active Theme Accent Dot
+            Rectangle {
+              anchors.top: parent.top
+              anchors.topMargin: 8
+              anchors.right: parent.right
+              anchors.rightMargin: 8
+              width: 6
+              height: 6
+              radius: 3
+              color: Style.accent
+            }
 
             Column {
               anchors.centerIn: parent
-              spacing: 3
+              width: parent.width - 12
+              spacing: 2
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "󰔎"
-                font.pixelSize: 18
+                font.pixelSize: 17
                 color: Style.textPrimary
               }
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Tema"
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: root.activeThemeShortName
                 font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Style.fontWeightDisplay
-                color: Style.textPrimary
+                font.weight: Font.DemiBold
+                color: Style.textSecondary
+                elide: Text.ElideRight
               }
             }
 
@@ -507,8 +567,15 @@ Item {
               id: themeMouse
               anchors.fill: parent
               hoverEnabled: true
+              acceptedButtons: Qt.LeftButton | Qt.RightButton
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.openView("THEMES")
+              onClicked: mouse => {
+                if (mouse.button === Qt.RightButton) {
+                  if (ipc) ipc.nextWallpaper("")
+                } else {
+                  root.openView("THEMES")
+                }
+              }
             }
           }
 
@@ -516,19 +583,21 @@ Item {
           Rectangle {
             width: (parent.width - 8) / 2
             height: parent.height
-            radius: 12
+            radius: 14
             color: clipMouse.containsMouse ? Style.surfaceHover : Style.surface
-            border.color: Style.border
+            border.color: Style.borderSubtle
             border.width: 1
+
+            Behavior on color { ColorAnimation { duration: 150 } }
 
             Column {
               anchors.centerIn: parent
-              spacing: 3
+              spacing: 2
 
               Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "󰅍"
-                font.pixelSize: 18
+                font.pixelSize: 17
                 color: Style.textPrimary
               }
 
@@ -537,8 +606,8 @@ Item {
                 text: "Pano"
                 font.family: Style.fontDisplay
                 font.pixelSize: 10
-                font.weight: Style.fontWeightDisplay
-                color: Style.textPrimary
+                font.weight: Font.DemiBold
+                color: Style.textSecondary
               }
             }
 
@@ -561,26 +630,30 @@ Item {
       id: brightCapsule
       width: parent.width
       height: 38
-      radius: 12
+      radius: 14
       color: Style.surface
-      border.color: Style.border
+      border.color: Style.borderSubtle
       border.width: 1
       clip: true
 
-      // Filled Active Level
+      // Frosted Active Level Fill
       Rectangle {
         id: brightFill
         height: parent.height
         width: Math.max(0, Math.min(parent.width, parent.width * (root.brightnessLevel / 100.0)))
-        radius: 12
-        color: Style.surfaceActive
-        opacity: 0.85
+        radius: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.14)
+
+        Behavior on width {
+          enabled: !root.isDraggingBrightness
+          NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
       }
 
       // Left Content: Icon + Label
       Row {
         anchors.left: parent.left
-        anchors.leftMargin: 12
+        anchors.leftMargin: 13
         anchors.verticalCenter: parent.verticalCenter
         spacing: 10
 
@@ -601,15 +674,15 @@ Item {
         }
       }
 
-      // Right Content: Percentage Indicator (Strictly Right Aligned)
+      // Right Content: Percentage Readout
       Text {
         anchors.right: parent.right
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: `%${root.brightnessLevel}`
         font.family: Style.fontDisplay
-        font.pixelSize: 12
-        font.weight: Style.fontWeightDisplay
+        font.pixelSize: 11
+        font.weight: Font.DemiBold
         color: Style.textSecondary
       }
 
@@ -623,10 +696,15 @@ Item {
           root.setBrightness(pct)
         }
 
-        onClicked: mouse => updateLevel(mouse)
+        onPressed: mouse => {
+          root.isDraggingBrightness = true
+          updateLevel(mouse)
+        }
         onPositionChanged: mouse => {
           if (pressed) updateLevel(mouse)
         }
+        onReleased: root.isDraggingBrightness = false
+        onCanceled: root.isDraggingBrightness = false
         onWheel: wheel => {
           let delta = wheel.angleDelta.y > 0 ? 5 : -5
           root.setBrightness(root.brightnessLevel + delta)
@@ -641,24 +719,28 @@ Item {
       id: soundCapsule
       width: parent.width
       height: 38
-      radius: 12
+      radius: 14
       color: Style.surface
-      border.color: Style.border
+      border.color: Style.borderSubtle
       border.width: 1
       clip: true
 
-      // Filled Active Level
+      // Frosted Active Level Fill
       Rectangle {
         id: soundFill
         height: parent.height
         width: root.isMuted ? 0 : Math.max(0, Math.min(parent.width, parent.width * (root.volumeLevel / Config.audioMaxVolume)))
-        radius: 12
+        radius: 14
         color: (!root.isMuted && root.volumeLevel >= 135)
-          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.36)
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.28)
           : ((!root.isMuted && root.volumeLevel > 100)
-            ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.34)
-            : Style.surfaceActive)
-        opacity: 0.85
+            ? Qt.rgba(Style.accentOrange.r, Style.accentOrange.g, Style.accentOrange.b, 0.26)
+            : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.14))
+
+        Behavior on width {
+          enabled: !root.isDraggingVolume
+          NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        }
       }
 
       // 100% Threshold Marker (visible when Over-Amplification is enabled)
@@ -667,20 +749,20 @@ Item {
         x: Math.round(parent.width * (100.0 / Config.audioMaxVolume))
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.topMargin: 7
-        anchors.bottomMargin: 7
-        width: 2
+        anchors.topMargin: 8
+        anchors.bottomMargin: 8
+        width: 1.5
         radius: 1
         color: Style.textMuted
-        opacity: 0.55
+        opacity: 0.45
       }
 
       // Left Content: Speaker Icon + Label
       Row {
         anchors.left: parent.left
-        anchors.leftMargin: 12
+        anchors.leftMargin: 10
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 10
+        spacing: 8
 
         // Speaker Icon (Clickable for Mute Toggle)
         Rectangle {
@@ -709,7 +791,7 @@ Item {
 
         Text {
           anchors.verticalCenter: parent.verticalCenter
-          text: root.isMuted ? "Sessiz (Muted)" : (root.volumeLevel > 100 ? "Ses Düzeyi (Boost)" : "Ses Düzeyi")
+          text: root.isMuted ? "Sessiz" : (root.volumeLevel > 100 ? "Ses Düzeyi · Boost" : "Ses Düzeyi")
           font.family: Style.fontDisplay
           font.pixelSize: 12
           font.weight: Font.Medium
@@ -717,45 +799,47 @@ Item {
         }
       }
 
-      // Right Content: Percentage Indicator (Strictly Right Aligned)
+      // Right Content: Percentage Readout
       Text {
         anchors.right: parent.right
         anchors.rightMargin: 14
         anchors.verticalCenter: parent.verticalCenter
         text: root.isMuted ? "0%" : `%${root.volumeLevel}`
         font.family: Style.fontDisplay
-        font.pixelSize: 12
-        font.weight: Style.fontWeightDisplay
+        font.pixelSize: 11
+        font.weight: Font.DemiBold
         color: root.isMuted ? Style.accentRed : (root.volumeLevel >= 135 ? Style.accentRed : (root.volumeLevel > 100 ? Style.accentOrange : Style.textSecondary))
       }
 
-      // Slider MouseArea placed on the track area
+      // Slider MouseArea (Left: Adjust, Right: Open Audio Mixer)
       MouseArea {
         id: soundSliderMouse
         anchors.fill: parent
-        anchors.leftMargin: 38 // Do not overlap speaker mute button
+        anchors.leftMargin: 38
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         preventStealing: true
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
 
         function updateLevel(mouse) {
-          let availableWidth = width
-          let pct = (mouse.x / availableWidth) * Config.audioMaxVolume
+          let pct = (mouse.x / width) * Config.audioMaxVolume
           root.setVolume(pct)
         }
 
         onPressed: mouse => {
-          if (mouse.button === Qt.LeftButton) updateLevel(mouse)
+          if (mouse.button === Qt.LeftButton) {
+            root.isDraggingVolume = true
+            updateLevel(mouse)
+          }
         }
         onPositionChanged: mouse => {
           if (pressed && (mouse.buttons & Qt.LeftButton)) updateLevel(mouse)
         }
+        onReleased: root.isDraggingVolume = false
+        onCanceled: root.isDraggingVolume = false
         onClicked: mouse => {
           if (mouse.button === Qt.RightButton) {
             root.openView("AUDIO_MIXER")
-          } else if (mouse.button === Qt.LeftButton) {
-            updateLevel(mouse)
           }
         }
         onWheel: wheel => {
@@ -766,21 +850,23 @@ Item {
     }
 
     // ==========================================
-    // ROW 4: Status Footer & Power Action
+    // ROW 4: Minimal Status Footer
     // ==========================================
     Row {
       width: parent.width
-      height: 32
+      height: 34
       spacing: 8
 
       // Keyboard Layout Pill
       Rectangle {
-        height: 32
-        width: 76
-        radius: 8
+        height: 34
+        width: 72
+        radius: 11
         color: kbMouse.containsMouse ? Style.surfaceHover : Style.surface
-        border.color: Style.border
+        border.color: Style.borderSubtle
         border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Row {
           anchors.centerIn: parent
@@ -790,7 +876,7 @@ Item {
             text: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code : "TR"
             font.family: Style.fontDisplay
             font.pixelSize: 11
-            font.weight: Style.fontWeightDisplay
+            font.weight: Font.DemiBold
             color: Style.textPrimary
             anchors.verticalCenter: parent.verticalCenter
           }
@@ -807,76 +893,84 @@ Item {
 
       // Minimalist Telemetry Pill (Click to pin beside Dynamic Island)
       Rectangle {
-        width: parent.width - 76 - 40 - 36 - 24
-        height: 32
-        radius: 8
-        color: Config.showPinnedSystemMetrics ? Style.surfaceActive : (telemetryMouse.containsMouse ? Style.surfaceHover : Style.surface)
-        border.color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.borderHover : Style.border)
-        border.width: Config.showPinnedSystemMetrics ? 1.5 : 1
+        width: parent.width - 72 - 36 - 36 - 24
+        height: 34
+        radius: 11
+        color: Config.showPinnedSystemMetrics
+          ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.16)
+          : (telemetryMouse.containsMouse ? Style.surfaceHover : Style.surface)
+        border.color: Config.showPinnedSystemMetrics
+          ? Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.30)
+          : Style.borderSubtle
+        border.width: 1
 
         Behavior on color { ColorAnimation { duration: 150 } }
         Behavior on border.color { ColorAnimation { duration: 150 } }
 
         Row {
           anchors.centerIn: parent
-          spacing: 5
+          spacing: 6
+
+          Text {
+            visible: Config.showPinnedSystemMetrics
+            text: "󰐃"
+            font.pixelSize: 10
+            color: Style.accent
+            anchors.verticalCenter: parent.verticalCenter
+          }
 
           Text {
             text: {
               let pct = (ipc && ipc.cpu && ipc.cpu.cpu_percent !== undefined) ? Math.round(ipc.cpu.cpu_percent) : 0
               let temp = (ipc && ipc.cpu && ipc.cpu.cpu_temp !== undefined && ipc.cpu.cpu_temp > 0) ? ` ${Math.round(ipc.cpu.cpu_temp)}°` : ""
-              return `CPU %${pct}${temp}`
+              return `CPU ${pct}%${temp}`
             }
             font.family: Style.fontDisplay
             font.pixelSize: 10
-            color: Config.showPinnedSystemMetrics ? Style.accentCyan : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
-            anchors.verticalCenter: parent.verticalCenter
-          }
-
-          Rectangle {
-            width: 3
-            height: 3
-            radius: 1.5
-            color: Config.showPinnedSystemMetrics ? Style.accentCyan : Style.textMuted
+            color: Config.showPinnedSystemMetrics ? Style.textPrimary : Style.textSecondary
+            font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
           Text {
-            text: `RAM %${(ipc && ipc.ram && ipc.ram.ram_percent !== undefined) ? Math.round(ipc.ram.ram_percent) : 0}`
-            font.family: Style.fontDisplay
+            text: "·"
             font.pixelSize: 10
-            color: Config.showPinnedSystemMetrics ? Style.accentGreen : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
+            color: Style.textMuted
             anchors.verticalCenter: parent.verticalCenter
           }
 
-          Rectangle {
-            width: 3
-            height: 3
-            radius: 1.5
-            color: Config.showPinnedSystemMetrics ? Style.accentGreen : Style.textMuted
+          Text {
+            text: `RAM ${(ipc && ipc.ram && ipc.ram.ram_percent !== undefined) ? Math.round(ipc.ram.ram_percent) : 0}%`
+            font.family: Style.fontDisplay
+            font.pixelSize: 10
+            color: Config.showPinnedSystemMetrics ? Style.textPrimary : Style.textSecondary
+            font.weight: Font.Medium
+            anchors.verticalCenter: parent.verticalCenter
+          }
+
+          Text {
+            text: "·"
+            font.pixelSize: 10
+            color: Style.textMuted
             anchors.verticalCenter: parent.verticalCenter
           }
 
           Text {
             text: {
               let pct = (ipc && ipc.gpu && ipc.gpu.gpu_percent !== undefined && ipc.gpu.gpu_percent >= 0) ? Math.round(ipc.gpu.gpu_percent) : 0
-              let temp = (ipc && ipc.gpu && ipc.gpu.gpu_temp !== undefined && ipc.gpu.gpu_temp > 0) ? ` ${Math.round(ipc.gpu.gpu_temp)}°` : ""
-              return `GPU %${pct}${temp}`
+              return `GPU ${pct}%`
             }
             font.family: Style.fontDisplay
             font.pixelSize: 10
-            color: Config.showPinnedSystemMetrics ? Style.accentOrange : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
+            color: Config.showPinnedSystemMetrics ? Style.textPrimary : Style.textSecondary
+            font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
 
-          Rectangle {
-            width: 3
-            height: 3
-            radius: 1.5
-            color: Config.showPinnedSystemMetrics ? Style.accentOrange : Style.textMuted
+          Text {
+            text: "·"
+            font.pixelSize: 10
+            color: Style.textMuted
             anchors.verticalCenter: parent.verticalCenter
           }
 
@@ -884,42 +978,41 @@ Item {
             text: {
               let rx = (ipc && ipc.net && ipc.net.rx_bytes_sec !== undefined) ? ipc.net.rx_bytes_sec : 0
               let tx = (ipc && ipc.net && ipc.net.tx_bytes_sec !== undefined) ? ipc.net.tx_bytes_sec : 0
-              return `NET ${root.formatSpeed(rx + tx)}`
+              return root.formatSpeed(rx + tx)
             }
             font.family: Style.fontDisplay
             font.pixelSize: 10
-            color: Config.showPinnedSystemMetrics ? Style.accentSecondary : (telemetryMouse.containsMouse ? Style.textPrimary : Style.textSecondary)
-            font.weight: Config.showPinnedSystemMetrics ? Style.fontWeightDisplay : Font.Medium
+            color: Config.showPinnedSystemMetrics ? Style.accent : Style.textMuted
+            font.weight: Font.Medium
             anchors.verticalCenter: parent.verticalCenter
           }
         }
-
 
         MouseArea {
           id: telemetryMouse
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            Config.showPinnedSystemMetrics = !Config.showPinnedSystemMetrics
-          }
+          onClicked: Config.showPinnedSystemMetrics = !Config.showPinnedSystemMetrics
         }
       }
 
       // Settings Button
       Rectangle {
-        height: 32
+        height: 34
         width: 36
-        radius: 8
+        radius: 11
         color: setMouse.containsMouse ? Style.surfaceHover : Style.surface
-        border.color: setMouse.containsMouse ? Style.accentCyan : Style.border
+        border.color: Style.borderSubtle
         border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Text {
           anchors.centerIn: parent
           text: "󰒓"
           font.pixelSize: 14
-          color: setMouse.containsMouse ? Style.accentCyan : Style.textPrimary
+          color: setMouse.containsMouse ? Style.textPrimary : Style.textSecondary
         }
 
         MouseArea {
@@ -927,20 +1020,22 @@ Item {
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            root.openSettingsApp()
-          }
+          onClicked: root.openSettingsApp()
         }
       }
 
       // Power Button
       Rectangle {
-        height: 32
-        width: 40
-        radius: 8
-        color: pwrMouse.containsMouse ? Style.surfaceHover : Style.surface
-        border.color: Style.border
+        height: 34
+        width: 36
+        radius: 11
+        color: pwrMouse.containsMouse
+          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.20)
+          : Style.surface
+        border.color: Style.borderSubtle
         border.width: 1
+
+        Behavior on color { ColorAnimation { duration: 140 } }
 
         Text {
           anchors.centerIn: parent
@@ -954,9 +1049,7 @@ Item {
           anchors.fill: parent
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
-          onClicked: {
-            PowerService.open()
-          }
+          onClicked: PowerService.open()
         }
       }
     }
