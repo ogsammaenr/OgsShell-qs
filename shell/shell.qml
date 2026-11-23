@@ -13,7 +13,7 @@ import "components/inspector"
 
 Scope {
   id: rootScope
-
+  // ogsammaenr
   // Global Typography Fonts
   FontLoader {
     id: fontNotoSansDisplay
