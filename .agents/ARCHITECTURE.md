@@ -33,7 +33,8 @@
 │  - reservedSpacerWindow (Top exclusive tiling spacer)  │
 │  - backdropWindow (LazyLoader click-outside dismiss)   │
 │  - islandWindow (Unified Top Overlay: Island + Corners │
-│    + TopRightTrayHUD via multi-Region input mask)      │
+│    + TopRightTrayHUD; multi-Region mask & fullscreen   │
+│    sibling isolation in single EGL surface)            │
 │  - bottomCornersWindow (LazyLoader 14px bottom strip)  │
 │  - bottomNotchWindow / power / snipping / inspector    │
 │    (LazyLoader on-demand overlays: 0 MB RAM when idle) │

@@ -45,8 +45,13 @@ related_notes:
    * **Katman:** `WlrLayershell.layer: WlrLayer.Top`, `ExclusionMode.Ignore`.
 
 3. **`islandWindow` (Birleşik Üst Overlay Yüzeyi):**
-   * **Tek EGL Yüzeyinde 4 Bileşen:** `DynamicIsland`, `PinnedMetricsWidget`, sol-üst `CornerIslandHUD` ve sağ-üst `TopRightTrayHUD` (veya statik köşe) tek bir üst `PanelWindow` (`implicitHeight: 470`) içinde birleştirilmiştir. Bu yapı çift monitörlü NVIDIA EGL ortamında 4 ayrı OpenGL/EGL bağlamını (~55+ MB özel RAM) ortadan kaldırır.
+   * **Tek EGL Yüzeyinde 4 Bileşen:** `[[Dynamic-Island-Component|DynamicIsland]]`, `[[Pinned-Metrics-Widget|PinnedMetricsWidget]]`, sol-üst `[[Corner-Island-HUD-Component|CornerIslandHUD]]` ve sağ-üst `[[Top-Right-Tray-HUD-Component|TopRightTrayHUD]]` (veya statik köşe) tek bir üst `PanelWindow` (`implicitHeight: 470`) içinde birleştirilmiştir. Bu yapı çift monitörlü NVIDIA EGL ortamında 4 ayrı OpenGL/EGL bağlamını (~55+ MB özel RAM) ortadan kaldırır.
    * **Dinamik Katman:** `island.stateMode === "EXPANDED"`, `topLeftCornerHud.isExpanded` veya `topRightTrayHud.isExpanded` durumlarında `WlrLayer.Overlay`; aksi halde `WlrLayer.Top` (tam ekran uygulamaların altına düşer).
+   * **Tam Ekran Bileşen İzolasyonu (Fullscreen Component Isolation):**
+     * Kök `Scope` içindeki global `Hyprland.onRawEvent` dinleyicisi, `fullscreen` / `fullscreenv2` socket2 olaylarında `Hyprland.refreshToplevels()` ve `Hyprland.refreshWorkspaces()` çağrısı yaparak tam ekran durumunu anlık senkronize eder.
+     * Monitör başına `screenScope.hasFullscreenWindow`, aktif (veya aktif special) çalışma alanındaki pencerelerde yalnızca gerçek tam ekran modunu (`FSMODE_FULLSCREEN`, `fullscreen >= 2` veya `wayland.fullscreen === true`) algılar; `FSMODE_MAXIMIZED` (`1`) pencerelerde çentik görünür kalır.
+     * Tam ekran aktifken `islandWindow`, örneğin ses değişiminde yalnızca `topLeftCornerHud.isExpanded` (veya `topRightTrayHud.isExpanded`) sebebiyle `WlrLayer.Overlay` katmanına çıktığında, genişletilmemiş kardeş bileşenler (`DynamicIsland` `hideIslandForFullscreen` ile, `PinnedMetricsWidget`, statik köşe kesimleri ve kapalı tepsi) `visible: false` tutularak tam ekran uygulamanın üzerinde belirmez ve ekstra EGL yüzeyi açılmadan 0 ek RAM maliyetiyle izole edilir.
+     * Aynı durumda `activeInputEnvelope` ve `activeTrayInputEnvelope` boyutları `0×0` olarak daraltılır; böylece `Overlay` katmanındaki pencere tam ekran uygulamanın üst orta ve sağ üst tıklamalarını yutmaz.
    * **Exclusion Mode:** `ExclusionMode.Ignore` (Ada genişlediğinde pencereleri aşağı itip titretmez).
    * **Çoklu Bölge Girdi Maskesi (`mask: Region { Region { item: activeInputEnvelope }; Region { item: activeTrayInputEnvelope } }`):**
      * Sadece Dynamic Island (veya Focus Mode gizli hotspot) ve Sağ-Üst Tepsi HUD sınırları tıklama alır; üst şeridin geri kalanı ve sol-üst köşe HUD tamamen click-through çalışır.
