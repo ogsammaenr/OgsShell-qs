@@ -82,6 +82,18 @@ Scope {
     ipc: ipcService
   }
 
+  // Sync Hyprland toplevel & workspace fullscreen metadata on socket2 fullscreen events
+  Connections {
+    target: Hyprland
+    function onRawEvent(event) {
+      if (!event) return
+      if (event.name === "fullscreen" || event.name === "fullscreenv2") {
+        Hyprland.refreshToplevels()
+        Hyprland.refreshWorkspaces()
+      }
+    }
+  }
+
   // =========================================================================
   // D-Bus Notification Listener (notify-send / freedesktop notifications)
   // =========================================================================
@@ -178,6 +190,52 @@ Scope {
         }
         return false
       }
+
+      // True only when this monitor's active (or special) workspace has a covering fullscreen window (FSMODE_FULLSCREEN >= 2).
+      // Explicitly excludes FSMODE_MAXIMIZED (1), where the notch remains visible.
+      readonly property bool hasFullscreenWindow: {
+        if (!activeWorkspace) return false
+        let curWsId = activeWorkspace.id
+        let specialWsId = (hyprMonitor && hyprMonitor.lastIpcObject && hyprMonitor.lastIpcObject.specialWorkspace && hyprMonitor.lastIpcObject.specialWorkspace.id)
+          ? hyprMonitor.lastIpcObject.specialWorkspace.id : 0
+
+        function isCoveringFullscreen(win) {
+          if (!win) return false
+          let isHidden = (win.lastIpcObject && win.lastIpcObject.hidden === true)
+          if (isHidden) return false
+          let ipcFs = win.lastIpcObject ? win.lastIpcObject.fullscreen : undefined
+          if (ipcFs === true || (ipcFs !== undefined && ipcFs !== null && Number(ipcFs) >= 2)) {
+            return true
+          }
+          return !!(win.wayland && win.wayland.fullscreen === true)
+        }
+
+        // Check 1: Inspect toplevels on this active workspace directly
+        if (activeWorkspace.toplevels && activeWorkspace.toplevels.values) {
+          let wsWins = activeWorkspace.toplevels.values
+          for (let i = 0; i < wsWins.length; i++) {
+            if (isCoveringFullscreen(wsWins[i])) {
+              return true
+            }
+          }
+        }
+
+        // Check 2: Inspect all toplevels matching current (or active special) workspace ID
+        let toplevels = (Hyprland.toplevels && Hyprland.toplevels.values) ? Hyprland.toplevels.values : []
+        for (let i = 0; i < toplevels.length; i++) {
+          let win = toplevels[i]
+          let winWsId = win.workspace ? win.workspace.id : (win.lastIpcObject && win.lastIpcObject.workspace ? win.lastIpcObject.workspace.id : null)
+          if (winWsId === curWsId || (specialWsId !== 0 && winWsId === specialWsId)) {
+            if (isCoveringFullscreen(win)) {
+              return true
+            }
+          }
+        }
+        return false
+      }
+
+      // Suppress Notch/Island in fullscreen unless the user explicitly expanded it (Launcher, Control Center, Keyring, etc.)
+      readonly property bool hideIslandForFullscreen: hasFullscreenWindow && island.stateMode !== "EXPANDED"
 
       // Auto-hide condition: Focus mode is ON, there are tiling windows, and island is not interacting (EXPANDED/TRANSIENT)
       readonly property bool shouldAutoHide: Config.focusMode && hasTilingWindows && (island.stateMode !== "EXPANDED" && island.stateMode !== "TRANSIENT")
@@ -327,12 +385,18 @@ Scope {
           anchors.top: parent.top
           anchors.horizontalCenter: parent.horizontalCenter
           width: {
+            if (screenScope.hideIslandForFullscreen) {
+              return 0
+            }
             if (SnippingService.isOpen || !screenScope.isRevealed) {
               return topHotspot.width
             }
             return island.width + (Config.isNotch ? 10 : 0)
           }
           height: {
+            if (screenScope.hideIslandForFullscreen) {
+              return 0
+            }
             if (SnippingService.isOpen || !screenScope.isRevealed) {
               return screenScope.shouldAutoHide ? 12 : 0
             }
@@ -346,7 +410,7 @@ Scope {
           id: activeTrayInputEnvelope
           anchors.top: parent.top
           anchors.right: parent.right
-          readonly property bool trayActive: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled && !SnippingService.isOpen
+          readonly property bool trayActive: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled && !SnippingService.isOpen && (!screenScope.hasFullscreenWindow || (topRightTrayHud && topRightTrayHud.isExpanded))
           width: trayActive && topRightTrayHud
             ? (topRightTrayHud.isExpanded ? (topRightTrayHud.isMenuOpen ? Math.max(topRightTrayHud.width, 155) : topRightTrayHud.width) : Math.max(topRightTrayHud.radius + 12, 28))
             : 0
@@ -362,7 +426,7 @@ Scope {
           anchors.left: parent.left
           width: 380
           height: 90
-          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopLeft
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopLeft && (!screenScope.hasFullscreenWindow || topLeftCornerHud.isExpanded)
           screen: screenScope.modelData
           hyprMonitor: screenScope.hyprMonitor
           radius: Config.screenCornersRadius
@@ -377,7 +441,7 @@ Scope {
           anchors.right: parent.right
           width: Config.screenCornersRadius
           height: Config.screenCornersRadius
-          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopRight && !Config.cornerTrayEnabled
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.screenCornerTopRight && !Config.cornerTrayEnabled && !screenScope.hasFullscreenWindow
           radius: Config.screenCornersRadius
           cornerColor: Config.screenCornersColor
           cornerMode: "TOP_RIGHT"
@@ -389,7 +453,7 @@ Scope {
           parentWindow: islandWindow
           anchors.top: parent.top
           anchors.right: parent.right
-          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled
+          visible: Config.screenCornersEnabled && (Config.screenCornersRadius > 0) && Config.cornerTrayEnabled && (!screenScope.hasFullscreenWindow || topRightTrayHud.isExpanded)
           radius: Config.screenCornersRadius
           cornerColor: Config.screenCornersColor
         }
@@ -402,7 +466,7 @@ Scope {
           width: Math.max(island.width + 40, 320)
           height: screenScope.shouldAutoHide ? 12 : 0
           color: "transparent"
-          visible: screenScope.shouldAutoHide && !SnippingService.isOpen
+          visible: screenScope.shouldAutoHide && !SnippingService.isOpen && !screenScope.hideIslandForFullscreen
 
           MouseArea {
             id: topHotspotMouseArea
@@ -418,6 +482,7 @@ Scope {
           screen: screenScope.modelData
           hyprMonitor: screenScope.hyprMonitor
           isScreenFocused: screenScope.isFocusedMonitor
+          visible: !screenScope.hideIslandForFullscreen
           anchors.horizontalCenter: parent.horizontalCenter
           y: SnippingService.isOpen ? (-island.implicitHeight - 24) : (screenScope.isRevealed ? (Config.isNotch ? 0 : Config.islandTopMargin) : (-island.implicitHeight - 12))
           opacity: SnippingService.isOpen ? 0.0 : (screenScope.isRevealed ? 1.0 : 0.0)
@@ -462,7 +527,7 @@ Scope {
           islandStateMode: island.stateMode
           anchors.left: island.right
           anchors.leftMargin: 12
-          visible: opacity > 0.0 && screenScope.isRevealed && !SnippingService.isOpen
+          visible: opacity > 0.0 && screenScope.isRevealed && !SnippingService.isOpen && !screenScope.hideIslandForFullscreen
           y: island.y + (Config.isNotch ? Math.round((Config.notchIdleHeight - height) / 2) : Math.round((Config.islandTopMargin + (Config.islandIdleHeight - height) / 2)))
         }
 
