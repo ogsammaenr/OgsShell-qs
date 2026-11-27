@@ -92,7 +92,7 @@ Bileşen `[[Shell-Root-PanelWindow]]` içerisinde bağımsız bir `PanelWindow` 
 * `:mute` -> Ses çıkışını susturur / açar.
 
 ### 4. ⚡ Oturum & Güç Yönetimi
-* `:lock` -> `hyprlock` ile oturumu kilitler (`[[Power-Overlay-Component]]`).
+* `:lock` -> `LockScreenService.lock()` üzerinden yerel `ogsShell` kilit ekranını başlatır (`[[Lock-Screen-Component]]`).
 * `:sleep` -> `systemctl suspend` ile uyku moduna alır.
 * `:reboot` -> `systemctl reboot` ile sistemi yeniden başlatır.
 * `:shutdown` -> `systemctl poweroff` ile bilgisayarı kapatır.

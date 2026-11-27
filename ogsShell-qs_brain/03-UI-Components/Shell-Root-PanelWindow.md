@@ -64,6 +64,9 @@ related_notes:
 5. **`bottomCornersWindow` (İnce Alt Köşe Şeridi):**
    * Eski tam ekran `1920×1080` `screenCornersWindow` yerine yalnızca `radius` (`14px`) yüksekliğinde tek bir alt şerit penceresi (`LazyLoader`, `mask: Region {}`) ile hem sol-alt hem sağ-alt kavisli köşeleri çizer.
 
+6. **`sessionLock` (`WlSessionLock` Yerel Kilit Ekranı):**
+   * Kök `Scope` seviyesinde `LockScreenService.locked` durumuna bağlıdır (`[[Lock-Screen-Component]]`). Kilitli değilken sıfır yüzey (`0 MB` ek bellek), `ogsshell lock` veya `:lock` ile tetiklendiğinde her monitörde `WlSessionLockSurface` açar.
+
 ```mermaid
 graph TD
     SCOPE["Root Scope (shell.qml)"] --> IPC["DaemonIPC Service"]

@@ -462,7 +462,7 @@ FocusScope {
 
     // 5. Session & Power Actions
     let powerActions = [
-      { "cmd": ":lock", "title": "Ekranı Kilitle", "sub": "hyprlock ile masaüstünü kilitler", "icon": "󰌾" },
+      { "cmd": ":lock", "title": "Ekranı Kilitle", "sub": "ogsShell kilit ekranı ile masaüstünü kilitler", "icon": "󰌾" },
       { "cmd": ":sleep", "title": "Uyku Modu (Suspend)", "sub": "Sistemi RAM uyku durumuna geçirir", "icon": "󰤄" },
       { "cmd": ":reboot", "title": "Yeniden Başlat (Reboot)", "sub": "Bilgisayarı yeniden başlatır", "icon": "󰜉" },
       { "cmd": ":shutdown", "title": "Sistemi Kapat (Power Off)", "sub": "Bilgisayarı tamamen kapatır", "icon": "󰐥" }
@@ -491,7 +491,7 @@ FocusScope {
         { "c": ":theme ", "t": "🎨 Tema Değiştir", "s": "Tokyo Night, Catppuccin, Everforest..." },
         { "c": ":wall ", "t": "🖼️ Duvar Kağıdı", "s": "Temaya ait havuz veya :wall next" },
         { "c": ":set ", "t": "⚙️ Kabuk Ayarları", "s": "focus, factor, corners, dnd, volume..." },
-        { "c": ":lock", "t": "󰌾 Oturumu Kilitle", "s": "hyprlock ekran kilitleyiciyi çalıştırır" },
+        { "c": ":lock", "t": "󰌾 Oturumu Kilitle", "s": "ogsShell yerel kilit ekranını başlatır" },
         { "c": ":sleep", "t": "󰤄 Uyku Modu", "s": "systemctl suspend" },
         { "c": ":reboot", "t": "󰜉 Yeniden Başlat", "s": "systemctl reboot" },
         { "c": ":shutdown", "t": "󰐥 Sistemi Kapat", "s": "systemctl poweroff" }
@@ -606,8 +606,8 @@ FocusScope {
 
     // 5. Power & Session
     if (verb === "lock") {
-      executeExternal(["hyprlock"])
       BottomNotchService.close()
+      LockScreenService.lock()
       return
     }
     if (verb === "sleep" || verb === "suspend") {

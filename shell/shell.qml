@@ -10,6 +10,7 @@ import "components/corners"
 import "components/bottomnotch"
 import "components/capture"
 import "components/inspector"
+import "components/lockscreen"
 
 Scope {
   id: rootScope
@@ -46,6 +47,8 @@ Scope {
         }
       } else if (payload && (payload.app === "inspector" || payload.app === "window_inspector")) {
         WindowInspectorService.toggle();
+      } else if (payload && (payload.app === "lock" || payload.app === "lockscreen")) {
+        LockScreenService.lock();
       }
     }
     function onAppOpenRequested(payload) {
@@ -55,6 +58,8 @@ Scope {
         ipcService.freezeScreen(payload.subview || "SS");
       } else if (payload && (payload.app === "inspector" || payload.app === "window_inspector")) {
         WindowInspectorService.open();
+      } else if (payload && (payload.app === "lock" || payload.app === "lockscreen")) {
+        LockScreenService.lock();
       }
     }
     function onAppCloseRequested(payload) {
@@ -706,6 +711,26 @@ Scope {
           ipc: ipcService
           isFocusedScreen: screenScope.isFocusedMonitor
         }
+      }
+    }
+  }
+
+  // =========================================================================
+  // Native Wayland Session Lock (ext-session-lock-v1 via WlSessionLock)
+  // Creates zero surfaces (0 MB RAM) while unlocked; locks all screens atomically
+  // =========================================================================
+  WlSessionLock {
+    id: sessionLock
+    locked: LockScreenService.locked
+
+    WlSessionLockSurface {
+      id: lockSurface
+      color: "#000000"
+
+      LockScreenSurface {
+        anchors.fill: parent
+        screen: lockSurface.screen
+        ipc: ipcService
       }
     }
   }

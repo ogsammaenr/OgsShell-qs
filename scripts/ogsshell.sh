@@ -707,6 +707,7 @@ cmd_help() {
   echo -e "  ${C_CYAN}toggle_media_player${C_RESET} | ${C_CYAN}media${C_RESET}       Medya oynatıcı kontrolünü açar/kapatır"
   echo -e "  ${C_CYAN}toggle_notifications${C_RESET} | ${C_CYAN}notif${C_RESET}       Bildirim merkezini açar/kapatır"
   echo -e "  ${C_CYAN}toggle_power_menu${C_RESET} | ${C_CYAN}power${C_RESET}         Güç & Oturum menüsünü açar/kapatır"
+  echo -e "  ${C_CYAN}lock${C_RESET} | ${C_CYAN}lockscreen${C_RESET}                ogsShell yerel kilit ekranı ile oturumu kilitler"
   echo -e "  ${C_CYAN}toggle_themes${C_RESET} | ${C_CYAN}themes${C_RESET} | ${C_CYAN}theme${C_RESET}     Tema seçici panelini açar/kapatır"
   echo -e "  ${C_CYAN}toggle_dnd${C_RESET} | ${C_CYAN}dnd${C_RESET}                       Rahatsız Etme modunu (DND) açar/kapatır"
   echo -e "  ${C_CYAN}switch_layout${C_RESET}                    Klavye dilini bir sonrakine geçirir"
@@ -841,6 +842,9 @@ case "${ACTION}" in
     ;;
   toggle_power_menu|power_menu|power)
     send_ipc_action "toggle_power_menu" "{}"
+    ;;
+  lock|lockscreen)
+    send_ipc_action "open_app" '{"app":"lock"}'
     ;;
   toggle_themes|themes|theme)
     send_ipc_action "toggle_themes" "{}"

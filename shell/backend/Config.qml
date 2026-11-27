@@ -145,6 +145,16 @@ Item {
     "default_target": "TRY"
   })
 
+  property var lockscreen: ({
+    "blur_radius": 64,
+    "dim_opacity": 0.46,
+    "clock_size": 196,
+    "date_size": 18,
+    "show_media": true,
+    "show_power": true,
+    "pam_config": "login"
+  })
+
   // =========================================================================
   // First-Class Typed Reactive Geometry Accessors
   // =========================================================================
@@ -306,6 +316,17 @@ Item {
   readonly property int currencySyncIntervalMin: (currency && currency.sync_interval_min !== undefined) ? currency.sync_interval_min : 30
   readonly property string currencyDefaultTarget: (currency && currency.default_target) ? currency.default_target : "TRY"
 
+  // =========================================================================
+  // First-Class Typed Reactive Lock Screen Accessors
+  // =========================================================================
+  readonly property int lockscreenBlurRadius: (lockscreen && lockscreen.blur_radius !== undefined) ? lockscreen.blur_radius : 64
+  readonly property real lockscreenDimOpacity: (lockscreen && lockscreen.dim_opacity !== undefined) ? lockscreen.dim_opacity : 0.46
+  readonly property int lockscreenClockSize: (lockscreen && lockscreen.clock_size !== undefined) ? lockscreen.clock_size : 196
+  readonly property int lockscreenDateSize: (lockscreen && lockscreen.date_size !== undefined) ? lockscreen.date_size : 18
+  readonly property bool lockscreenShowMedia: (lockscreen && lockscreen.show_media !== undefined) ? lockscreen.show_media : true
+  readonly property bool lockscreenShowPower: (lockscreen && lockscreen.show_power !== undefined) ? lockscreen.show_power : true
+  readonly property string lockscreenPamConfig: (lockscreen && lockscreen.pam_config) ? lockscreen.pam_config : "login"
+
   // Computed active geometry (reactive to formFactor and configRevision)
   readonly property var activeGeometry: {
     let _rev = configRevision
@@ -465,6 +486,7 @@ Item {
     if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
     if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
     if (cfg.currency) root.currency = Object.assign({}, root.currency, cfg.currency)
+    if (cfg.lockscreen) root.lockscreen = Object.assign({}, root.lockscreen, cfg.lockscreen)
 
     let full = {
       "form_factor": root.formFactor,
@@ -481,7 +503,8 @@ Item {
       "audio_feedback": root.audioFeedback,
       "corner_hud": root.cornerHud,
       "shadows": root.shadows,
-      "currency": root.currency
+      "currency": root.currency,
+      "lockscreen": root.lockscreen
     }
 
     let jsonStr = JSON.stringify(full, null, 2)
@@ -660,6 +683,7 @@ Item {
       if (cfg.corner_tray) root.cornerTray = Object.assign({}, root.cornerTray, cfg.corner_tray)
       if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
       if (cfg.currency) root.currency = Object.assign({}, root.currency, cfg.currency)
+      if (cfg.lockscreen) root.lockscreen = Object.assign({}, root.lockscreen, cfg.lockscreen)
 
       root.configRevision++
       root.configUpdated(cfg)

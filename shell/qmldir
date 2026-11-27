@@ -7,6 +7,7 @@ singleton SettingsService 1.0 backend/SettingsService.qml
 singleton BottomNotchService 1.0 backend/BottomNotchService.qml
 singleton SnippingService 1.0 backend/SnippingService.qml
 singleton WindowInspectorService 1.0 backend/WindowInspectorService.qml
+singleton LockScreenService 1.0 backend/LockScreenService.qml
 AudioFeedbackService 1.0 backend/AudioFeedbackService.qml
 DaemonIPC 1.0 backend/DaemonIPC.qml
 CornerHUDService 1.0 components/corners/CornerHUDService.qml

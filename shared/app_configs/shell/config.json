@@ -103,5 +103,14 @@
     "enabled": true,
     "sync_interval_min": 30,
     "default_target": "TRY"
+  },
+  "lockscreen": {
+    "blur_radius": 64,
+    "dim_opacity": 0.46,
+    "clock_size": 196,
+    "date_size": 18,
+    "show_media": true,
+    "show_power": true,
+    "pam_config": "login"
   }
 }
