@@ -15,6 +15,9 @@ FocusScope {
 
   focus: true
 
+  // Silky Entrance Reveal State (animates smoothly from 0 -> 1 upon lock)
+  property real revealProgress: 0.0
+
   // Live Clock & Turkish Date State
   property string timeText: ""
   property string dateText: ""
@@ -45,7 +48,15 @@ FocusScope {
 
   Component.onCompleted: {
     updateClock()
+    revealProgress = 1.0
     authNotch.grabPasswordFocus()
+  }
+
+  Behavior on revealProgress {
+    NumberAnimation {
+      duration: 420
+      easing.type: Easing.OutCubic
+    }
   }
 
   // Active Media Player (MPRIS)
@@ -109,7 +120,7 @@ FocusScope {
     id: blurredBackdrop
     anchors.fill: parent
     source: capturedWallpaper
-    radius: Math.max(0, Math.min(128, Config.lockscreenBlurRadius))
+    radius: Math.round(Math.max(0, Math.min(128, Config.lockscreenBlurRadius)) * root.revealProgress)
     transparentBorder: false
     visible: capturedWallpaper.status === Image.Ready
   }
@@ -117,12 +128,13 @@ FocusScope {
   // Atmospheric Dark Dimming & Vignette Overlay for High-Contrast Typography
   Rectangle {
     anchors.fill: parent
-    color: Qt.rgba(6 / 255, 7 / 255, 10 / 255, Math.max(0.15, Math.min(0.85, Config.lockscreenDimOpacity)))
+    color: Qt.rgba(6 / 255, 7 / 255, 10 / 255, Math.max(0.15, Math.min(0.85, Config.lockscreenDimOpacity)) * root.revealProgress)
   }
 
   // Subtle Top & Bottom Radial/Linear Vignette
   Rectangle {
     anchors.fill: parent
+    opacity: root.revealProgress
     gradient: Gradient {
       GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.34) }
       GradientStop { position: 0.30; color: Qt.rgba(0, 0, 0, 0.0) }
@@ -146,8 +158,9 @@ FocusScope {
     id: authNotch
     ipc: root.ipc
     anchors.top: parent.top
-    anchors.topMargin: Config.isNotch ? 0 : (Config.islandTopMargin + 14)
+    anchors.topMargin: Config.isNotch ? 0 : Config.islandTopMargin
     anchors.horizontalCenter: parent.horizontalCenter
+    opacity: root.revealProgress
     z: 20
   }
 
@@ -157,18 +170,19 @@ FocusScope {
   Column {
     id: heroClockGroup
     anchors.centerIn: parent
-    anchors.verticalCenterOffset: 10
+    anchors.verticalCenterOffset: 10 + (1.0 - root.revealProgress) * 14
     spacing: 14
+    opacity: root.revealProgress
     z: 10
 
     Text {
       id: clockLabel
       anchors.horizontalCenter: parent.horizontalCenter
       text: root.timeText
-      font.family: Style.fontDisplay
+      font.family: Config.lockscreenClockFont
       font.pixelSize: Config.lockscreenClockSize
-      font.weight: Font.Bold
-      font.letterSpacing: -6
+      font.weight: Config.lockscreenClockWeightInt
+      font.letterSpacing: -4
       color: "#f4f5f8"
       layer.enabled: true
       layer.effect: DropShadow {
@@ -184,10 +198,10 @@ FocusScope {
       id: dateLabel
       anchors.horizontalCenter: parent.horizontalCenter
       text: root.dateText
-      font.family: Style.fontText
+      font.family: Config.lockscreenDateFont
       font.pixelSize: Config.lockscreenDateSize
       font.weight: Font.Medium
-      font.letterSpacing: 3.2
+      font.letterSpacing: 3.0
       color: Qt.rgba(244 / 255, 245 / 255, 248 / 255, 0.68)
       layer.enabled: true
       layer.effect: DropShadow {

@@ -202,6 +202,9 @@ The configuration system continuously watches both locations using a real-time e
       "properties": {
         "blur_radius": { "type": "integer", "default": 64, "description": "FastBlur Gaussian radius applied to the pre-lock captured desktop screenshot" },
         "dim_opacity": { "type": "number", "default": 0.46, "description": "Dark tint opacity over the blurred screenshot backdrop" },
+        "clock_font": { "type": "string", "default": "SF Pro Rounded", "description": "Font family for the central lock screen clock" },
+        "clock_weight": { "type": "string", "default": "SemiBold", "description": "Font weight for the central lock screen clock (Thin..Black)" },
+        "date_font": { "type": "string", "default": "SF Pro Text", "description": "Font family for the date label beneath the clock" },
         "clock_size": { "type": "integer", "default": 196, "description": "Center hero clock pixelSize" },
         "date_size": { "type": "integer", "default": 18, "description": "Date label pixelSize beneath the clock" },
         "show_media": { "type": "bool", "default": true, "description": "Shows bottom-left MPRIS media pill when a player is active" },

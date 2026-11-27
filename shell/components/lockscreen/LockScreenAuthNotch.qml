@@ -3,7 +3,6 @@ import QtQuick.Shapes
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import Quickshell
-import Quickshell.Services.UPower
 import "../.."
 
 Item {
@@ -11,83 +10,77 @@ Item {
 
   required property var ipc
 
-  // Reactive Morph State: IDLE (only lock icon) -> EXPANDED (typing / auth / error)
+  // Reactive Morph State: IDLE (only lock icon) -> TYPING (sleek single-line password notch)
   readonly property bool isExpanded: LockScreenService.inputExpanded || LockScreenService.authenticating || LockScreenService.passwordText.length > 0 || LockScreenService.errorMessage.length > 0
   readonly property bool hasError: LockScreenService.errorMessage.length > 0
-  property bool showPassword: false
   property real shakeOffset: 0
 
-  // Geometry Targets (Reactive to Config.formFactor)
-  readonly property int idleW: 112
-  readonly property int idleH: Config.isNotch ? 34 : 38
-  readonly property int expandedW: Config.isNotch ? Math.max(460, Config.notchExpandedWidth) : Math.max(460, Config.islandExpandedWidth)
-  readonly property int expandedH: 142
+  // Sleek, Notch-Native Dimensions (Matches DynamicIsland idle height & proportions)
+  readonly property int idleW: 96
+  readonly property int idleH: Config.isNotch ? Math.max(28, Config.notchIdleHeight) : Math.max(32, Config.islandIdleHeight)
+  readonly property int expandedW: 284
+  readonly property int expandedH: Config.isNotch ? 44 : 46
 
-  property real activeRadius: {
+  // Smooth Border & Corner Radius Matching DynamicIsland.qml
+  readonly property real targetRadius: {
     if (Config.isNotch) {
-      let rawR = isExpanded ? Math.max(24, Config.notchBottomRadiusExpanded) : Math.min(18, Config.notchBottomRadius)
+      let rawR = isExpanded ? Math.min(20, Config.notchBottomRadius) : Math.min(14, Config.notchBottomRadius)
       return Math.min(rawR, height * 0.48)
     }
-    return isExpanded ? Math.max(26, Config.islandRadiusExpanded) : 19
+    return height * 0.5
   }
 
-  readonly property real notchEarW: isExpanded ? 10 : 5
-  readonly property real notchEarH: Math.min(isExpanded ? 24 : 16, height * 0.45)
-
-  // Live Telemetry Bindings
-  readonly property string keyboardShortCode: (ipc && ipc.keyboardLayout && ipc.keyboardLayout.current_short_code) ? ipc.keyboardLayout.current_short_code.toUpperCase() : "TR"
-  readonly property bool wifiConnected: !!(ipc && ipc.wifi && ipc.wifi.connected)
-  readonly property bool btPowered: !!(ipc && ipc.bluetooth && ipc.bluetooth.adapter_powered)
-  readonly property var batteryDev: (UPower && UPower.displayDevice) ? UPower.displayDevice : null
-  readonly property bool hasBattery: !!(batteryDev && batteryDev.ready && batteryDev.isLaptopBattery)
-  readonly property int batteryPercent: hasBattery ? Math.round((batteryDev.percentage || 0) * 100) : 0
-  readonly property bool batteryCharging: hasBattery && (batteryDev.state === UPowerDeviceState.Charging || batteryDev.state === UPowerDeviceState.PendingCharge)
+  readonly property real notchEarW: 5
+  readonly property real notchEarH: Math.min(16, height * 0.45)
 
   width: isExpanded ? expandedW : idleW
   height: isExpanded ? expandedH : idleH
 
-  // Mandatory SpringAnimation Physics per AGENTS.md
+  // Silky-Smooth Easing (No harsh spring slam or mechanical bounce)
   Behavior on width {
-    SpringAnimation {
-      spring: 28.0
-      damping: 0.78
-      epsilon: 0.01
+    NumberAnimation {
+      duration: root.isExpanded ? 360 : 300
+      easing.type: Easing.OutQuart
     }
   }
   Behavior on height {
-    SpringAnimation {
-      spring: 28.0
-      damping: 0.78
-      epsilon: 0.01
-    }
-  }
-  Behavior on activeRadius {
-    SpringAnimation {
-      spring: 28.0
-      damping: 0.78
-      epsilon: 0.01
+    NumberAnimation {
+      duration: root.isExpanded ? 360 : 300
+      easing.type: Easing.OutQuart
     }
   }
 
-  // Horizontal Shake on Failed PAM Auth
+  // Gentle, understated horizontal shake on wrong password
   SequentialAnimation {
     id: shakeAnim
-    NumberAnimation { target: root; property: "shakeOffset"; to: -12; duration: 48; easing.type: Easing.OutQuad }
-    NumberAnimation { target: root; property: "shakeOffset"; to: 12; duration: 56; easing.type: Easing.InOutQuad }
-    NumberAnimation { target: root; property: "shakeOffset"; to: -8; duration: 52; easing.type: Easing.InOutQuad }
-    NumberAnimation { target: root; property: "shakeOffset"; to: 8; duration: 48; easing.type: Easing.InOutQuad }
-    NumberAnimation { target: root; property: "shakeOffset"; to: -4; duration: 42; easing.type: Easing.InOutQuad }
-    NumberAnimation { target: root; property: "shakeOffset"; to: 0; duration: 42; easing.type: Easing.OutQuad }
+    NumberAnimation { target: root; property: "shakeOffset"; to: -7; duration: 55; easing.type: Easing.OutCubic }
+    NumberAnimation { target: root; property: "shakeOffset"; to: 7; duration: 65; easing.type: Easing.InOutCubic }
+    NumberAnimation { target: root; property: "shakeOffset"; to: -4; duration: 55; easing.type: Easing.InOutCubic }
+    NumberAnimation { target: root; property: "shakeOffset"; to: 4; duration: 50; easing.type: Easing.InOutCubic }
+    NumberAnimation { target: root; property: "shakeOffset"; to: 0; duration: 55; easing.type: Easing.OutCubic }
   }
 
-  // Auto-collapse back to compact lock-icon-only state when password is erased
+  // Auto-collapse smoothly back to lock-icon-only state when input is cleared
   Timer {
     id: idleCollapseTimer
-    interval: 1200
+    interval: 1100
     repeat: false
     onTriggered: {
       if (LockScreenService.passwordText.length === 0 && !LockScreenService.authenticating && LockScreenService.errorMessage.length === 0) {
         LockScreenService.inputExpanded = false
+      }
+    }
+  }
+
+  // Softly clear transient error tint if user pauses without typing
+  Timer {
+    id: errorResetTimer
+    interval: 1800
+    repeat: false
+    onTriggered: {
+      if (LockScreenService.passwordText.length === 0 && !LockScreenService.authenticating) {
+        LockScreenService.errorMessage = ""
+        idleCollapseTimer.restart()
       }
     }
   }
@@ -118,13 +111,13 @@ Item {
     grabPasswordFocus()
   }
 
-  // Synchronize shared service password state & shake triggers across monitors
   Connections {
     target: LockScreenService
 
     function onAuthFailedCountChanged() {
       if (LockScreenService.authFailedCount > 0) {
         shakeAnim.restart()
+        errorResetTimer.restart()
         grabPasswordFocus()
       }
     }
@@ -134,16 +127,16 @@ Item {
         passwordInput.text = LockScreenService.passwordText
         passwordInput.cursorPosition = passwordInput.text.length
       }
-      if (LockScreenService.passwordText.length === 0 && LockScreenService.inputExpanded && !LockScreenService.authenticating && LockScreenService.errorMessage.length === 0) {
-        idleCollapseTimer.restart()
-      } else {
+      if (LockScreenService.passwordText.length > 0) {
         idleCollapseTimer.stop()
+        errorResetTimer.stop()
+      } else if (LockScreenService.inputExpanded && !LockScreenService.authenticating && LockScreenService.errorMessage.length === 0) {
+        idleCollapseTimer.restart()
       }
     }
 
     function onLockedChanged() {
       if (LockScreenService.locked) {
-        root.showPassword = false
         passwordInput.text = ""
         grabPasswordFocus()
       }
@@ -151,7 +144,7 @@ Item {
   }
 
   // =========================================================================
-  // SURFACE CONTAINER (Translated horizontally by shakeOffset)
+  // PURE OLED BLACK SILHOUETTE (Exact DynamicIsland / DynamicNotch DNA)
   // =========================================================================
   Item {
     id: notchBody
@@ -159,20 +152,22 @@ Item {
     transform: Translate { x: root.shakeOffset }
 
     // -----------------------------------------------------------------------
-    // SURFACE 1: Dynamic Notch Mode (G2 Cubic Bezier Top-Bezel Attachment)
+    // SURFACE 1: Dynamic Notch Mode (Borderless G2 Bezier Top-Bezel Shape)
     // -----------------------------------------------------------------------
     RectangularGlow {
-      anchors.fill: notchVectorShape
-      anchors.leftMargin: root.notchEarW
-      anchors.rightMargin: root.notchEarW
-      anchors.topMargin: Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
-      anchors.bottomMargin: Config.shadowsEnabled ? -(root.isExpanded ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
-      glowRadius: Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedBlurRadius : Config.shadowBlurRadius) : 0
+      anchors.fill: parent
+      anchors.topMargin: Config.shadowsEnabled ? Config.shadowVerticalOffset : 0
+      anchors.bottomMargin: Config.shadowsEnabled ? -Config.shadowVerticalOffset : 0
+      glowRadius: Config.shadowsEnabled ? (root.isExpanded ? 26 : Config.shadowBlurRadius) : 0
       spread: Config.shadowSpread
-      color: Qt.rgba(0, 0, 0, Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedOpacity : Config.shadowOpacity) : 0)
-      cornerRadius: root.activeRadius + glowRadius
+      color: Qt.rgba(0, 0, 0, Config.shadowsEnabled ? Config.shadowOpacity : 0)
+      cornerRadius: root.targetRadius + glowRadius
       visible: Config.isNotch && Config.shadowsEnabled && Config.shadowNotch
       z: -1
+
+      Behavior on glowRadius {
+        NumberAnimation { duration: 340; easing.type: Easing.OutCubic }
+      }
     }
 
     Shape {
@@ -183,7 +178,6 @@ Item {
       visible: Config.isNotch
       preferredRendererType: Shape.CurveRenderer
 
-      // Pure OLED Black Solid Fill
       ShapePath {
         strokeWidth: 0
         strokeColor: "transparent"
@@ -201,24 +195,24 @@ Item {
         }
         PathLine {
           x: root.notchEarW
-          y: root.height - root.activeRadius
+          y: root.height - root.targetRadius
         }
         PathArc {
-          x: root.notchEarW + root.activeRadius
+          x: root.notchEarW + root.targetRadius
           y: root.height
-          radiusX: root.activeRadius
-          radiusY: root.activeRadius
+          radiusX: root.targetRadius
+          radiusY: root.targetRadius
           direction: PathArc.Counterclockwise
         }
         PathLine {
-          x: root.notchEarW + root.width - root.activeRadius
+          x: root.notchEarW + root.width - root.targetRadius
           y: root.height
         }
         PathArc {
           x: root.notchEarW + root.width
-          y: root.height - root.activeRadius
-          radiusX: root.activeRadius
-          radiusY: root.activeRadius
+          y: root.height - root.targetRadius
+          radiusX: root.targetRadius
+          radiusY: root.targetRadius
           direction: PathArc.Counterclockwise
         }
         PathLine {
@@ -238,63 +232,33 @@ Item {
           y: 0
         }
       }
-
-      // Subtle Bottom Specular Rim Hairline
-      ShapePath {
-        strokeWidth: 1
-        strokeColor: root.hasError
-          ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.45)
-          : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, root.isExpanded ? 0.13 : 0.08)
-        fillColor: "transparent"
-        startX: root.notchEarW + 0.5
-        startY: root.height - root.activeRadius
-
-        PathArc {
-          x: root.notchEarW + root.activeRadius
-          y: root.height - 0.5
-          radiusX: Math.max(1, root.activeRadius - 0.5)
-          radiusY: Math.max(1, root.activeRadius - 0.5)
-          direction: PathArc.Counterclockwise
-        }
-        PathLine {
-          x: root.notchEarW + root.width - root.activeRadius
-          y: root.height - 0.5
-        }
-        PathArc {
-          x: root.notchEarW + root.width - 0.5
-          y: root.height - root.activeRadius
-          radiusX: Math.max(1, root.activeRadius - 0.5)
-          radiusY: Math.max(1, root.activeRadius - 0.5)
-          direction: PathArc.Counterclockwise
-        }
-      }
     }
 
     // -----------------------------------------------------------------------
-    // SURFACE 2: Dynamic Island Mode (Floating Pure OLED Black Capsule)
+    // SURFACE 2: Dynamic Island Mode (Borderless Pure OLED Black Pill)
     // -----------------------------------------------------------------------
     RectangularGlow {
       anchors.fill: islandSquircle
-      anchors.topMargin: Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
-      anchors.bottomMargin: Config.shadowsEnabled ? -(root.isExpanded ? Config.shadowExpandedVerticalOffset : Config.shadowVerticalOffset) : 0
-      glowRadius: Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedBlurRadius : Config.shadowBlurRadius) : 0
+      anchors.topMargin: Config.shadowsEnabled ? Config.shadowVerticalOffset : 0
+      anchors.bottomMargin: Config.shadowsEnabled ? -Config.shadowVerticalOffset : 0
+      glowRadius: Config.shadowsEnabled ? (root.isExpanded ? 26 : Config.shadowBlurRadius) : 0
       spread: Config.shadowSpread
-      color: Qt.rgba(0, 0, 0, Config.shadowsEnabled ? (root.isExpanded ? Config.shadowExpandedOpacity : Config.shadowOpacity) : 0)
-      cornerRadius: root.activeRadius + glowRadius
+      color: Qt.rgba(0, 0, 0, Config.shadowsEnabled ? Config.shadowOpacity : 0)
+      cornerRadius: root.targetRadius + glowRadius
       visible: !Config.isNotch && Config.shadowsEnabled && Config.shadowIsland
       z: -1
+
+      Behavior on glowRadius {
+        NumberAnimation { duration: 340; easing.type: Easing.OutCubic }
+      }
     }
 
     Rectangle {
       id: islandSquircle
       anchors.fill: parent
       visible: !Config.isNotch
-      radius: root.activeRadius
+      radius: root.targetRadius
       color: Style.bgPrimary
-      border.width: 1
-      border.color: root.hasError
-        ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.45)
-        : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, root.isExpanded ? 0.14 : 0.10)
     }
 
     // =======================================================================
@@ -311,343 +275,158 @@ Item {
     }
 
     // =======================================================================
-    // LAYER A: IDLE STATE — Pure Minimal Lock Icon Only
+    // LAYER A: IDLE STATE — Pure Minimal Centered Lock Icon Only
     // =======================================================================
     Item {
       id: idleLockLayer
       anchors.fill: parent
       opacity: root.isExpanded ? 0.0 : 1.0
+      scale: root.isExpanded ? 0.85 : 1.0
       visible: opacity > 0.01
 
       Behavior on opacity {
-        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
+      }
+      Behavior on scale {
+        NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
       }
 
       Text {
         anchors.centerIn: parent
         text: "󰌾"
-        font.pixelSize: 16
-        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.90)
+        font.pixelSize: 14
+        color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.86)
       }
     }
 
     // =======================================================================
-    // LAYER B: EXPANDED AUTH STATE — Design #6 Password & Status Hub
-    // NOTE: Always kept visible:true (clipped & opacity-animated) so passwordInput
-    // captures the VERY FIRST keystroke seamlessly without losing a character!
+    // LAYER B: TYPING STATE — Single Continuous Pure-Black Input Row
+    // Always mounted & visible:true (clipped + opacity) for zero-drop typing
     // =======================================================================
     Item {
-      id: expandedAuthLayer
+      id: expandedInputLayer
       anchors.fill: parent
       clip: true
       opacity: root.isExpanded ? 1.0 : 0.0
 
       Behavior on opacity {
-        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+        NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
       }
 
-      ColumnLayout {
+      RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 24
-        anchors.rightMargin: 24
-        anchors.topMargin: 15
-        anchors.bottomMargin: 13
-        spacing: 12
+        anchors.leftMargin: 16
+        anchors.rightMargin: 10
+        spacing: 10
 
-        // -------------------------------------------------------------------
-        // Row 1: User Identity + Status | Keyboard Layout + Wi-Fi + BT + Bat
-        // -------------------------------------------------------------------
-        RowLayout {
+        // Minimal Status / Lock Icon (subtly turns red on error, spins on PAM verify)
+        Text {
+          Layout.alignment: Qt.AlignVCenter
+          text: LockScreenService.authenticating ? "󰔟" : (root.hasError ? "󰌿" : "󰌾")
+          font.pixelSize: 15
+          color: {
+            if (root.hasError) return Style.accentRed
+            if (LockScreenService.authenticating) return Style.accent
+            return Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.72)
+          }
+
+          Behavior on color { ColorAnimation { duration: 180 } }
+
+          RotationAnimation on rotation {
+            running: LockScreenService.authenticating
+            from: 0
+            to: 360
+            duration: 950
+            loops: Animation.Infinite
+          }
+        }
+
+        // Direct Borderless Password Input (** characters, single continuous canvas)
+        TextInput {
+          id: passwordInput
           Layout.fillWidth: true
-          spacing: 8
+          Layout.fillHeight: true
+          verticalAlignment: TextInput.AlignVCenter
+          horizontalAlignment: TextInput.AlignLeft
+          focus: true
+          enabled: !LockScreenService.authenticating
+          echoMode: TextInput.Password
+          passwordCharacter: "*"
+          color: root.hasError ? Style.accentRed : Style.textPrimary
+          selectionColor: Style.surfaceActive
+          selectedTextColor: Style.textPrimary
+          font.family: Style.fontDisplay
+          font.pixelSize: 18
+          font.weight: Font.DemiBold
+          font.letterSpacing: 3.5
+          cursorVisible: root.isExpanded && activeFocus && !LockScreenService.authenticating
+          clip: true
 
-          Text {
-            text: LockScreenService.authenticating ? "󰦖" : (root.hasError ? "󰌿" : "󰌾")
-            font.pixelSize: 14
-            color: root.hasError ? Style.accentRed : Style.textPrimary
+          onTextEdited: {
+            LockScreenService.setPasswordText(text)
+          }
+
+          Keys.onReturnPressed: {
+            LockScreenService.submitPassword()
+          }
+          Keys.onEnterPressed: {
+            LockScreenService.submitPassword()
+          }
+          Keys.onEscapePressed: {
+            LockScreenService.resetInput()
+          }
+          Keys.onPressed: event => {
+            if (event.key === Qt.Key_CapsLock) {
+              LockScreenService.capsLockOn = !LockScreenService.capsLockOn
+            }
           }
 
           Text {
-            text: LockScreenService.currentUser
-            font.family: Style.fontDisplay
+            anchors.fill: parent
+            verticalAlignment: Text.AlignVCenter
+            text: root.hasError ? "Hatalı parola" : (LockScreenService.capsLockOn ? "Caps Lock açık" : "Parola")
+            font.family: Style.fontText
+            font.pixelSize: 12
+            font.letterSpacing: 0.3
+            color: root.hasError
+              ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.85)
+              : (LockScreenService.capsLockOn ? Style.accentYellow : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.34))
+            visible: passwordInput.text.length === 0 && !passwordInput.inputMethodComposing
+          }
+        }
+
+        // Minimal Circular Submit Control (Softly appears once typing starts)
+        Rectangle {
+          Layout.preferredWidth: 26
+          Layout.preferredHeight: 26
+          Layout.alignment: Qt.AlignVCenter
+          radius: 13
+          opacity: (LockScreenService.passwordText.length > 0 && !LockScreenService.authenticating) ? 1.0 : 0.0
+          scale: submitMouse.pressed ? 0.90 : ((LockScreenService.passwordText.length > 0 && !LockScreenService.authenticating) ? 1.0 : 0.78)
+          color: submitMouse.containsMouse
+            ? Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.24)
+            : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.14)
+
+          Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+          Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+          Behavior on color { ColorAnimation { duration: 140 } }
+
+          Text {
+            anchors.centerIn: parent
+            text: "󰁔"
             font.pixelSize: 13
             font.weight: Font.DemiBold
             color: Style.textPrimary
           }
 
-          Rectangle {
-            width: 3.5
-            height: 3.5
-            radius: 2
-            color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.34)
-          }
-
-          Text {
-            text: {
-              if (LockScreenService.authenticating) return "Doğrulanıyor..."
-              if (root.hasError) return LockScreenService.errorMessage
-              return "Oturum Kilitli"
-            }
-            font.family: Style.fontText
-            font.pixelSize: 12
-            color: root.hasError ? Style.accentRed : Style.textMuted
-            elide: Text.ElideRight
-            Layout.fillWidth: true
-          }
-
-          // Right Connectivity & Layout Cluster
-          RowLayout {
-            spacing: 10
-
-            // Clickable Keyboard Layout Badge (TR / US)
-            Rectangle {
-              implicitWidth: Math.max(26, kbText.implicitWidth + 10)
-              implicitHeight: 19
-              radius: 6
-              color: kbMouse.containsMouse
-                ? Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.18)
-                : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.10)
-
-              Text {
-                id: kbText
-                anchors.centerIn: parent
-                text: root.keyboardShortCode
-                font.family: Style.fontDisplay
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
-                color: Style.textPrimary
-              }
-
-              MouseArea {
-                id: kbMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  if (root.ipc && root.ipc.switchKeyboardLayout) {
-                    root.ipc.switchKeyboardLayout("next")
-                  }
-                  root.grabPasswordFocus()
-                }
-              }
-            }
-
-            // Wi-Fi Status Glyph
-            Text {
-              text: root.wifiConnected ? "󰤨" : "󰤭"
-              font.pixelSize: 14
-              color: root.wifiConnected
-                ? Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.88)
-                : Style.textMuted
-            }
-
-            // Bluetooth Status Glyph
-            Text {
-              text: root.btPowered ? "󰂯" : "󰂲"
-              font.pixelSize: 14
-              color: root.btPowered
-                ? Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.80)
-                : Style.textMuted
-            }
-
-            // Battery Status (Hidden gracefully on battery-less desktop PCs)
-            RowLayout {
-              visible: root.hasBattery
-              spacing: 4
-
-              Text {
-                text: {
-                  if (root.batteryCharging) return "󰂄"
-                  if (root.batteryPercent >= 80) return "󰁹"
-                  if (root.batteryPercent >= 50) return "󰁿"
-                  if (root.batteryPercent >= 25) return "󰁼"
-                  return "󰁺"
-                }
-                font.pixelSize: 14
-                color: (!root.batteryCharging && root.batteryPercent <= 15)
-                  ? Style.accentRed
-                  : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.88)
-              }
-
-              Text {
-                text: root.batteryPercent + "%"
-                font.family: Style.fontDisplay
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
-                color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.88)
-              }
-            }
-          }
-        }
-
-        // -------------------------------------------------------------------
-        // Row 2: Frosted Glass Password Input Capsule (** masked characters)
-        // -------------------------------------------------------------------
-        Rectangle {
-          id: inputCapsule
-          Layout.fillWidth: true
-          Layout.preferredHeight: 48
-          radius: 24
-          color: Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.085)
-          border.width: 1
-          border.color: {
-            if (root.hasError) return Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.65)
-            if (LockScreenService.authenticating) return Qt.rgba(Style.accent.r, Style.accent.g, Style.accent.b, 0.55)
-            return Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.24)
-          }
-
-          Behavior on border.color { ColorAnimation { duration: 160 } }
-
           MouseArea {
+            id: submitMouse
             anchors.fill: parent
-            cursorShape: Qt.IBeamCursor
-            acceptedButtons: Qt.LeftButton
-            onPressed: mouse => {
-              passwordInput.forceActiveFocus()
-              mouse.accepted = false
-            }
+            hoverEnabled: true
+            enabled: LockScreenService.passwordText.length > 0 && !LockScreenService.authenticating
+            cursorShape: Qt.PointingHandCursor
+            onClicked: LockScreenService.submitPassword()
           }
-
-          RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 6
-            spacing: 10
-
-            // Native Password TextInput (Always mounted for instant zero-click typing)
-            TextInput {
-              id: passwordInput
-              Layout.fillWidth: true
-              Layout.fillHeight: true
-              verticalAlignment: TextInput.AlignVCenter
-              focus: true
-              enabled: !LockScreenService.authenticating
-              echoMode: root.showPassword ? TextInput.Normal : TextInput.Password
-              passwordCharacter: "*"
-              color: Style.textPrimary
-              selectionColor: Style.surfaceActive
-              selectedTextColor: Style.textPrimary
-              font.family: Style.fontDisplay
-              font.pixelSize: root.showPassword ? 14 : 20
-              font.weight: root.showPassword ? Font.Medium : Font.Bold
-              font.letterSpacing: root.showPassword ? 0.3 : 4.5
-              cursorVisible: root.isExpanded && activeFocus && !LockScreenService.authenticating
-              clip: true
-
-              onTextEdited: {
-                LockScreenService.setPasswordText(text)
-              }
-
-              Keys.onReturnPressed: {
-                LockScreenService.submitPassword()
-              }
-              Keys.onEnterPressed: {
-                LockScreenService.submitPassword()
-              }
-              Keys.onEscapePressed: {
-                LockScreenService.resetInput()
-              }
-              Keys.onPressed: event => {
-                if (event.key === Qt.Key_CapsLock) {
-                  LockScreenService.capsLockOn = !LockScreenService.capsLockOn
-                }
-              }
-
-              Text {
-                anchors.fill: parent
-                verticalAlignment: Text.AlignVCenter
-                text: "Parola..."
-                font.family: Style.fontText
-                font.pixelSize: 13
-                font.letterSpacing: 0.2
-                color: Style.textMuted
-                visible: passwordInput.text.length === 0 && !passwordInput.inputMethodComposing
-              }
-            }
-
-            // Show / Hide Password Toggle
-            Item {
-              Layout.preferredWidth: 30
-              Layout.preferredHeight: 30
-
-              Text {
-                anchors.centerIn: parent
-                text: root.showPassword ? "󰈉" : "󰈈"
-                font.pixelSize: 16
-                color: eyeMouse.containsMouse ? Style.textPrimary : Style.textMuted
-                Behavior on color { ColorAnimation { duration: 120 } }
-              }
-
-              MouseArea {
-                id: eyeMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  root.showPassword = !root.showPassword
-                  root.grabPasswordFocus()
-                }
-              }
-            }
-
-            // Circular High-Contrast Submit Button
-            Rectangle {
-              Layout.preferredWidth: 36
-              Layout.preferredHeight: 36
-              radius: 18
-              color: LockScreenService.authenticating
-                ? Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.24)
-                : (submitMouse.containsMouse ? "#ffffff" : Qt.rgba(Style.textPrimary.r, Style.textPrimary.g, Style.textPrimary.b, 0.92))
-              scale: submitMouse.pressed ? 0.92 : 1.0
-
-              Behavior on scale { NumberAnimation { duration: 100 } }
-              Behavior on color { ColorAnimation { duration: 120 } }
-
-              Text {
-                anchors.centerIn: parent
-                text: LockScreenService.authenticating ? "󰔟" : "󰁔"
-                font.pixelSize: 17
-                font.weight: Font.Bold
-                color: LockScreenService.authenticating ? Style.textPrimary : "#000000"
-
-                RotationAnimation on rotation {
-                  running: LockScreenService.authenticating
-                  from: 0
-                  to: 360
-                  duration: 900
-                  loops: Animation.Infinite
-                }
-              }
-
-              MouseArea {
-                id: submitMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                enabled: !LockScreenService.authenticating
-                cursorShape: Qt.PointingHandCursor
-                onClicked: LockScreenService.submitPassword()
-              }
-            }
-          }
-        }
-
-        // -------------------------------------------------------------------
-        // Row 3: Subtle Micro-Hint / Caps Lock Indicator
-        // -------------------------------------------------------------------
-        Text {
-          Layout.fillWidth: true
-          horizontalAlignment: Text.AlignHCenter
-          text: {
-            if (LockScreenService.capsLockOn) return "Caps Lock Açık · Enter ile doğrulayın"
-            if (LockScreenService.authenticating) return "Kimlik doğrulanıyor..."
-            if (root.hasError) return "Tekrar deneyin · Vazgeçmek için ESC"
-            return "Parolanızı girip Enter'a basın"
-          }
-          font.family: Style.fontText
-          font.pixelSize: 11
-          color: LockScreenService.capsLockOn
-            ? Style.accentYellow
-            : (root.hasError ? Qt.rgba(Style.accentRed.r, Style.accentRed.g, Style.accentRed.b, 0.85) : Style.textMuted)
         }
       }
     }

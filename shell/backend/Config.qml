@@ -148,6 +148,9 @@ Item {
   property var lockscreen: ({
     "blur_radius": 64,
     "dim_opacity": 0.46,
+    "clock_font": "SF Pro Rounded",
+    "clock_weight": "SemiBold",
+    "date_font": "SF Pro Text",
     "clock_size": 196,
     "date_size": 18,
     "show_media": true,
@@ -321,6 +324,22 @@ Item {
   // =========================================================================
   readonly property int lockscreenBlurRadius: (lockscreen && lockscreen.blur_radius !== undefined) ? lockscreen.blur_radius : 64
   readonly property real lockscreenDimOpacity: (lockscreen && lockscreen.dim_opacity !== undefined) ? lockscreen.dim_opacity : 0.46
+  readonly property string lockscreenClockFont: (lockscreen && lockscreen.clock_font) ? lockscreen.clock_font : "SF Pro Rounded"
+  readonly property string lockscreenClockWeight: (lockscreen && lockscreen.clock_weight) ? lockscreen.clock_weight : "SemiBold"
+  readonly property int lockscreenClockWeightInt: {
+    let w = (lockscreenClockWeight || "SemiBold").toString().toLowerCase().trim()
+    if (w === "thin" || w === "100") return Font.Thin
+    if (w === "extralight" || w === "ultralight" || w === "200") return Font.ExtraLight
+    if (w === "light" || w === "300") return Font.Light
+    if (w === "normal" || w === "regular" || w === "400") return Font.Normal
+    if (w === "medium" || w === "500") return Font.Medium
+    if (w === "semibold" || w === "demibold" || w === "600") return Font.DemiBold
+    if (w === "bold" || w === "700") return Font.Bold
+    if (w === "extrabold" || w === "heavy" || w === "800") return Font.ExtraBold
+    if (w === "black" || w === "900") return Font.Black
+    return Font.DemiBold
+  }
+  readonly property string lockscreenDateFont: (lockscreen && lockscreen.date_font) ? lockscreen.date_font : "SF Pro Text"
   readonly property int lockscreenClockSize: (lockscreen && lockscreen.clock_size !== undefined) ? lockscreen.clock_size : 196
   readonly property int lockscreenDateSize: (lockscreen && lockscreen.date_size !== undefined) ? lockscreen.date_size : 18
   readonly property bool lockscreenShowMedia: (lockscreen && lockscreen.show_media !== undefined) ? lockscreen.show_media : true

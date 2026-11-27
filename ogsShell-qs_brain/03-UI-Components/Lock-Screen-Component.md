@@ -46,7 +46,7 @@ Kilit talebi (`LockScreenService.lock()`) geldiğinde `WlSessionLock.locked = tr
 
 ## 3. Üst Notch / Island Morfoloji Durum Makinesi
 
-Üst parola merkezi aktif `Config.formFactor` (`"notch"` veya `"island"`) değerine birebir uyum sağlar ve tüm boyut geçişlerinde `SpringAnimation { spring: 28.0; damping: 0.78; epsilon: 0.01 }` fiziğini kullanır:
+Üst parola merkezi aktif `Config.formFactor` (`"notch"` veya `"island"`) değerine ve `[[Dynamic-Island-Component]]` yüksekliğine birebir uyum sağlar; tüm boyut ve giriş geçişlerinde yumuşak `Easing.OutQuart` / `Easing.OutCubic` (`300-360ms`) eğrilerini kullanır:
 
 ```mermaid
 stateDiagram-v2
@@ -54,13 +54,13 @@ stateDiagram-v2
     LOCKED_IDLE --> LOCKED_TYPING: Herhangi bir tuş / Tıklama
     LOCKED_TYPING --> AUTHENTICATING: Enter / Gönder Butonu
     AUTHENTICATING --> [*]: PAM Success (unlock)
-    AUTHENTICATING --> LOCKED_TYPING: PAM Failed (Shake + Hata)
+    AUTHENTICATING --> LOCKED_TYPING: PAM Failed (Yumuşak Shake)
     LOCKED_TYPING --> LOCKED_IDLE: Escape veya Parola Temizlendi
 ```
 
-* **`LOCKED_IDLE`:** Yalnızca üzerinde kilit simgesi bulunan kompakt `#000000` saf OLED siyah çentik/ada (`112×34px`). Görünmez odak hazır bekler; kullanıcının tıklamasına gerek kalmaz.
-* **`LOCKED_TYPING`:** İlk karakter basıldığı anda `500×140px` genişleyerek kullanıcı adı, klavye düzeni (`TR/US`), Wi-Fi, Bluetooth, pil (`UPower`), **`*` karakterli parola girişi** (`passwordCharacter: "*"`), göster/gizle göz ikonu ve gönder butonunu açar.
-* **`AUTHENTICATING`:** `PamContext` (`config: "login"`) üzerinden asenkron doğrulama yapılır. Hatalı girişte yatay sarsılma (shake) animasyonu tetiklenir ve parola alanı hızla yeniden yazmaya hazır hale gelir.
+* **`LOCKED_IDLE`:** Yalnızca üzerinde kilit simgesi (`󰌾`) bulunan kompakt `#000000` saf OLED siyah çentik/ada (`96×28px`, aktif `notch.idle_height` / `island.idle_height` ile eşleşir). Görünmez odak hazır bekler; kullanıcının tıklamasına gerek kalmaz.
+* **`LOCKED_TYPING`:** İlk karakter basıldığı anda tek satırlık sade bir giriş kapsülüne (`284×44px`) genişler. Gereksiz başlık/telemetri/iç kutu barındırmaz; doğrudan saf siyah çentik üzerinde kilit ikonu, **`*` karakterli kenarlıksız parola girişi** (`passwordCharacter: "*"`) ve minimalist gönder ikonu yer alır.
+* **`AUTHENTICATING`:** `PamContext` (`config: "login"`) üzerinden asenkron doğrulama yapılır. Hatalı girişte yumuşak yatay sarsılma ve geçici kırmızı ikon vurgusu gösterilip parola alanı hızla yeniden yazmaya hazır hale gelir.
 
 ---
 
@@ -70,6 +70,9 @@ stateDiagram-v2
 "lockscreen": {
   "blur_radius": 64,
   "dim_opacity": 0.46,
+  "clock_font": "SF Pro Rounded",
+  "clock_weight": "SemiBold",
+  "date_font": "SF Pro Text",
   "clock_size": 196,
   "date_size": 18,
   "show_media": true,
