@@ -171,6 +171,48 @@ Item {
     sendAction("save_custom_border", config || {});
   }
 
+  function applyHyprAppearance(appearanceObj, presetId) {
+    sendAction("apply_hypr_appearance", {
+      "appearance": appearanceObj || {},
+      "preset_id": presetId || ""
+    });
+  }
+
+  function applyHyprAnimations(animationsObj, presetId) {
+    sendAction("apply_hypr_animations", {
+      "animations": animationsObj || {},
+      "preset_id": presetId || ""
+    });
+  }
+
+  function applyHyprPreset(kind, presetId) {
+    sendAction("apply_hypr_preset", {
+      "kind": kind || "",
+      "preset_id": presetId || ""
+    });
+  }
+
+  function saveHyprPreset(kind, name, description) {
+    sendAction("save_hypr_preset", {
+      "kind": kind || "",
+      "name": name || "",
+      "description": description || ""
+    });
+  }
+
+  function deleteHyprPreset(kind, presetId) {
+    sendAction("delete_hypr_preset", {
+      "kind": kind || "",
+      "preset_id": presetId || ""
+    });
+  }
+
+  function setHyprGameMode(enabled) {
+    sendAction("set_hypr_gamemode", {
+      "enabled": !!enabled
+    });
+  }
+
   // Keyring Prompt Helpers
   function submitKeyringPassword(id, password, remember) {
     sendAction("keyring_submit_response", {

@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"encoding/json"
 	"fmt"
 	"ogsShell/core/services/theme"
 	"os"
@@ -63,10 +64,12 @@ func (a *HyprlandAdapter) Apply(palette *theme.ThemePalette) error {
 		red = "f38ba8"
 	}
 
-	// 1. Live recolor active window border in running Hyprland session
+	// 1. Live recolor active window border in running Hyprland session (unless user configured custom border color)
 	borderArg := fmt.Sprintf("rgba(%sff) rgba(%sff) 45deg", accent, surface)
-	_ = exec.Command("hyprctl", "keyword", "general:col.active_border", borderArg).Run()
-	_ = exec.Command("hyprctl", "keyword", "general:col.inactive_border", fmt.Sprintf("rgba(%sff)", surface)).Run()
+	if !isCustomHyprBorderColorActive() {
+		_ = exec.Command("hyprctl", "keyword", "general:col.active_border", borderArg).Run()
+		_ = exec.Command("hyprctl", "keyword", "general:col.inactive_border", fmt.Sprintf("rgba(%sff)", surface)).Run()
+	}
 
 	// 2. Write colors.conf
 	confPath := a.getColorsConfPath()
@@ -90,4 +93,28 @@ $active_border = %s
 	}
 
 	return os.Rename(tmpPath, confPath)
+}
+
+func isCustomHyprBorderColorActive() bool {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	xdg := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME"))
+	if xdg == "" {
+		xdg = filepath.Join(homeDir, ".config")
+	}
+	data, err := os.ReadFile(filepath.Join(xdg, "ogsShell", "hyprland_config.json"))
+	if err != nil {
+		return false
+	}
+	var parsed struct {
+		Appearance struct {
+			BorderColorMode string `json:"border_color_mode"`
+		} `json:"appearance"`
+	}
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(parsed.Appearance.BorderColorMode), "custom")
 }

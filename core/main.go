@@ -353,6 +353,16 @@ func main() {
 
 	// Hyprland profil ve efekt yöneticisini başlat
 	hyprMgr := hyprland.NewManager()
+	if themeMgr != nil {
+		hyprMgr.SetThemeColorsProvider(func() (string, string) {
+			st, err := themeMgr.GetState()
+			if err != nil || st == nil || st.ActiveTheme == nil {
+				return "", ""
+			}
+			return st.ActiveTheme.Colors["accent"], st.ActiveTheme.Colors["surface"]
+		})
+		hyprMgr.RefreshThemeBorderColors()
+	}
 	hyprMgr.SetOnStateChange(func(state *hyprland.HyprState) {
 		payloadBytes, _ := json.Marshal(state)
 		_ = server.Broadcast(ipc.Event{
@@ -1151,6 +1161,9 @@ func main() {
 				return fmt.Errorf("set_active_theme args çözülemedi: %w", err)
 			}
 			_, err := themeMgr.SetActiveTheme(p.ThemeID)
+			if err == nil && hyprMgr != nil {
+				hyprMgr.RefreshThemeBorderColors()
+			}
 			return err
 
 		case "save_custom_theme":
@@ -1658,6 +1671,114 @@ func main() {
 				return err
 			}
 			state, _ := hyprMgr.GetState()
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "apply_hypr_appearance":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.ApplyAppearancePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("apply_hypr_appearance args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.ApplyAppearance(p)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "apply_hypr_animations":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.ApplyAnimationsPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("apply_hypr_animations args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.ApplyAnimations(p)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "apply_hypr_preset":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.ApplyPresetPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("apply_hypr_preset args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.ApplyPreset(p.Kind, p.PresetID)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "save_hypr_preset":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.SavePresetPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("save_hypr_preset args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.SavePreset(p)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "delete_hypr_preset":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.DeletePresetPayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("delete_hypr_preset args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.DeletePreset(p.Kind, p.PresetID)
+			if err != nil {
+				return err
+			}
+			payloadBytes, _ := json.Marshal(state)
+			return server.Broadcast(ipc.Event{
+				Type:    "hypr_state_update",
+				Payload: payloadBytes,
+			})
+
+		case "set_hypr_gamemode":
+			if hyprMgr == nil {
+				return fmt.Errorf("hyprland servisi devrede değil")
+			}
+			var p hyprland.SetGameModePayload
+			if err := json.Unmarshal(action.Args, &p); err != nil {
+				return fmt.Errorf("set_hypr_gamemode args çözülemedi: %w", err)
+			}
+			state, err := hyprMgr.SetGameMode(p.Enabled)
+			if err != nil {
+				return err
+			}
 			payloadBytes, _ := json.Marshal(state)
 			return server.Broadcast(ipc.Event{
 				Type:    "hypr_state_update",
