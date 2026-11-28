@@ -74,11 +74,15 @@ Servis, Hyprland'in modern Lua tabanlı yapılandırma ağacını (`~/.config/hy
 
 ## 3. Desteklenen IPC Uçları
 
-* **`get_hypr_state`**: Aktif ve diskteki tüm mevcut profil listelerini döner.
-* **`set_hypr_profile`**: Belirtilen kategorideki profili aktif eder ve `hyprctl reload` tetikler.
+* **`get_hypr_state`**: Aktif profilleri, birleşik `config` (`appearance`, 0.57 `blur`, 7'li `animations`, `game_mode`), dahili + özel presetleri ve `available_curves` listesini döner.
+* **`apply_hypr_appearance`**: Kenarlık kalınlığı/rengi (`border_color_mode`: `"theme"` veya `"custom"`, aktif tek renk veya çift renkli gradyan + açı, pasif kenarlık rengi), boşluk, gölge, opaklık, pasif pencere karartma (`dim_inactive`/`dim_strength`) ve Hyprland 0.57.2 11 varyantlı Blur ayarlarını 0ms canlı (`hyprctl eval`) uygular ve `generated_appearance.lua` + `hyprland_config.json` dosyalarına atomik kaydeder. Özel kenarlık rengi aktifken tema değişiklikleri özel rengi ezmez.
+* **`apply_hypr_animations`**: 7 bağımsız animasyon dalını (`windows_in`, `windows_out`, `windows_move`, `workspaces`, `layers`, `fade`, `border`) 0ms canlı uygular ve `generated_animations.lua` + `hyprland_config.json` dosyalarına kaydeder.
+* **`apply_hypr_preset`**: Dahili veya kullanıcı yapımı `appearance` / `animation` presetini tek tıkla canlı duruma yükleyip uygular.
+* **`save_hypr_preset` / `delete_hypr_preset`**: Mevcut canlı görünüm veya 7'li animasyon kombinasyonunu özel preset olarak kaydeder veya siler.
+* **`set_hypr_gamemode`**: Oyun/Performans modunu açıp kapatır (eski görünüm & animasyon ayarlarını kaybetmeden).
+* **`set_hypr_profile`**: Monitör (`monitor`), tema veya ortam profilini `active_state.lua` üzerinde günceller ve `hyprctl reload` tetikler.
 * **`preview_hypr_eval`**: 0ms canlı test için Lua kodunu çalıştırır.
-* **`save_custom_curve`**: Yeni Bézier eğrisini kaydeder ve kompozitöre bildirir.
-* **`save_custom_border`**: Yeni özel dekorasyon profilini oluşturur ve seçer.
+* **`save_custom_curve`**: Yeni Bézier eğrisini `custom_curves.lua` dosyasına kaydeder ve kompozitöre bildirir.
 
 ---
 

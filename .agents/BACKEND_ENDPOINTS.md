@@ -135,6 +135,15 @@ Bu doküman, `ogsShell-qs` Go daemon arka plan servisi (`core/`) ile Quickshell 
 | **Keyring** | `keyring_submit_response` | `{"id": "...", "password": "...", "remember": true}` | `keyring_prompt_dismissed` | Anahtarlık kilit açma parolasını C ajanına iletir |
 | **Keyring** | `keyring_confirm_response`| `{"id": "...", "confirmed": true, "remember": true}` | `keyring_prompt_dismissed` | Onay/izin istemi sonucunu C ajanına iletir |
 | **Keyring** | `keyring_cancel_response` | `{"id": "..."}` | `keyring_prompt_dismissed` | Kilit açma işlemini iptal eder |
+| **Hyprland** | `get_hypr_state` | `{}` | `hypr_state_update` | Aktif profilleri, birleşik görünüm/blur/7'li animasyon durumunu, presetleri ve eğrileri döner |
+| **Hyprland** | `apply_hypr_appearance` | `{"appearance": {...}, "preset_id": "..."}` | `hypr_state_update` | Kenarlık, boşluk, gölge ve Hyprland 0.57.2 11 varyantlı Blur ayarlarını 0ms canlı uygular ve kaydeder |
+| **Hyprland** | `apply_hypr_animations` | `{"animations": {...}, "preset_id": "..."}` | `hypr_state_update` | 7 bağımsız animasyon dalını (`windows_in/out/move`, `workspaces`, `layers`, `fade`, `border`) 0ms canlı uygular ve kaydeder |
+| **Hyprland** | `apply_hypr_preset` | `{"kind": "appearance/animation", "preset_id": "..."}` | `hypr_state_update` | Dahili veya özel görünüm/animasyon presetini canlı duruma yükleyip uygular |
+| **Hyprland** | `save_hypr_preset` | `{"kind": "appearance/animation", "name": "...", "description": "..."}` | `hypr_state_update` | Mevcut canlı görünüm veya animasyon ayarlarını yeni özel preset olarak kaydeder |
+| **Hyprland** | `delete_hypr_preset` | `{"kind": "appearance/animation", "preset_id": "..."}` | `hypr_state_update` | Kullanıcı tarafından oluşturulan özel preseti siler |
+| **Hyprland** | `set_hypr_gamemode` | `{"enabled": true/false}` | `hypr_state_update` | Oyun/Performans modunu açar veya kapatır (eski ayarlar korunur) |
+| **Hyprland** | `set_hypr_profile` | `{"category": "monitor/...", "name": "..."}` | `hypr_state_update` | Monitör, tema veya ortam profilini günceller ve Hyprland'i yeniler |
+| **Hyprland** | `save_custom_curve` | `{"name": "...", "points": [[x1,y1],[x2,y2]]}` | `hypr_state_update` | Özel Cubic Bézier eğrisini `custom_curves.lua` dosyasına kaydeder |
 
 ---
 

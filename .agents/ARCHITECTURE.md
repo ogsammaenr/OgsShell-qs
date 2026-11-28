@@ -174,14 +174,14 @@
 
 ---
 
-## 13. Hyprland Profile, Decoration & Bezier Physics Engine (`core/services/hyprland/`)
+## 13. Hyprland Unified Appearance, 0.57 Blur Studio & 7-Leaf Animation Engine (`core/services/hyprland/`)
 
-* **Active State & Multi-Profile Synchronization:** Reads and dynamically synchronizes Hyprland state with `~/.config/hypr/lua/active_state.lua`, discovering profiles across `borders/`, `animations/` (workspaces, windows, layers), and `themes/`.
-* **Zero-Latency Runtime Preview:** Provides instant 0ms preview via `hyprctl eval` (`preview_hypr_eval`), executing Lua table assignments without file commits or window flicker.
-* **Custom Bezier Curve Registration:** Dynamically writes user-designed CSS Cubic Bezier coordinates to `~/.config/hypr/lua/profiles/animations/custom_curves.lua` and injects them live via `hl.curve(...)`.
-* **Atomic Custom Border Profiles:** Synthesizes `custom_<name>.lua` border definitions (gaps, squircle power, opacity, shadows) and updates `active_state.lua` atomically.
-* **Continuous Inode File Watcher:** Background `fsnotify` watcher monitors `lua/active_state.lua` and broadcasts `hypr_state_update` NDJSON events in real-time.
-* **IPC Endpoints:** `get_hypr_state`, `set_hypr_profile`, `preview_hypr_eval`, `save_custom_curve`, `save_custom_border`.
+* **Single Source of Truth (`~/.config/ogsShell/hyprland_config.json`):** Stores active Appearance (border, gaps, rounding, squircle, shadow, opacity, Hyprland 0.57.2 11-variant Blur Studio), 7 independent Animation leaves (`windowsIn`, `windowsOut`, `windowsMove`, `workspaces`, `layers`, `fade`, `border`), Game Mode state, and built-in + custom presets.
+* **Conflict-Free Lua Synthesis:** Atomically generates `~/.config/hypr/lua/generated_appearance.lua` and `generated_animations.lua` loaded by `~/.config/hypr/hyprland.lua` (preserving all user `core/`, `monitors/`, and `themes/` files untouched).
+* **0ms Live Auto-Save (`hyprctl eval`):** Every slider, blur variant switch, or individual animation edit pushes live via `hyprctl eval` with zero compositor flicker and auto-persists to disk.
+* **Hyprland 0.57.2 Blur Studio:** Supports all 11 native shader blur variants (`kawase`, `acrylic`, `frost`, `prism`, `haze`, `aurora`, `water`, `ripple`, `drops`, `heat_shimmer`, `fluid_jar`) with variant-specific parameters plus core blur knobs.
+* **Custom Bezier Curve Discovery:** Saves custom curves to `~/.config/hypr/lua/profiles/animations/custom_curves.lua` and auto-discovers all curves from `curves.lua` + `custom_curves.lua` for every animation row.
+* **IPC Endpoints:** `get_hypr_state`, `set_hypr_profile`, `preview_hypr_eval`, `save_custom_curve`, `save_custom_border`, `apply_hypr_appearance`, `apply_hypr_animations`, `apply_hypr_preset`, `save_hypr_preset`, `delete_hypr_preset`, `set_hypr_gamemode`.
 
 ---
 
@@ -201,7 +201,7 @@
 * **Canonical Installation Location:** Deployed to `$XDG_CONFIG_HOME/ogsShell/ogsshell.sh` (`~/.config/ogsShell/ogsshell.sh`) with `ogs.sh` symlink and exposed system-wide via `~/.local/bin/ogsshell`.
 * **System Autostart & Socket Readiness Handshake:** `cmd_run` employs incremental Go compilation avoidance (skipping `go build` when `bin/ogsshell-core` is up to date), log rotation (`/tmp/ogsshell-core.prev.log`), and an extended 10-second IPC socket readiness polling loop before launching Quickshell, preventing cold-boot race conditions.
 * **Shell Auto-Completion Support:** Native context-aware Tab completion for both Zsh (`~/.config/zsh/custom/ogsshell.zsh`) and Bash (`~/.local/share/bash-completion/completions/ogsshell`), providing command and multi-argument subview completions for `ogsshell`, `ogsshell.sh`, `ogs`, and `ogs.sh`.
-* **Standalone Settings App (`settings_app/`):** Independent Quickshell `FloatingWindow` application (`app-id: ogs-settings`) providing live configuration tabs for Network & DNS (`NetworkPage.qml`), Dynamic Island/Notch Geometry (`IslandPage.qml`), Hyprland Profiles & Bezier Physics (`HyprlandPage.qml`), and Sound & %150 Over-Amplification (`SoundPage.qml`).
+* **Standalone Settings App (`settings_app/`):** Independent Quickshell `FloatingWindow` application (`app-id: ogs-settings`, `980×680`) featuring grouped sidebar navigation with live search, floating toast feedback, `Loader`-based lazy pages, and 9 complete configuration tabs: Appearance & Themes (`AppearancePage.qml`), Dynamic Island/Notch with live preview & collapsible dimensions (`IslandPage.qml`), Lock Screen with live preview & typography/blur controls (`LockScreenPage.qml`), 3-tab Hyprland Profiles/Borders/Bézier Studio (`HyprlandPage.qml`), Network & 2×3 Secure DNS Grid (`NetworkPage.qml`), Bluetooth (`BluetoothPage.qml`), Sound & %150 Over-Amplification (`SoundPage.qml`), Notifications & DND (`NotificationsPage.qml`), and Keyboard, Currency & System (`SystemPage.qml`).
 
 ---
 
