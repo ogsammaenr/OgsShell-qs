@@ -405,22 +405,55 @@ Item {
     return home + "/Workspace/projects/OgsShell-qs/settings_app/config.json"
   }
 
+  property string _pendingWriteJson: ""
+  property bool _pendingWriteAllPaths: true
+
   Process {
     id: syncProc
+    onExited: {
+      if (root._pendingWriteJson.length > 0) {
+        let nextJson = root._pendingWriteJson
+        let allPaths = root._pendingWriteAllPaths
+        root._pendingWriteJson = ""
+        root._launchWriteProc(nextJson, allPaths)
+      }
+    }
   }
 
-  function writeConfig(jsonContent) {
+  Timer {
+    id: writeDebounceTimer
+    interval: 120
+    repeat: false
+    onTriggered: {
+      if (root._pendingWriteJson.length > 0 && !syncProc.running) {
+        let nextJson = root._pendingWriteJson
+        let allPaths = root._pendingWriteAllPaths
+        root._pendingWriteJson = ""
+        root._launchWriteProc(nextJson, allPaths)
+      }
+    }
+  }
+
+  function _launchWriteProc(jsonContent, writeAllPaths) {
     if (!jsonContent || jsonContent.trim().length === 0) return
-    let paths = [
-      root.userConfigPath,
-      root.workspaceConfigPath,
-      root.shellConfigPath,
-      root.settingsConfigPath,
-      root.sharedConfigPath
-    ]
+    // Write mirrors first and canonical userConfigPath LAST via atomic os.replace
+    let paths = writeAllPaths
+      ? [
+          root.sharedConfigPath,
+          root.settingsConfigPath,
+          root.shellConfigPath,
+          root.workspaceConfigPath,
+          root.userConfigPath
+        ]
+      : [
+          root.sharedConfigPath,
+          root.settingsConfigPath,
+          root.userConfigPath
+        ]
 
     let pyScript = "import os\n" +
       "content = " + JSON.stringify(jsonContent) + "\n" +
+      "pid = os.getpid()\n" +
       "seen = set()\n" +
       "for path in " + JSON.stringify(paths) + ":\n" +
       "    if not path:\n" +
@@ -434,52 +467,50 @@ Item {
       "            with open(path, 'r', encoding='utf-8') as rf:\n" +
       "                if rf.read() == content:\n" +
       "                    continue\n" +
-      "        os.makedirs(os.path.dirname(path), exist_ok=True)\n" +
-      "        with open(path, 'w', encoding='utf-8') as f:\n" +
+      "        d = os.path.dirname(path)\n" +
+      "        os.makedirs(d, exist_ok=True)\n" +
+      "        tmp = f'{path}.tmp.{pid}'\n" +
+      "        with open(tmp, 'w', encoding='utf-8') as f:\n" +
       "            f.write(content)\n" +
+      "            f.flush()\n" +
+      "            os.fsync(f.fileno())\n" +
+      "        os.replace(tmp, path)\n" +
       "    except Exception:\n" +
       "        pass\n"
 
-    syncProc.running = false
     syncProc.command = ["python3", "-c", pyScript]
     syncProc.running = true
+  }
+
+  function writeConfig(jsonContent, immediate) {
+    if (!jsonContent || jsonContent.trim().length === 0) return
+    if (!syncProc.running) {
+      writeDebounceTimer.stop()
+      root._pendingWriteJson = ""
+      root._launchWriteProc(jsonContent, true)
+      return
+    }
+    root._pendingWriteJson = jsonContent
+    root._pendingWriteAllPaths = true
+    if (immediate) {
+      writeDebounceTimer.stop()
+    } else {
+      writeDebounceTimer.restart()
+    }
   }
 
   function syncToUserConfig(jsonContent) {
     if (!jsonContent || jsonContent.trim().length === 0) return
-    let paths = [
-      root.userConfigPath,
-      root.settingsConfigPath,
-      root.sharedConfigPath
-    ]
-
-    let pyScript = "import os\n" +
-      "content = " + JSON.stringify(jsonContent) + "\n" +
-      "seen = set()\n" +
-      "for path in " + JSON.stringify(paths) + ":\n" +
-      "    if not path:\n" +
-      "        continue\n" +
-      "    real = os.path.realpath(path)\n" +
-      "    if real in seen:\n" +
-      "        continue\n" +
-      "    seen.add(real)\n" +
-      "    try:\n" +
-      "        if os.path.exists(path):\n" +
-      "            with open(path, 'r', encoding='utf-8') as rf:\n" +
-      "                if rf.read() == content:\n" +
-      "                    continue\n" +
-      "        os.makedirs(os.path.dirname(path), exist_ok=True)\n" +
-      "        with open(path, 'w', encoding='utf-8') as f:\n" +
-      "            f.write(content)\n" +
-      "    except Exception:\n" +
-      "        pass\n"
-
-    syncProc.running = false
-    syncProc.command = ["python3", "-c", pyScript]
-    syncProc.running = true
+    root._pendingWriteJson = jsonContent
+    root._pendingWriteAllPaths = false
+    if (!syncProc.running) {
+      let nextJson = root._pendingWriteJson
+      root._pendingWriteJson = ""
+      root._launchWriteProc(nextJson, false)
+    }
   }
 
-  function saveConfig(cfg) {
+  function _applyFields(cfg) {
     if (!cfg) return
     if (cfg.form_factor !== undefined) root.formFactor = cfg.form_factor
     if (cfg.theme !== undefined) {
@@ -503,11 +534,14 @@ Item {
     if (cfg.audio) root.audio = Object.assign({}, root.audio, cfg.audio)
     if (cfg.audio_feedback) root.audioFeedback = Object.assign({}, root.audioFeedback, cfg.audio_feedback)
     if (cfg.corner_hud) root.cornerHud = Object.assign({}, root.cornerHud, cfg.corner_hud)
+    if (cfg.corner_tray) root.cornerTray = Object.assign({}, root.cornerTray, cfg.corner_tray)
     if (cfg.shadows) root.shadows = Object.assign({}, root.shadows, cfg.shadows)
     if (cfg.currency) root.currency = Object.assign({}, root.currency, cfg.currency)
     if (cfg.lockscreen) root.lockscreen = Object.assign({}, root.lockscreen, cfg.lockscreen)
+  }
 
-    let full = {
+  function _buildFullObject() {
+    return {
       "form_factor": root.formFactor,
       "theme": root.theme,
       "show_pinned_system_metrics": root.showPinnedSystemMetrics,
@@ -521,15 +555,29 @@ Item {
       "audio": root.audio,
       "audio_feedback": root.audioFeedback,
       "corner_hud": root.cornerHud,
+      "corner_tray": root.cornerTray,
       "shadows": root.shadows,
       "currency": root.currency,
       "lockscreen": root.lockscreen
     }
+  }
 
+  function saveConfig(cfg) {
+    if (!cfg) return
+    // Guarantee disk config is hydrated before persisting so cold-boot IPC events
+    // can never clobber user settings with hardcoded defaults.
+    if (!root.initialLoadDone) {
+      root._hydrateSyncFromFileView()
+    }
+    root._applyFields(cfg)
+
+    let full = root._buildFullObject()
     let jsonStr = JSON.stringify(full, null, 2)
     root.lastLoadedWorkspaceHash = jsonStr.trim()
     root.lastLoadedUserHash = jsonStr.trim()
-    root.writeConfig(jsonStr)
+    if (root.initialLoadDone) {
+      root.writeConfig(jsonStr, false)
+    }
     root.configRevision++
     root.configUpdated(full)
   }
@@ -538,6 +586,15 @@ Item {
     if (!themeId) return
     let norm = themeId.toLowerCase().trim()
     if (root.theme === norm && Style.activeThemeId === norm) return
+    // On cold boot before config.json is loaded, only sync memory (never clobber disk!)
+    if (!root.initialLoadDone) {
+      root._hydrateSyncFromFileView()
+    }
+    if (!root.initialLoadDone) {
+      root.theme = norm
+      Style.applyThemeById(norm)
+      return
+    }
     root.theme = norm
     Style.applyThemeById(norm)
     saveConfig({ "theme": norm })
@@ -547,27 +604,60 @@ Item {
   property string lastLoadedWorkspaceHash: ""
   property string lastLoadedUserHash: ""
 
+  // Synchronous preload FileViews so Config is hydrated before any IPC message arrives
+  FileView {
+    id: preloadUserFile
+    path: root.userConfigPath
+    preload: true
+    printErrors: false
+  }
+
+  FileView {
+    id: preloadWorkspaceFile
+    path: root.workspaceConfigPath
+    preload: true
+    printErrors: false
+  }
+
+  function _hydrateSyncFromFileView() {
+    if (root.initialLoadDone) return
+    let userTxt = preloadUserFile ? (preloadUserFile.text() || "").trim() : ""
+    if (userTxt.length > 0) {
+      root.lastLoadedUserHash = userTxt
+      root.lastLoadedWorkspaceHash = userTxt
+      root.loadConfigString(userTxt, false)
+      return
+    }
+    let wsTxt = preloadWorkspaceFile ? (preloadWorkspaceFile.text() || "").trim() : ""
+    if (wsTxt.length > 0) {
+      root.lastLoadedWorkspaceHash = wsTxt
+      root.loadConfigString(wsTxt, true)
+    }
+  }
+
   // =========================================================================
   // Real-Time inotify Watcher Process
-  // Captures file changes, atomic renames, and writes instantly (<5ms)
+  // Watches ONLY close_write and moved_to (atomic writes), never partial modify
   // =========================================================================
   Process {
     id: inotifyProc
     command: {
       let dirs = []
-      if (root.workspaceConfigDir && root.workspaceConfigDir.length > 0) dirs.push(root.workspaceConfigDir)
-      if (root.userConfigDir && root.userConfigDir.length > 0 && dirs.indexOf(root.userConfigDir) === -1) dirs.push(root.userConfigDir)
-      return ["inotifywait", "-m", "-e", "close_write,moved_to,modify", "--format", "%w%f"].concat(dirs)
+      if (root.userConfigDir && root.userConfigDir.length > 0) dirs.push(root.userConfigDir)
+      if (root.workspaceConfigDir && root.workspaceConfigDir.length > 0 && dirs.indexOf(root.workspaceConfigDir) === -1) dirs.push(root.workspaceConfigDir)
+      return ["inotifywait", "-m", "-e", "close_write,moved_to", "--format", "%w%f"].concat(dirs)
     }
-    running: root.workspaceConfigDir.length > 0
+    running: root.userConfigDir.length > 0 || root.workspaceConfigDir.length > 0
     stdout: SplitParser {
       onRead: path => {
         let clean = path ? path.trim() : ""
-        if (clean.endsWith("config.json")) {
-          if (clean.indexOf("shell/config.json") !== -1 || clean === root.workspaceConfigPath) {
-            triggerWorkspaceRead()
-          } else if (clean === root.userConfigPath || clean.indexOf("ogsShell/config.json") !== -1) {
+        if (clean.endsWith("/config.json") || clean === "config.json") {
+          // Ignore inotify echoes while our own debounced write is pending
+          if (writeDebounceTimer.running || syncProc.running) return
+          if (clean === root.userConfigPath || clean.indexOf("ogsShell/config.json") !== -1) {
             triggerUserRead()
+          } else if (clean === root.workspaceConfigPath || clean.indexOf("shell/config.json") !== -1) {
+            triggerWorkspaceRead()
           }
         }
       }
@@ -582,7 +672,7 @@ Item {
     interval: 1000
     repeat: false
     onTriggered: {
-      if (!inotifyProc.running && root.workspaceConfigDir.length > 0) {
+      if (!inotifyProc.running && (root.userConfigDir.length > 0 || root.workspaceConfigDir.length > 0)) {
         inotifyProc.running = true
       }
     }
@@ -620,7 +710,8 @@ Item {
     onExited: {
       let content = readWorkspaceConfigProc.buffer.trim()
       readWorkspaceConfigProc.buffer = ""
-      if (content.length > 0 && content !== root.lastLoadedWorkspaceHash) {
+      if (writeDebounceTimer.running || syncProc.running) return
+      if (content.length > 0 && content !== root.lastLoadedWorkspaceHash && content !== root.lastLoadedUserHash) {
         root.lastLoadedWorkspaceHash = content
         root.loadConfigString(content, true)
       }
@@ -640,22 +731,25 @@ Item {
     onExited: {
       let content = readUserConfigProc.buffer.trim()
       readUserConfigProc.buffer = ""
+      if (writeDebounceTimer.running || syncProc.running) return
       if (content.length > 0 && content !== root.lastLoadedUserHash) {
         root.lastLoadedUserHash = content
+        root.lastLoadedWorkspaceHash = content
         root.loadConfigString(content, false)
       }
     }
   }
 
-  // Fallback Polling Timer: Guarantees synchronization on exotic filesystems
+  // Fallback Polling Timer: Polls canonical XDG userConfigPath (never overwrites user config from stale workspace)
   Timer {
     id: fallbackPollTimer
-    interval: 1000
+    interval: 1500
     repeat: true
     running: true
     onTriggered: {
-      if (!readWorkspaceConfigProc.running && root.workspaceConfigPath.length > 0) {
-        readWorkspaceConfigProc.running = true
+      if (!writeDebounceTimer.running && !syncProc.running && !readUserConfigProc.running && root.userConfigPath.length > 0) {
+        readUserConfigProc.buffer = ""
+        readUserConfigProc.running = true
       }
     }
   }
@@ -667,13 +761,7 @@ Item {
       if (cfg.form_factor !== undefined) root.formFactor = cfg.form_factor
       if (cfg.theme !== undefined) {
         if (!root.initialLoadDone && Style.themeConfigLoaded && Style.activeThemeId && Style.activeThemeId.length > 0) {
-          // theme_config.json is the authoritative persistence store for active theme.
-          // Synchronize config.json to the last active theme on cold boot.
           root.theme = Style.activeThemeId
-          if (cfg.theme !== Style.activeThemeId) {
-            cfg.theme = Style.activeThemeId
-            shouldSyncToUser = true
-          }
         } else {
           root.theme = cfg.theme
           Style.applyThemeById(cfg.theme)
@@ -719,12 +807,23 @@ Item {
   }
 
   Component.onCompleted: {
-    // Initial pass
+    // Hydrate synchronously from canonical ~/.config/ogsShell/config.json first
+    root._hydrateSyncFromFileView()
     if (root.fontDisplay) Style.fontDisplay = root.fontDisplay
     if (root.fontText) Style.fontText = root.fontText
     if (root.fontWeightDisplayInt !== undefined) Style.fontWeightDisplay = root.fontWeightDisplayInt
     if (root.fontWeightDisplay) Style.fontWeightDisplayName = root.fontWeightDisplay
-    triggerWorkspaceRead()
-    triggerUserRead()
+    if (!root.initialLoadDone) {
+      triggerUserRead()
+    }
+  }
+
+  Component.onDestruction: {
+    if (root._pendingWriteJson.length > 0 && !syncProc.running) {
+      writeDebounceTimer.stop()
+      let nextJson = root._pendingWriteJson
+      root._pendingWriteJson = ""
+      root._launchWriteProc(nextJson, root._pendingWriteAllPaths)
+    }
   }
 }

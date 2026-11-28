@@ -1,11 +1,11 @@
 {
   "form_factor": "notch",
-  "theme": "monochrome",
+  "theme": "rosepine",
   "show_pinned_system_metrics": true,
   "focus_mode": false,
   "typography": {
     "font_display": "Noto Sans Display",
-    "font_weight_display": "bold",
+    "font_weight_display": "Bold",
     "font_text": "Noto Sans Display",
     "clock_idle_size": 18,
     "clock_hover_size": 22,
@@ -37,7 +37,7 @@
     "idle_width": 190,
     "idle_height": 28,
     "hover_width": 500,
-    "hover_height": 74,
+    "hover_height": 76,
     "transient_width": 350,
     "transient_height": 58,
     "expanded_width": 500,
@@ -84,6 +84,12 @@
     "timeout_ms": 1200,
     "height": 34
   },
+  "corner_tray": {
+    "enabled": true,
+    "height": 34,
+    "trigger_mode": "click",
+    "timeout_ms": 0
+  },
   "shadows": {
     "enabled": true,
     "island_shadow": true,
@@ -110,7 +116,7 @@
     "clock_font": "SF Pro Rounded",
     "clock_weight": "Bold",
     "date_font": "SF Pro Text",
-    "clock_size": 250,
+    "clock_size": 260,
     "date_size": 18,
     "show_media": true,
     "show_power": true,
