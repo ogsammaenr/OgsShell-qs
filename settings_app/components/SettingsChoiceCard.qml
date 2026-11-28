@@ -102,7 +102,7 @@ Rectangle {
       radius: 8
       color: "transparent"
       border.color: root.isSelected ? Style.accent : Style.textMuted
-      border.width: root.isSelected ? 1.5 : 1
+      border.width: root.isSelected ? 2 : 1
 
       Rectangle {
         anchors.centerIn: parent

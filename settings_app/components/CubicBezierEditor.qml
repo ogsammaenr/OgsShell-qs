@@ -285,7 +285,7 @@ Rectangle {
           radius: 9
           color: Style.appBackground
           border.color: Style.accentCyan
-          border.width: 2.5
+          border.width: 2
 
           Rectangle {
             anchors.centerIn: parent
@@ -335,7 +335,7 @@ Rectangle {
           radius: 9
           color: Style.appBackground
           border.color: Style.accentOrange
-          border.width: 2.5
+          border.width: 2
 
           Rectangle {
             anchors.centerIn: parent

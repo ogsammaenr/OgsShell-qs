@@ -11,20 +11,18 @@ Flickable {
   id: root
 
   property var ipc: null
+  signal notifyToast(string msg, bool isErr)
 
-  // Local working state synchronized with Config singleton
   property bool overAmplification: Config.audioOverAmplification
   property bool feedbackEnabled: Config.audioFeedbackEnabled
   property bool volumeChangeSound: Config.audioFeedbackVolumeChangeSound
   property int feedbackThrottleMs: Config.audioFeedbackThrottleMs
   property bool cornerHudVolumeEnabled: Config.cornerHudVolume
 
-  // Live PipeWire default output sink telemetry
   property int liveVolumePct: 50
   property bool liveMuted: false
   property string sinkDisplayName: "Varsayılan Çıkış Aygıtı"
 
-  property string statusFeedbackMessage: ""
   readonly property int activeMaxVolume: overAmplification ? 150 : 100
 
   PwObjectTracker {
@@ -126,8 +124,7 @@ Flickable {
       "                if isinstance(ch, dict) and 'value_percent' in ch:\n" +
       "                    try:\n" +
       "                        if int(ch['value_percent'].replace('%', '').strip()) > 100:\n" +
-      "                            over = True\n" +
-      "                            break\n" +
+      "                            over = True; break\n" +
       "                    except Exception: pass\n" +
       "            if over and item.get('index') is not None:\n" +
       "                subprocess.run(['pactl', set_cmd, str(item['index']), '100%'], capture_output=True)\n" +
@@ -152,28 +149,20 @@ Flickable {
 
   function saveSoundSettings(feedbackMsg) {
     Config.saveConfig({
-      "audio": {
-        "over_amplification": root.overAmplification,
-        "max_volume": 150
-      },
+      "audio": { "over_amplification": root.overAmplification, "max_volume": 150 },
       "audio_feedback": {
         "enabled": root.feedbackEnabled,
         "volume_change_sound": root.volumeChangeSound,
         "throttle_ms": root.feedbackThrottleMs
       },
-      "corner_hud": {
-        "volume_enabled": root.cornerHudVolumeEnabled
-      }
+      "corner_hud": { "volume_enabled": root.cornerHudVolumeEnabled }
     })
-    root.statusFeedbackMessage = feedbackMsg || "Ses ayarları kaydedildi."
-    feedbackTimer.restart()
+    root.notifyToast(feedbackMsg || "Ses ayarları kaydedildi.", false)
   }
 
   Connections {
     target: Config
-    function onConfigUpdated() {
-      root.pullValuesFromConfig()
-    }
+    function onConfigUpdated() { root.pullValuesFromConfig() }
   }
 
   Component.onCompleted: {
@@ -181,15 +170,8 @@ Flickable {
     root.syncLiveSink()
   }
 
-  Timer {
-    id: feedbackTimer
-    interval: 3500
-    repeat: false
-    onTriggered: root.statusFeedbackMessage = ""
-  }
-
   contentWidth: width
-  contentHeight: mainColumn.implicitHeight + 40
+  contentHeight: mainColumn.implicitHeight + 48
   boundsBehavior: Flickable.StopAtBounds
   acceptedButtons: Qt.NoButton
   clip: true
@@ -201,89 +183,33 @@ Flickable {
 
   ColumnLayout {
     id: mainColumn
-    width: parent.width - 40
+    width: parent.width - 48
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
-    anchors.topMargin: 20
-    spacing: 18
+    anchors.topMargin: 22
+    spacing: 20
 
-    // Header
-    RowLayout {
-      Layout.fillWidth: true
-      spacing: 10
-
-      ColumnLayout {
-        Layout.fillWidth: true
-        spacing: 2
-
-        Text {
-          text: "Çıkış Düzeyi ve Yükseltme"
-          font.family: Style.fontText
-          font.pixelSize: 14
-          font.weight: Font.DemiBold
-          color: Style.textPrimary
-        }
-
-        Text {
-          text: "%150 ses sınırı, geri bildirim ve köşe OSD tercihleri."
-          font.family: Style.fontText
-          font.pixelSize: 11
-          color: Style.textMuted
-        }
-      }
-
-      SettingsButton {
-        text: "Karıştırıcıyı Aç"
-        iconText: "󰓃"
-        visible: !!root.ipc
-        onClicked: {
-          if (root.ipc) {
-            root.ipc.sendAction("toggle_audio_mixer", {})
-          }
-        }
-      }
-    }
-
-    // Status Banner
-    Rectangle {
-      visible: root.statusFeedbackMessage !== ""
-      Layout.fillWidth: true
-      implicitHeight: 32
-      radius: 8
-      color: Qt.alpha(Style.accentGreen, 0.12)
-      border.color: Qt.alpha(Style.accentGreen, 0.35)
-      border.width: 1
-
-      RowLayout {
-        anchors.fill: parent
-        anchors.leftMargin: 12
-        anchors.rightMargin: 12
-        spacing: 8
-
-        Text {
-          text: "󰄬"
-          font.pixelSize: 13
-          color: Style.accentGreen
-        }
-
-        Text {
-          text: root.statusFeedbackMessage
-          font.family: Style.fontText
-          font.pixelSize: 12
-          font.weight: Font.Medium
-          color: Style.accentGreen
-          Layout.fillWidth: true
-        }
-      }
-    }
-
-    // 1. Live Output Device & Volume Preview
+    // 1. Live Output Device & Slider
     ColumnLayout {
       Layout.fillWidth: true
-      spacing: 6
+      spacing: 8
 
-      SettingsSectionHeader {
-        titleText: "Aktif Ses Çıkışı"
+      RowLayout {
+        Layout.fillWidth: true
+
+        SettingsSectionHeader {
+          titleText: "Aktif Ses Çıkışı"
+          Layout.fillWidth: true
+        }
+
+        SettingsButton {
+          text: "Ses Karıştırıcısı"
+          iconText: "󰓃"
+          visible: !!root.ipc
+          onClicked: {
+            if (root.ipc) root.ipc.sendAction("toggle_audio_mixer", {})
+          }
+        }
       }
 
       SettingsCard {
@@ -295,9 +221,7 @@ Flickable {
           spacing: 10
 
           Rectangle {
-            width: 34
-            height: 34
-            radius: 8
+            width: 34; height: 34; radius: 8
             color: root.liveMuted
               ? Qt.alpha(Style.accentRed, 0.14)
               : (root.liveVolumePct > 100 ? Qt.alpha(Style.accentOrange, 0.14) : Style.surfaceVariant)
@@ -316,30 +240,15 @@ Flickable {
 
             Text {
               text: root.sinkDisplayName
-              font.family: Style.fontText
-              font.pixelSize: 13
-              font.weight: Font.Medium
-              color: Style.textPrimary
-              Layout.fillWidth: true
-              elide: Text.ElideRight
+              font.family: Style.fontText; font.pixelSize: 13; font.weight: Font.Medium
+              color: Style.textPrimary; elide: Text.ElideRight; Layout.fillWidth: true
             }
 
             Text {
-              text: root.liveMuted
-                ? "Sessize alındı"
-                : ("Düzey: %" + root.liveVolumePct + "  •  Sınır: %" + root.activeMaxVolume)
-              font.family: Style.fontText
-              font.pixelSize: 11
+              text: root.liveMuted ? "Sessize alındı" : ("Düzey: %" + root.liveVolumePct + "  •  Üst Sınır: %" + root.activeMaxVolume)
+              font.family: Style.fontText; font.pixelSize: 11
               color: root.liveVolumePct > 100 ? Style.accentOrange : Style.textMuted
-              Layout.fillWidth: true
-              elide: Text.ElideRight
             }
-          }
-
-          SettingsButton {
-            visible: !root.liveMuted && root.liveVolumePct > 100
-            text: "%100'e İndir"
-            onClicked: root.setSinkVolume(100)
           }
 
           SettingsButton {
@@ -349,11 +258,11 @@ Flickable {
           }
         }
 
-        // Interactive Volume Capsule Slider
+        // Interactive Volume Slider
         Rectangle {
           id: previewSlider
           Layout.fillWidth: true
-          implicitHeight: 32
+          implicitHeight: 34
           radius: 8
           color: Style.appBackground
           border.color: Style.appBorder
@@ -366,9 +275,7 @@ Flickable {
             radius: 8
             color: (!root.liveMuted && root.liveVolumePct >= 135)
               ? Qt.alpha(Style.accentRed, 0.34)
-              : ((!root.liveMuted && root.liveVolumePct > 100)
-                ? Qt.alpha(Style.accentOrange, 0.32)
-                : Qt.alpha(Style.accent, 0.24))
+              : ((!root.liveMuted && root.liveVolumePct > 100) ? Qt.alpha(Style.accentOrange, 0.32) : Qt.alpha(Style.accent, 0.24))
 
             Behavior on width {
               enabled: !previewSliderMouse.pressed
@@ -379,70 +286,75 @@ Flickable {
           Rectangle {
             visible: root.overAmplification
             x: Math.round(parent.width * (100.0 / root.activeMaxVolume))
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.topMargin: 6
-            anchors.bottomMargin: 6
-            width: 1.5
-            radius: 1
-            color: Style.textMuted
-            opacity: 0.55
+            anchors.top: parent.top; anchors.bottom: parent.bottom; anchors.topMargin: 6; anchors.bottomMargin: 6
+            width: 1; color: Style.textMuted; opacity: 0.6
           }
 
           RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-
+            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
             Text {
-              text: root.liveMuted ? "Sessiz" : (root.liveVolumePct > 100 ? "Yükseltilmiş" : "Ses Düzeyi")
-              font.family: Style.fontText
-              font.pixelSize: 12
-              font.weight: Font.Medium
+              text: root.liveMuted ? "Sessiz" : (root.liveVolumePct > 100 ? "Yükseltilmiş Ses" : "Ses Düzeyi")
+              font.family: Style.fontText; font.pixelSize: 12; font.weight: Font.Medium
               color: root.liveMuted ? Style.accentRed : (root.liveVolumePct > 100 ? Style.accentOrange : Style.textSecondary)
               Layout.fillWidth: true
             }
-
             Text {
-              text: root.liveMuted ? "0%" : ("%" + root.liveVolumePct)
-              font.family: Style.fontDisplay
-              font.pixelSize: 12
-              font.weight: Font.DemiBold
-              color: root.liveMuted ? Style.accentRed : (root.liveVolumePct >= 135 ? Style.accentRed : (root.liveVolumePct > 100 ? Style.accentOrange : Style.textPrimary))
+              text: root.liveMuted ? "%0" : ("%" + root.liveVolumePct)
+              font.family: Style.fontDisplay; font.pixelSize: 12; font.weight: Font.DemiBold
+              color: root.liveMuted ? Style.accentRed : (root.liveVolumePct > 100 ? Style.accentOrange : Style.textPrimary)
             }
           }
 
           MouseArea {
             id: previewSliderMouse
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            preventStealing: true
-
-            function updateVol(mouse) {
-              let pct = (mouse.x / width) * root.activeMaxVolume
-              root.setSinkVolume(pct)
-            }
-
+            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; preventStealing: true
+            function updateVol(mouse) { root.setSinkVolume((mouse.x / width) * root.activeMaxVolume) }
             onPressed: mouse => updateVol(mouse)
             onPositionChanged: mouse => { if (pressed) updateVol(mouse) }
-            onClicked: mouse => updateVol(mouse)
-            onWheel: wheel => {
-              let delta = wheel.angleDelta.y > 0 ? 5 : -5
-              root.setSinkVolume(root.liveVolumePct + delta)
+          }
+        }
+
+        // Quick Volume Presets
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: 6
+
+          Repeater {
+            model: root.overAmplification ? [25, 50, 75, 100, 125, 150] : [25, 50, 75, 100]
+            delegate: Rectangle {
+              required property int modelData
+              readonly property bool isCurrent: !root.liveMuted && Math.abs(root.liveVolumePct - modelData) <= 2
+              Layout.fillWidth: true
+              height: 26
+              radius: 6
+              color: isCurrent ? Qt.alpha(Style.accent, 0.16) : (pMouse.containsMouse ? Style.surfaceHover : Style.appBackground)
+              border.color: isCurrent ? Style.accent : Style.appBorder
+              border.width: 1
+
+              Text {
+                anchors.centerIn: parent
+                text: "%" + modelData
+                font.family: Style.fontDisplay; font.pixelSize: 11; font.weight: isCurrent ? Font.DemiBold : Font.Normal
+                color: isCurrent ? Style.accent : Style.textSecondary
+              }
+
+              MouseArea {
+                id: pMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                onClicked: root.setSinkVolume(modelData)
+              }
             }
           }
         }
       }
     }
 
-    // 2. Over-Amplification (%150 Boost)
+    // 2. Over-Amplification
     ColumnLayout {
       Layout.fillWidth: true
-      spacing: 6
+      spacing: 8
 
       SettingsSectionHeader {
-        titleText: "Ses Yükseltme (Over-Amplification)"
+        titleText: "Ses Yükseltme"
       }
 
       SettingsCard {
@@ -450,8 +362,8 @@ Flickable {
           iconText: "󰕾"
           iconColor: root.overAmplification ? Style.accentOrange : Style.textSecondary
           title: "Maksimum Sesi %150'ye Çıkar"
-          subtitle: "Tüm kaydırıcılarda ve kısayollarda üst sınırı %150 yapar."
-          showDivider: root.overAmplification
+          subtitle: "Tüm kaydırıcı ve ses tuşlarında üst sınırı %150 yapar; kapatılınca %100'e indirir."
+          showDivider: false
 
           SettingsToggle {
             checked: root.overAmplification
@@ -466,94 +378,45 @@ Flickable {
             }
           }
         }
-
-        Rectangle {
-          visible: root.overAmplification
-          Layout.fillWidth: true
-          implicitHeight: warnRow.implicitHeight + 18
-          color: Qt.alpha(Style.accentOrange, 0.08)
-
-          RowLayout {
-            id: warnRow
-            anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            anchors.topMargin: 9
-            anchors.bottomMargin: 9
-            spacing: 10
-
-            Text {
-              text: "󰀪"
-              font.pixelSize: 14
-              color: Style.accentOrange
-              Layout.alignment: Qt.AlignTop
-            }
-
-            Text {
-              text: "%100 üzeri yükseltme yüksek donanım kazancında seste bozulmaya yol açabilir. Kapatıldığında %100 üzerindeki sesler otomatik olarak %100'e çekilir."
-              font.family: Style.fontText
-              font.pixelSize: 11
-              color: Style.textSecondary
-              wrapMode: Text.WordWrap
-              Layout.fillWidth: true
-            }
-          }
-        }
       }
     }
 
-    // 3. Audio Feedback & Corner HUD OSD
+    // 3. Feedback & OSD
     ColumnLayout {
       Layout.fillWidth: true
-      spacing: 6
+      spacing: 8
 
       SettingsSectionHeader {
-        titleText: "Geri Bildirim & Ekran Göstergesi"
+        titleText: "Geri Bildirim ve Gösterge"
       }
 
       SettingsCard {
         SettingsRow {
           iconText: "󰎆"
           title: "Ses Geri Bildirim Efektleri"
-          subtitle: "Sistem ses olaylarında akustik efekt çalınmasını etkinleştirir."
+          subtitle: "Ses seviyesi değiştiğinde kısa akustik bildirim sesi çalar."
           showDivider: true
 
           SettingsToggle {
-            checked: root.feedbackEnabled
+            checked: root.feedbackEnabled && root.volumeChangeSound
             onToggled: isChecked => {
               root.feedbackEnabled = isChecked
-              root.saveSoundSettings()
-            }
-          }
-        }
-
-        SettingsRow {
-          iconText: "󰂚"
-          title: "Ses Değişimi Pop Sesi"
-          subtitle: "Ses düzeyi değiştirildiğinde kısa geri bildirim sesi çalar."
-          showDivider: true
-
-          SettingsToggle {
-            checked: root.volumeChangeSound
-            onToggled: isChecked => {
               root.volumeChangeSound = isChecked
               root.saveSoundSettings()
             }
           }
         }
 
-        SettingsNumberRow {
+        SettingsSliderRow {
+          visible: root.feedbackEnabled
           iconText: "󰔛"
-          title: "Geri Bildirim Gecikmesi"
-          subtitle: "Kaydırıcı veya tuş basılı tutulduğunda çalma sıklığı."
+          title: "Efekt Tekrar Aralığı"
+          subtitle: "Ses tuşu basılı tutulduğunda çalma sıklığı."
           value: root.feedbackThrottleMs
-          minValue: 50
-          maxValue: 500
-          step: 25
-          unit: "ms"
+          minValue: 50; maxValue: 400; step: 25; unit: "ms"
           showDivider: true
           onValueModified: val => {
-            root.feedbackThrottleMs = val
+            root.feedbackThrottleMs = Math.round(val)
             root.saveSoundSettings()
           }
         }
@@ -561,7 +424,7 @@ Flickable {
         SettingsRow {
           iconText: "󰍹"
           title: "Köşe Ses Göstergesi (Corner HUD)"
-          subtitle: "Ses değiştiğinde sol-üst köşede kompakt bildirim gösterir."
+          subtitle: "Ses değiştiğinde ekranın sol-üst köşesinde kompakt gösterge açar."
           showDivider: false
 
           SettingsToggle {
